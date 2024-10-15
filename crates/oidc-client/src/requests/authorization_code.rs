@@ -528,14 +528,12 @@ pub async fn access_token_with_authorization_code(
     .await?;
 
     let id_token = if let Some(verification_data) = id_token_verification_data {
-        let signing_alg = verification_data.signing_algorithm;
-
         let id_token = token_response
             .id_token
             .as_deref()
             .ok_or(IdTokenError::MissingIdToken)?;
 
-        let id_token = verify_id_token(id_token, verification_data, None, now)?;
+        let (id_token, signing_alg) = verify_id_token(id_token, verification_data, None, now)?;
 
         let mut claims = id_token.payload().clone();
 
@@ -543,13 +541,13 @@ pub async fn access_token_with_authorization_code(
         claims::AT_HASH
             .extract_optional_with_options(
                 &mut claims,
-                TokenHash::new(signing_alg, &token_response.access_token),
+                TokenHash::new(&signing_alg, &token_response.access_token),
             )
             .map_err(IdTokenError::from)?;
 
         // Code hash must match.
         claims::C_HASH
-            .extract_optional_with_options(&mut claims, TokenHash::new(signing_alg, &code))
+            .extract_optional_with_options(&mut claims, TokenHash::new(&signing_alg, &code))
             .map_err(IdTokenError::from)?;
 
         // Nonce must match.

@@ -102,14 +102,14 @@ pub struct JwtVerificationData<'a> {
 pub fn verify_signed_jwt<'a>(
     jwt: &'a str,
     verification_data: JwtVerificationData<'_>,
-) -> Result<Jwt<'a, HashMap<String, Value>>, JwtVerificationError> {
+) -> Result<(Jwt<'a, HashMap<String, Value>>, JsonWebSignatureAlg), JwtVerificationError> {
     tracing::debug!("Validating JWT...");
 
     let JwtVerificationData {
         issuer,
         jwks,
         client_id,
-        signing_algorithm,
+        signing_algorithm: _,
     } = verification_data;
 
     let jwt: Jwt<HashMap<String, Value>> = jwt.try_into()?;
@@ -124,12 +124,7 @@ pub fn verify_signed_jwt<'a>(
     // Must have the proper audience.
     claims::AUD.extract_required_with_options(&mut claims, client_id)?;
 
-    // Must use the proper algorithm.
-    if header.alg() != signing_algorithm {
-        return Err(JwtVerificationError::WrongSignatureAlg);
-    }
-
-    Ok(jwt)
+    Ok((jwt, header.alg().clone()))
 }
 
 /// Decode and verify an ID Token.
@@ -167,8 +162,8 @@ pub fn verify_id_token<'a>(
     verification_data: JwtVerificationData<'_>,
     auth_id_token: Option<&IdToken<'_>>,
     now: DateTime<Utc>,
-) -> Result<IdToken<'a>, IdTokenError> {
-    let id_token = verify_signed_jwt(id_token, verification_data)?;
+) -> Result<(IdToken<'a>, JsonWebSignatureAlg), IdTokenError> {
+    let (id_token, signing_alg) = verify_signed_jwt(id_token, verification_data)?;
 
     let mut claims = id_token.payload().clone();
 
@@ -202,5 +197,5 @@ pub fn verify_id_token<'a>(
         }
     }
 
-    Ok(id_token)
+    Ok((id_token, signing_alg))
 }

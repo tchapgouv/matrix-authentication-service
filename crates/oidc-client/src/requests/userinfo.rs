@@ -108,10 +108,9 @@ pub async fn fetch_userinfo(
     let response_body = std::str::from_utf8(userinfo_response.body())?;
 
     let mut claims = if let Some(verification_data) = jwt_verification_data {
-        verify_signed_jwt(response_body, verification_data)
-            .map_err(IdTokenError::from)?
-            .into_parts()
-            .1
+        let (id_token, _) =
+            verify_signed_jwt(response_body, verification_data).map_err(IdTokenError::from)?;
+        id_token.into_parts().1
     } else {
         serde_json::from_str(response_body)?
     };

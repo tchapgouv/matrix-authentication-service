@@ -97,9 +97,9 @@ pub async fn refresh_access_token(
         id_token_verification_data.zip(token_response.id_token.as_ref())
     {
         let auth_id_token = auth_id_token.ok_or(IdTokenError::MissingAuthIdToken)?;
-        let signing_alg = verification_data.signing_algorithm;
 
-        let id_token = verify_id_token(id_token, verification_data, Some(auth_id_token), now)?;
+        let (id_token, signing_alg) =
+            verify_id_token(id_token, verification_data, Some(auth_id_token), now)?;
 
         let mut claims = id_token.payload().clone();
 
@@ -107,7 +107,7 @@ pub async fn refresh_access_token(
         claims::AT_HASH
             .extract_optional_with_options(
                 &mut claims,
-                TokenHash::new(signing_alg, &token_response.access_token),
+                TokenHash::new(&signing_alg, &token_response.access_token),
             )
             .map_err(IdTokenError::from)?;
 
