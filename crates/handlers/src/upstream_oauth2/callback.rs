@@ -254,7 +254,9 @@ pub(crate) async fn get(
             &id_token_map.ok_or(RouteError::MissingIDToken)?,
         )
         .await?;
-        minijinja::Value::from_serialize(&user_info_resp)
+        let mut all = id_token.clone();
+        all.extend(user_info_resp);
+        minijinja::Value::from_serialize(&all)
     } else {
         minijinja::Value::from_serialize(&id_token)
     };
