@@ -275,7 +275,7 @@ impl AuthorizationGrant {
             state: Some(Alphanumeric.sample_string(rng, 10)),
             nonce: Some(Alphanumeric.sample_string(rng, 10)),
             max_age: None,
-            response_mode: ResponseMode::Query,
+            response_mode: ResponseMode::Fragment,
             response_type_id_token: false,
             created_at: now,
             requires_consent: false,
