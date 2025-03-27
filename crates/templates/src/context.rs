@@ -368,6 +368,9 @@ pub enum LoginFormField {
     /// The username field
     Username,
 
+    /// The email field
+    Email,
+
     /// The password field
     Password,
 }
@@ -376,6 +379,7 @@ impl FormField for LoginFormField {
     fn keep(&self) -> bool {
         match self {
             Self::Username => true,
+            Self::Email => true,
             Self::Password => false,
         }
     }

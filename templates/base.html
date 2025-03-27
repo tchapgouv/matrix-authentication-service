@@ -9,6 +9,7 @@ Please see LICENSE in the repository root for full details.
 {% set _ = translator(lang) %}
 
 {% import "components/button.html" as button %}
+{% import "components/tab.html" as tab %}
 {% import "components/field.html" as field %}
 {% import "components/back_to_client.html" as back_to_client %}
 {% import "components/logout.html" as logout %}
@@ -26,11 +27,13 @@ Please see LICENSE in the repository root for full details.
     {{ include_asset('src/shared.css') | indent(4) | safe }}
     {{ include_asset('src/templates.css') | indent(4) | safe }}
     {{ captcha.head() }}
+    {{ tab.head() }}
   </head>
   <body>
     <div class="layout-container{% if consent_page %} consent{% endif %}">
       {% block content %}{% endblock content %}
       {% include "components/footer.html" %}
     </div>
+    {{ tab.script() }}
   </body>
 </html>
