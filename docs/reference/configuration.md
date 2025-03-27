@@ -314,6 +314,12 @@ account:
   #
   # Defaults to `true`.
   account_deactivation_allowed: true
+
+  # Whether users can log in with their email address.
+  #
+  # Defaults to `false`.
+  # Depends if password login is enabled.
+  login_with_email_allowed: false
 ```
 
 ## `captcha`
