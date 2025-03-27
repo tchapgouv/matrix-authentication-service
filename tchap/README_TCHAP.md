@@ -1,3 +1,25 @@
+## Build 
+
+https://element-hq.github.io/matrix-authentication-service/setup/installation.html#building-from-the-source
+
+frontend 
+
+```
+cd frontend
+npm ci
+npm run build
+cd ..
+```
+
+
+policies
+```
+cd policies
+make DOCKER=1
+cd ..
+```
+
+
 ## To run
 
 ```
