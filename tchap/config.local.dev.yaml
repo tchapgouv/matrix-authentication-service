@@ -118,6 +118,18 @@ clients:
   - client_id: 0000000000000000000SYNAPSE
     client_auth_method: client_secret_basic
     client_secret: '/DjWc4D3yyqgjYN8tum65g'
+  
+  # for api admin calls
+  - client_id: 01J44RKQYM4G3TNVANTMTDYTX6
+    client_auth_method: client_secret_basic
+    client_secret: phoo8ahneir3ohY2eigh4xuu6Oodaewi
+
+
+policy:
+  data:
+    admin_clients:
+      # for api admin calls
+      - 01J44RKQYM4G3TNVANTMTDYTX6
 
 account:
   # Whether users are allowed to change their email addresses.
@@ -166,23 +178,23 @@ account:
 #  translations_path: /to/translations
 
 
-upstream_oauth2:
-  providers:
-    - id: "01JK5MR1SD21MAQY4PWMFG283W"
-      issuer: "https://tchap-connect.tchapgouv.com/realms/tchap"
-      token_endpoint_auth_method: client_secret_basic
-      client_id: "matrix-authentication-service"
-      client_secret: "HrJ1NZ0AbkHuWWjyRHh7X2lzn3S8eagt"
-      scope: "openid profile email"
-      claims_imports:
-        localpart:
-          action: force
-          template: "{{ user.preferred_username }}"
-        displayname:
-          action: force
-          template: "{{ user.name }}"
-        email:
-          action: force
-          template: "{{ user.email }}"
-          set_email_verification: always
-      allow_existing_users: true
+# upstream_oauth2:
+#   providers:
+#     - id: "01JK5MR1SD21MAQY4PWMFG283W"
+#       issuer: "https://tchap-connect.tchapgouv.com/realms/tchap"
+#       token_endpoint_auth_method: client_secret_basic
+#       client_id: "matrix-authentication-service"
+#       client_secret: "HrJ1NZ0AbkHuWWjyRHh7X2lzn3S8eagt"
+#       scope: "openid profile email"
+#       claims_imports:
+#         localpart:
+#           action: force
+#           template: "{{ user.preferred_username }}"
+#         displayname:
+#           action: force
+#           template: "{{ user.name }}"
+#         email:
+#           action: force
+#           template: "{{ user.email }}"
+#           set_email_verification: always
+#       allow_existing_users: true
