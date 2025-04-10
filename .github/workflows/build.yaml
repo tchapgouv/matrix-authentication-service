@@ -3,7 +3,7 @@ name: Build
 on:
   push:
     branches:
-      - main
+      - tchap
       - "release/**"
     tags:
       - "v*"
@@ -22,9 +22,9 @@ env:
   CARGO_NET_GIT_FETCH_WITH_CLI: "true"
   SCCACHE_GHA_ENABLED: "true"
   RUSTC_WRAPPER: "sccache"
-  IMAGE: ghcr.io/element-hq/matrix-authentication-service
-  IMAGE_SYN2MAS: ghcr.io/element-hq/matrix-authentication-service/syn2mas
-  BUILDCACHE: ghcr.io/element-hq/matrix-authentication-service/buildcache
+  IMAGE: ghcr.io/tchapgouv/matrix-authentication-service
+  IMAGE_SYN2MAS: ghcr.io/tchapgouv/matrix-authentication-service/syn2mas
+  BUILDCACHE: ghcr.io/tchapgouv/matrix-authentication-service/buildcache
   DOCKER_METADATA_ANNOTATIONS_LEVELS: manifest,index
 
 jobs:
@@ -313,7 +313,7 @@ jobs:
         # Only sign on tags and on commits on main branch
         if: |
           github.event_name != 'pull_request'
-          && (startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/main')
+          && (startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/tchap')
 
         env:
           REGULAR_DIGEST: ${{ steps.output.outputs.metadata && fromJSON(steps.output.outputs.metadata).regular.digest }}
@@ -329,7 +329,7 @@ jobs:
   syn2mas:
     name: Release syn2mas on NPM
     runs-on: ubuntu-24.04
-    if: github.event_name != 'pull_request'
+    if: 'false'
 
     permissions:
       contents: read
@@ -422,7 +422,7 @@ jobs:
 
   unstable:
     name: Update the unstable release
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/tchap'
     runs-on: ubuntu-24.04
 
     needs:
