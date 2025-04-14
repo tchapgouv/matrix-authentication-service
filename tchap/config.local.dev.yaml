@@ -32,7 +32,7 @@ http:
   public_base: https://auth.tchapgouv.com/
   issuer: https://auth.tchapgouv.com/
 database:
-  uri: postgresql://postgres:postgres@localhost/postgres
+  uri: postgresql://postgres:postgres@localhost:5432/postgres
   max_connections: 10
   min_connections: 0
   connect_timeout: 30
@@ -178,23 +178,25 @@ account:
 #  translations_path: /to/translations
 
 
-# upstream_oauth2:
-#   providers:
-#     - id: "01JK5MR1SD21MAQY4PWMFG283W"
-#       issuer: "https://tchap-connect.tchapgouv.com/realms/tchap"
-#       token_endpoint_auth_method: client_secret_basic
-#       client_id: "matrix-authentication-service"
-#       client_secret: "HrJ1NZ0AbkHuWWjyRHh7X2lzn3S8eagt"
-#       scope: "openid profile email"
-#       claims_imports:
-#         localpart:
-#           action: force
-#           template: "{{ user.preferred_username }}"
-#         displayname:
-#           action: force
-#           template: "{{ user.name }}"
-#         email:
-#           action: force
-#           template: "{{ user.email }}"
-#           set_email_verification: always
-#       allow_existing_users: true
+upstream_oauth2:
+  providers:
+    - id: "01JK5MR1SD21MAQY4PWMFG283W"
+      client_name: Proconnect (mock)
+      human_name: Proconnect (mock)
+      issuer: "http://localhost:8082/realms/proconnect-mock"
+      token_endpoint_auth_method: client_secret_basic
+      client_id: "mas"
+      client_secret: "HrJ1NZ0AbkHuWWjyRHh7X2lzn3S8eagt"
+      scope: "openid profile email"
+      claims_imports:
+        localpart:
+          action: require #TODO localpart should be a random generated but how to do it? Doing the legacy way for now
+          template: "{{ user.email | email_to_mxid_localpart }}"
+        displayname:
+          action: require
+          template: "{{ user.email | email_to_display_name }}"
+        email:
+          action: require
+          template: "{{ user.email }}"
+          set_email_verification: always
+      allow_existing_users: true
