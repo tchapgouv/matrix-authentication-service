@@ -18,3 +18,18 @@ curl \
    -H "Authorization: Bearer $ACCESS_TOKEN" \
    "https://$MAS_HOST/api/admin/v1/users?filter[can_request_admin]=true&filter[status]=active&page[first]=100" \
    | jq
+
+
+curl \
+   -g \
+   -H "Authorization: Bearer $ACCESS_TOKEN" \
+   "https://$MAS_HOST/api/admin/v1/users/01JQXHKZNKNSVE2V15MZR3E6QV" \
+   | jq
+
+
+curl \
+   -g \
+   -H "Authorization: Bearer $ACCESS_TOKEN" \
+   "https://$MAS_HOST/api/admin/v1/user-emails" \
+   | jq
+
