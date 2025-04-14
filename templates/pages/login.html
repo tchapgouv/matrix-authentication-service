@@ -76,10 +76,15 @@ Please see LICENSE files in the repository root for full details.
         {% set params = next["params"] | default({}) | to_params(prefix="?") %}
         {% for provider in providers %}
           {% set name = provider.human_name or (provider.issuer | simplify_url(keep_path=True)) or provider.id %}
-          <a class="cpd-button {%- if provider.brand_name %} has-icon {%- endif %}" data-kind="secondary" data-size="lg" href="{{ ('/upstream/authorize/' ~ provider.id ~ params) | prefix_url }}">
+          <div>
+            <button class="proconnect-button" onclick="window.location.href = '{{ ('/upstream/authorize/' ~ provider.id ~ params) | prefix_url }}';">
+              <span class="proconnect-sr-only">S'identifier avec ProConnect</span>
+            </button>
+          </div>
+          <!-- <a class="cpd-button {%- if provider.brand_name %} has-icon {%- endif %}" data-kind="secondary" data-size="lg" href="{{ ('/upstream/authorize/' ~ provider.id ~ params) | prefix_url }}">
             {{ logo(provider.brand_name) }}
             {{ _("mas.login.continue_with_provider", provider=name) }}
-          </a>
+          </a> -->
         {% endfor %}
       {% endif %}
     </div>
