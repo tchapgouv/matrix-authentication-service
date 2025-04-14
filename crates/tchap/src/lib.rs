@@ -84,7 +84,6 @@ pub fn email_to_mxid_localpart(address: &str) -> String {
 /// This function:
 /// 1. Replaces dots with spaces in the username part
 /// 2. Determines the organization based on domain rules:
-///    - matrix.org emails are marked as "Tchap Admin"
 ///    - gouv.fr emails use the subdomain or "gouv" if none
 ///    - other emails use the second-level domain
 /// 3. Returns a display name in the format "Username [Organization]"
@@ -111,10 +110,7 @@ pub fn email_to_display_name(address: &str) -> String {
     // Figure out which org this email address belongs to
     let domain_parts: Vec<&str> = domain.split('.').collect();
     
-    let org = if domain_parts.len() >= 2 && domain_parts[domain_parts.len() - 2] == "matrix" && domain_parts[domain_parts.len() - 1] == "org" {
-        // If this is a ...matrix.org email, mark them as an Admin
-        "Tchap Admin"
-    } else if domain_parts.len() >= 2 && domain_parts[domain_parts.len() - 2] == "gouv" && domain_parts[domain_parts.len() - 1] == "fr" {
+    let org = if domain_parts.len() >= 2 && domain_parts[domain_parts.len() - 2] == "gouv" && domain_parts[domain_parts.len() - 1] == "fr" {
         // Is this is a ...gouv.fr address, set the org to whatever is before
         // gouv.fr. If there isn't anything (a @gouv.fr email) simply mark their
         // org as "gouv"
@@ -149,12 +145,6 @@ mod tests {
 
     #[test]
     fn test_email_to_display_name() {
-        // Test matrix.org email
-        assert_eq!(
-            email_to_display_name("john.doe@matrix.org"),
-            "John Doe [Tchap Admin]"
-        );
-
         // Test gouv.fr email with subdomain
         assert_eq!(
             email_to_display_name("jane.smith@example.gouv.fr"),
@@ -165,6 +155,18 @@ mod tests {
         assert_eq!(
             email_to_display_name("user@gouv.fr"),
             "User [Gouv]"
+        );
+
+        // Test gouv.fr email with subdomain
+        assert_eq!(
+            email_to_display_name("user@gendarmerie.gouv.fr"),
+            "User [Gendarmerie]"
+        );
+
+        // Test gouv.fr email with subdomain
+        assert_eq!(
+            email_to_display_name("user@gendarmerie.interieur.gouv.fr"),
+            "User [Interieur]"
         );
 
         // Test regular email
