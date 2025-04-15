@@ -12,10 +12,7 @@ test-results/
 playwright/.cache/
 
 # Environment variables
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
+.env
 
 # Build artifacts
 dist/
