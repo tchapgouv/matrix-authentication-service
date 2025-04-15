@@ -1213,6 +1213,16 @@
           "items": {
             "$ref": "#/definitions/Propagator"
           }
+        },
+        "sample_rate": {
+          "description": "Sample rate for traces\n\nDefaults to `1.0` if not set.",
+          "examples": [
+            0.5
+          ],
+          "type": "number",
+          "format": "double",
+          "maximum": 1.0,
+          "minimum": 0.0
         }
       }
     },
@@ -1333,6 +1343,33 @@
           ],
           "type": "string",
           "format": "uri"
+        },
+        "environment": {
+          "description": "Environment to use when sending events to Sentry\n\nDefaults to `production` if not set.",
+          "examples": [
+            "production"
+          ],
+          "type": "string"
+        },
+        "sample_rate": {
+          "description": "Sample rate for event submissions\n\nDefaults to `1.0` if not set.",
+          "examples": [
+            0.5
+          ],
+          "type": "number",
+          "format": "float",
+          "maximum": 1.0,
+          "minimum": 0.0
+        },
+        "traces_sample_rate": {
+          "description": "Sample rate for tracing transactions\n\nDefaults to `0.0` if not set.",
+          "examples": [
+            0.5
+          ],
+          "type": "number",
+          "format": "float",
+          "maximum": 1.0,
+          "minimum": 0.0
         }
       }
     },
@@ -1945,7 +1982,7 @@
           "type": "string"
         },
         "brand_name": {
-          "description": "A brand identifier used to customise the UI, e.g. `apple`, `google`, `github`, etc.\n\nValues supported by the default template are:\n\n- `apple` - `google` - `facebook` - `github` - `gitlab` - `twitter`",
+          "description": "A brand identifier used to customise the UI, e.g. `apple`, `google`, `github`, etc.\n\nValues supported by the default template are:\n\n- `apple` - `google` - `facebook` - `github` - `gitlab` - `twitter` - `discord`",
           "type": "string"
         },
         "client_id": {
@@ -2466,6 +2503,10 @@
         },
         "account_deactivation_allowed": {
           "description": "Whether users are allowed to delete their own account. Defaults to `true`.",
+          "type": "boolean"
+        },
+        "login_with_email_allowed": {
+          "description": "Whether users can log in with their email address. Defaults to `false`.\n\nThis has no effect if password login is disabled.",
           "type": "boolean"
         }
       }

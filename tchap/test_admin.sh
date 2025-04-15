@@ -38,3 +38,4 @@ curl \
    -H "Authorization: Bearer $ACCESS_TOKEN" \
    "https://$MAS_HOST/api/admin/v1/user-emails" \
    | jq
+   

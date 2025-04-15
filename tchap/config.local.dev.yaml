@@ -177,7 +177,6 @@ account:
 #  # Default in locally-built binaries: `./translations/`
 #  translations_path: /to/translations
 
-
 upstream_oauth2:
   providers:
     - id: "01JK5MR1SD21MAQY4PWMFG283W"
