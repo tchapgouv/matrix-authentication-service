@@ -27,6 +27,8 @@ Ces scripts démarrent les services nécessaires pour les tests :
 - Keycloak avec le realm `proconnect-mock` préconfiguré
 - Matrix Authentication Service configuré pour utiliser Keycloak comme fournisseur OIDC
 
+Les entrees DNS doivent etre présentes dans le fichier hosts
+
 ## Installation
 
 Pour initialiser rapidement le projet, utilisez le script d'initialisation :
@@ -44,12 +46,6 @@ Ce script va :
 - Installer les dépendances npm
 - Installer les navigateurs Playwright
 
-Ensuite, configurez les entrées hosts pour le développement local :
-
-```bash
-# Configurer les entrées hosts (nécessite sudo)
-sudo ./setup-hosts.sh
-```
 
 Vous pouvez également effectuer ces étapes manuellement :
 
@@ -101,48 +97,6 @@ npm run test:debug
 npm run test:ui
 ```
 
-## Structure du projet
-
-- `tests/` - Les fichiers de test
-  - `oidc-auth.spec.ts` - Test du flux d'authentification OIDC
-  - `utils/` - Fonctions utilitaires
-    - `config.ts` - Configuration et variables d'environnement
-    - `keycloak-admin.ts` - Fonctions pour gérer les utilisateurs Keycloak
-    - `mas-admin.ts` - Fonctions pour vérifier les utilisateurs dans MAS
-    - `auth-helpers.ts` - Fonctions d'aide pour l'authentification
-- `fixtures/` - Fixtures Playwright
-  - `auth-fixture.ts` - Fixture pour la configuration d'authentification
-- `playwright.config.ts` - Configuration Playwright
-- `.env` - Variables d'environnement
-
-## Fonctionnalités
-
-Les tests vérifient les fonctionnalités suivantes :
-
-1. Création d'un utilisateur de test dans Keycloak
-2. Authentification via OIDC (Keycloak)
-3. Vérification que l'utilisateur est correctement créé dans MAS
-4. Nettoyage de l'utilisateur de test après les tests
-
 ## Captures d'écran
 
 Les tests génèrent des captures d'écran à chaque étape importante du processus d'authentification. Ces captures sont enregistrées dans le répertoire `playwright-results/`.
-
-## Dépannage
-
-Si vous rencontrez des problèmes avec les tests, vérifiez les points suivants :
-
-1. Assurez-vous que Keycloak et MAS sont accessibles aux URLs configurées
-2. Vérifiez que les identifiants admin pour Keycloak et MAS sont corrects
-3. Consultez les captures d'écran dans le répertoire `playwright-results/` pour voir où le test a échoué
-
-### Avantages de l'architecture
-
-#### Utilisation de l'API Playwright
-
-Ce projet utilise l'API Playwright (`APIRequestContext`) pour toutes les requêtes HTTP, ce qui présente plusieurs avantages :
-
-1. **Intégration native** avec le framework de test Playwright
-2. **Pas de dépendances externes** pour les requêtes HTTP
-3. **Partage du contexte** entre les tests UI et les appels API
-4. **Gestion simplifiée** des en-têtes, cookies et autres paramètres de requête
