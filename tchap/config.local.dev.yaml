@@ -178,23 +178,24 @@ account:
 #  translations_path: /to/translations
 
 
-# upstream_oauth2:
-#   providers:
-#     - id: "01JK5MR1SD21MAQY4PWMFG283W"
-#       issuer: "https://tchap-connect.tchapgouv.com/realms/tchap"
-#       token_endpoint_auth_method: client_secret_basic
-#       client_id: "matrix-authentication-service"
-#       client_secret: "HrJ1NZ0AbkHuWWjyRHh7X2lzn3S8eagt"
-#       scope: "openid profile email"
-#       claims_imports:
-#         localpart:
-#           action: force
-#           template: "{{ user.preferred_username }}"
-#         displayname:
-#           action: force
-#           template: "{{ user.name }}"
-#         email:
-#           action: force
-#           template: "{{ user.email }}"
-#           set_email_verification: always
-#       allow_existing_users: true
+upstream_oauth2:
+  providers:
+    - id: "01JK5MR1SD21MAQY4PWMFG283W"
+      human_name: Proconnect (mock)
+      issuer: "https://sso.tchapgouv.com/realms/proconnect-mock"
+      token_endpoint_auth_method: client_secret_basic
+      client_id: "mas"
+      client_secret: "HrJ1NZ0AbkHuWWjyRHh7X2lzn3S8eagt"
+      scope: "openid profile email"
+      claims_imports:
+        localpart:
+          action: force
+          template: "{{ user.preferred_username }}"
+        displayname:
+          action: force
+          template: "{{ user.name }}"
+        email:
+          action: force
+          template: "{{ user.email }}"
+          set_email_verification: always
+      allow_existing_users: true

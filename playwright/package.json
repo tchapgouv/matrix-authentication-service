@@ -1,0 +1,26 @@
+{
+  "name": "mas-playwright-tests",
+  "version": "1.0.0",
+  "description": "Playwright tests for Matrix Authentication Service OIDC authentication",
+  "main": "index.js",
+  "scripts": {
+    "test": "playwright test",
+    "test:headed": "playwright test --headed",
+    "test:debug": "playwright test --debug",
+    "test:ui": "playwright test --ui"
+  },
+  "keywords": [
+    "playwright",
+    "testing",
+    "oidc",
+    "keycloak"
+  ],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@playwright/test": "^1.40.0",
+    "@types/node": "^20.10.0",
+    "dotenv": "^16.3.1",
+    "typescript": "^5.3.2"
+  }
+}
