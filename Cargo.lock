@@ -3319,6 +3319,7 @@ dependencies = [
  "mas-router",
  "mas-storage",
  "mas-storage-pg",
+ "mas-tchap",
  "mas-templates",
  "mime",
  "minijinja",
@@ -3697,6 +3698,10 @@ dependencies = [
  "tracing-opentelemetry",
  "ulid",
 ]
+
+[[package]]
+name = "mas-tchap"
+version = "0.1.0"
 
 [[package]]
 name = "mas-templates"
