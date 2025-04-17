@@ -40,6 +40,7 @@ use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use tracing::warn;
 use ulid::Ulid;
+use tchap;
 
 use super::{
     UpstreamSessionsCookie,
@@ -434,7 +435,29 @@ pub(crate) async fn get(
                     &context,
                     provider.claims_imports.email.is_required(),
                 )? {
-                    Some(value) => ctx.with_email(value, provider.claims_imports.email.is_forced()),
+                    Some(value) => {
+                        //:tchap 
+                        let server_name = homeserver.homeserver();             
+                        let is_allowed = tchap::is_email_allowed(&value, &server_name);
+                        if !is_allowed {
+                            // L'email n'est pas autorisé, afficher un message d'erreur
+                            let ctx = ErrorContext::new()
+                                .with_code("Email not allowed")
+                                .with_description(format!(
+                                    "L'adresse email {} n'est pas autorisée sur ce serveur.",
+                                    value
+                                ))
+                                .with_language(&locale);
+
+                            return Ok((
+                                cookie_jar,
+                                Html(templates.render_error(&ctx)?).into_response(),
+                            ));
+                        }
+                        //:tchap: end
+                    
+                        ctx.with_email(value, provider.claims_imports.email.is_forced())
+                    },
                     None => ctx,
                 }
             };

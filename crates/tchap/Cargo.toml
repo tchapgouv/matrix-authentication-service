@@ -1,0 +1,11 @@
+[package]
+name = "tchap"
+version = "0.1.0"
+description = "Tchap-specific functionality for Matrix Authentication Service"
+license = "MIT"
+
+
+[dependencies]
+ureq = { version = "2.6", features = ["json"] }
+serde_json = "1.0"
+tracing = "0.1"
