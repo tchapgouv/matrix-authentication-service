@@ -3,8 +3,6 @@ use tracing::info;
 
 mod identity_client;
 
-
-
 /// Result of checking if an email is allowed on a server
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum EmailAllowedResult {

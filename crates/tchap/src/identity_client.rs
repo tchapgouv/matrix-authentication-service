@@ -42,7 +42,7 @@ fn default_identity_server_url() -> Url {
             );
         }
     }
-    
+
     // Default value if the environment variable is not defined or invalid
     Url::parse("http://localhost:8083").unwrap()
 }
@@ -62,9 +62,7 @@ impl Default for TchapConfig {
 /// # Returns
 ///
 /// A Result containing either the JSON response or an error
-pub async fn query_identity_server(
-    email: &str
-) -> Result<serde_json::Value, reqwest::Error> {
+pub async fn query_identity_server(email: &str) -> Result<serde_json::Value, reqwest::Error> {
     let identity_server_url = default_identity_server_url();
 
     // Construct the URL with the email address
@@ -83,9 +81,9 @@ pub async fn query_identity_server(
 
     // Make the HTTP request asynchronously
     let response = client.get(&url).send().await?;
-    
+
     // Parse the JSON response
     let json = response.json::<serde_json::Value>().await?;
-    
+
     Ok(json)
 }
