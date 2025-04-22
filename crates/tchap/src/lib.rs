@@ -1,10 +1,10 @@
 extern crate tracing;
 use tracing::info;
 
-use reqwest;
 use serde::{Deserialize, Serialize};
-use std::time::Duration;
 use url::Url;
+
+mod identity_client;
 
 /// Configuration for Tchap-specific functionality
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -14,36 +14,36 @@ pub struct TchapConfig {
 }
 
 fn default_identity_server_url() -> Url {
-    // Essayer de lire la variable d'environnement TCHAP_IDENTITY_SERVER_URL
+    // Try to read the TCHAP_IDENTITY_SERVER_URL environment variable
     match std::env::var("TCHAP_IDENTITY_SERVER_URL") {
         Ok(url_str) => {
-            // Tenter de parser l'URL depuis la variable d'environnement
+            // Attempt to parse the URL from the environment variable
             match Url::parse(&url_str) {
                 Ok(url) => {
-                    // Succès : utiliser l'URL de la variable d'environnement
+                    // Success: use the URL from the environment variable
                     return url;
                 }
                 Err(err) => {
-                    // Erreur de parsing : logger un avertissement et utiliser la valeur par défaut
+                    // Parsing error: log a warning and use the default value
                     tracing::warn!(
-                        "La variable d'environnement TCHAP_IDENTITY_SERVER_URL contient une URL invalide : {}. Utilisation de la valeur par défaut.",
+                        "The TCHAP_IDENTITY_SERVER_URL environment variable contains an invalid URL: {}. Using default value.",
                         err
                     );
                 }
             }
         }
         Err(std::env::VarError::NotPresent) => {
-            // Variable non définie : utiliser la valeur par défaut sans avertissement
+            // Variable not defined: use the default value without warning
         }
         Err(std::env::VarError::NotUnicode(_)) => {
-            // Variable contient des caractères non-Unicode : logger un avertissement
+            // Variable contains non-Unicode characters: log a warning
             tracing::warn!(
-                "La variable d'environnement TCHAP_IDENTITY_SERVER_URL contient des caractères non-Unicode. Utilisation de la valeur par défaut."
+                "The TCHAP_IDENTITY_SERVER_URL environment variable contains non-Unicode characters. Using default value."
             );
         }
     }
-
-    // Valeur par défaut si la variable d'environnement n'est pas définie ou invalide
+    
+    // Default value if the environment variable is not defined or invalid
     Url::parse("http://localhost:8083").unwrap()
 }
 
@@ -84,24 +84,13 @@ pub enum EmailAllowedResult {
 pub async fn is_email_allowed(email: &str, server_name: &str) -> EmailAllowedResult {
     // Get the identity server URL from the environment variable or use the default
     let identity_server_url = default_identity_server_url();
-
-    // Construct the URL with the email address
-    let url = format!(
-        "{}_matrix/identity/api/v1/info?medium=email&address={}",
-        identity_server_url, email
+    
+    // Create the client and get the URL using the identity_client module
+    let (url, client) = identity_client::create_identity_client(
+        email, 
+        server_name, 
+        identity_server_url
     );
-
-    info!(
-        "Checking if email {} is allowed on server {}",
-        email, server_name
-    );
-    info!("Making request to identity server: {}", url);
-
-    // Create a client with a timeout
-    let client = reqwest::Client::builder()
-        .timeout(Duration::from_secs(5))
-        .build()
-        .unwrap_or_default();
 
     // Make the HTTP request asynchronously
     match client.get(&url).send().await {
