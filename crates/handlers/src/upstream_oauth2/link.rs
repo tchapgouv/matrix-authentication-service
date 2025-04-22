@@ -40,7 +40,9 @@ use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use tracing::warn;
 use ulid::Ulid;
+//:tchap:
 use tchap::{self, EmailAllowedResult};
+//:tchap: end
 
 use super::{
     UpstreamSessionsCookie,
@@ -436,7 +438,7 @@ pub(crate) async fn get(
                     provider.claims_imports.email.is_required(),
                 )? {
                     Some(value) => {
-                        //:tchap 
+                        //:tchap:
                         let server_name = homeserver.homeserver();             
                         let email_result = 
                             tchap::is_email_allowed(&value, &server_name)
@@ -451,10 +453,10 @@ pub(crate) async fn get(
                                 let ctx = ErrorContext::new()
                                     .with_code("wrong_server")
                                     .with_description(format!(
-                                        "L'adresse email {} est associée à un autre serveur.",
+                                        "Votre adresse mail {} est associée à un autre serveur.",
                                         value
                                     ))
-                                    .with_details(format!("Veuillez vous connecter au serveur approprié pour cette adresse email."))
+                                    .with_details(format!("Veuillez-vous contacter le support de Tchap support@tchap.beta.gouv.fr"))
                                     .with_language(&locale);
                                 
                                 //return error template
@@ -468,10 +470,9 @@ pub(crate) async fn get(
                                 let ctx = ErrorContext::new()
                                     .with_code("invitation_missing")
                                     .with_description(format!(
-                                        "L'adresse email {} nécessite une invitation pour ce serveur.",
-                                        value
+                                        "Vous avez besoin d'une invitation pour accéder à Tchap."
                                     ))
-                                    .with_details(format!("Pour vous connecter à Tchap vous devez avoir une invitation."))
+                                    .with_details(format!("Les partenaires externes peuvent accéder à Tchap uniquement avec une invitation d'un agent public."))
                                     .with_language(&locale);
                                 
                                 //return error template
