@@ -1,5 +1,19 @@
 extern crate tracing;
-use tracing::{info, debug};
+use tracing::info;
+
+use reqwest;
+use std::time::Duration;
+
+/// Result of checking if an email is allowed on a server
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum EmailAllowedResult {
+    /// Email is allowed on this server
+    Allowed,
+    /// Email is mapped to a different server
+    WrongServer,
+    /// Server requires an invitation that is not present
+    InvitationMissing,
+}
 
 
 /// Capitalise parts of a name containing different words, including those
@@ -128,28 +142,21 @@ pub fn email_to_display_name(address: &str) -> String {
 
 /// Checks if an email address is allowed to be associated in the current server
 ///
-/// This function makes a synchronous GET request to the Matrix identity server API
+/// This function makes an asynchronous GET request to the Matrix identity server API
 /// to retrieve information about the home server associated with an email address,
 /// then applies logic to determine if the email is allowed.
-///
-/// The API returns a JSON object with the following structure:
-/// ```json
-/// {
-///   "hs": "string",
-///   "requires_invite": true/false,
-///   "invited": true/false
-/// }
 /// ```
 ///
 /// # Parameters
 ///
 /// * `email`: The email address to check
+/// * `server_name`: The name of the server to check against
 ///
 /// # Returns
 ///
-/// A boolean indicating whether the email is allowed
+/// An `EmailAllowedResult` indicating whether the email is allowed and if not, why
 #[must_use]
-pub fn is_email_allowed(email: &str, server_name: &str) -> bool {
+pub async fn is_email_allowed(email: &str, server_name: &str) -> EmailAllowedResult {
     // Construct the URL with the email address
     let url = format!(
         "http://localhost:8083/_matrix/identity/api/v1/info?medium=email&address={}",
@@ -159,22 +166,27 @@ pub fn is_email_allowed(email: &str, server_name: &str) -> bool {
     info!("Checking if email {} is allowed on server {}", email, server_name);
     info!("Making request to identity server: {}", url);
 
-    // Make the HTTP request synchronously with a timeout
-    match ureq::get(&url)
-        .timeout(std::time::Duration::from_secs(5))
-        .call()
+    // Create a client with a timeout
+    let client = reqwest::Client::builder()
+        .timeout(Duration::from_secs(5))
+        .build()
+        .unwrap_or_default();
+        
+    // Make the HTTP request asynchronously
+    match client.get(&url)
+        .send()
+        .await
     {
         Ok(response) => {
             // Parse the JSON response
-            match response.into_json::<serde_json::Value>() {
+            match response.json::<serde_json::Value>().await {
                 Ok(json) => {
-
-
                     let hs = json.get("hs");
 
                     // Check if "hs" is in the response or if hs different from server_value
-                    if !hs.is_some() || hs.unwrap() != server_name{
-                        return false;
+                    if !hs.is_some() || hs.unwrap() != server_name {
+                        // Email is mapped to a different server or no server at all
+                        return EmailAllowedResult::WrongServer;
                     }
                     
                     info!("hs: {} ", hs.unwrap());
@@ -192,23 +204,23 @@ pub fn is_email_allowed(email: &str, server_name: &str) -> bool {
 
                     if requires_invite && !invited {
                         // Requires an invite but hasn't been invited
-                        return false;
+                        return EmailAllowedResult::InvitationMissing;
                     }
                     
                     // All checks passed
-                    true
+                    EmailAllowedResult::Allowed
                 },
                 Err(err) => {
-                    // Log the error and return false
+                    // Log the error and return WrongServer as a default error
                     eprintln!("Failed to parse JSON response: {}", err);
-                    false
+                    EmailAllowedResult::WrongServer
                 }
             }
         },
         Err(err) => {
-            // Log the error and return false
+            // Log the error and return WrongServer as a default error
             eprintln!("HTTP request failed: {}", err);
-            false
+            EmailAllowedResult::WrongServer
         }
     }
 }

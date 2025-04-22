@@ -40,7 +40,7 @@ use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use tracing::warn;
 use ulid::Ulid;
-use tchap;
+use tchap::{self, EmailAllowedResult};
 
 use super::{
     UpstreamSessionsCookie,
@@ -438,21 +438,48 @@ pub(crate) async fn get(
                     Some(value) => {
                         //:tchap 
                         let server_name = homeserver.homeserver();             
-                        let is_allowed = tchap::is_email_allowed(&value, &server_name);
-                        if !is_allowed {
-                            // L'email n'est pas autorisé, afficher un message d'erreur
-                            let ctx = ErrorContext::new()
-                                .with_code("Email not allowed")
-                                .with_description(format!(
-                                    "L'adresse email {} n'est pas autorisée sur ce serveur.",
-                                    value
-                                ))
-                                .with_language(&locale);
-
-                            return Ok((
-                                cookie_jar,
-                                Html(templates.render_error(&ctx)?).into_response(),
-                            ));
+                        let email_result = 
+                            tchap::is_email_allowed(&value, &server_name)
+                            .await;
+                        
+                        match email_result {
+                            EmailAllowedResult::Allowed => {
+                                // Email is allowed, continue
+                            },
+                            EmailAllowedResult::WrongServer => {
+                                // Email is mapped to a different server
+                                let ctx = ErrorContext::new()
+                                    .with_code("wrong_server")
+                                    .with_description(format!(
+                                        "L'adresse email {} est associée à un autre serveur.",
+                                        value
+                                    ))
+                                    .with_details(format!("Veuillez vous connecter au serveur approprié pour cette adresse email."))
+                                    .with_language(&locale);
+                                
+                                //return error template
+                                return Ok((
+                                    cookie_jar,
+                                    Html(templates.render_error(&ctx)?).into_response(),
+                                ));
+                            },
+                            EmailAllowedResult::InvitationMissing => {
+                                // Server requires an invitation that is not present
+                                let ctx = ErrorContext::new()
+                                    .with_code("invitation_missing")
+                                    .with_description(format!(
+                                        "L'adresse email {} nécessite une invitation pour ce serveur.",
+                                        value
+                                    ))
+                                    .with_details(format!("Pour vous connecter à Tchap vous devez avoir une invitation."))
+                                    .with_language(&locale);
+                                
+                                //return error template
+                                return Ok((
+                                    cookie_jar,
+                                    Html(templates.render_error(&ctx)?).into_response(),
+                                ));
+                            }
                         }
                         //:tchap: end
                     
