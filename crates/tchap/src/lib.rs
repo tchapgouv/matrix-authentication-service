@@ -3,6 +3,57 @@ use tracing::info;
 
 use reqwest;
 use std::time::Duration;
+use url::Url;
+use serde::{Deserialize, Serialize};
+
+/// Configuration for Tchap-specific functionality
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TchapConfig {
+    /// The base URL of the identity server API
+    pub identity_server_url: Url,
+}
+
+fn default_identity_server_url() -> Url {
+    // Essayer de lire la variable d'environnement TCHAP_IDENTITY_SERVER_URL
+    match std::env::var("TCHAP_IDENTITY_SERVER_URL") {
+        Ok(url_str) => {
+            // Tenter de parser l'URL depuis la variable d'environnement
+            match Url::parse(&url_str) {
+                Ok(url) => {
+                    // Succès : utiliser l'URL de la variable d'environnement
+                    return url;
+                }
+                Err(err) => {
+                    // Erreur de parsing : logger un avertissement et utiliser la valeur par défaut
+                    tracing::warn!(
+                        "La variable d'environnement TCHAP_IDENTITY_SERVER_URL contient une URL invalide : {}. Utilisation de la valeur par défaut.",
+                        err
+                    );
+                }
+            }
+        }
+        Err(std::env::VarError::NotPresent) => {
+            // Variable non définie : utiliser la valeur par défaut sans avertissement
+        }
+        Err(std::env::VarError::NotUnicode(_)) => {
+            // Variable contient des caractères non-Unicode : logger un avertissement
+            tracing::warn!(
+                "La variable d'environnement TCHAP_IDENTITY_SERVER_URL contient des caractères non-Unicode. Utilisation de la valeur par défaut."
+            );
+        }
+    }
+    
+    // Valeur par défaut si la variable d'environnement n'est pas définie ou invalide
+    Url::parse("http://localhost:8083").unwrap()
+}
+
+impl Default for TchapConfig {
+    fn default() -> Self {
+        Self {
+            identity_server_url: default_identity_server_url(),
+        }
+    }
+}
 
 /// Result of checking if an email is allowed on a server
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -145,7 +196,6 @@ pub fn email_to_display_name(address: &str) -> String {
 /// This function makes an asynchronous GET request to the Matrix identity server API
 /// to retrieve information about the home server associated with an email address,
 /// then applies logic to determine if the email is allowed.
-/// ```
 ///
 /// # Parameters
 ///
@@ -157,9 +207,13 @@ pub fn email_to_display_name(address: &str) -> String {
 /// An `EmailAllowedResult` indicating whether the email is allowed and if not, why
 #[must_use]
 pub async fn is_email_allowed(email: &str, server_name: &str) -> EmailAllowedResult {
+    // Get the identity server URL from the environment variable or use the default
+    let identity_server_url = default_identity_server_url();
+    
     // Construct the URL with the email address
     let url = format!(
-        "http://localhost:8083/_matrix/identity/api/v1/info?medium=email&address={}",
+        "{}_matrix/identity/api/v1/info?medium=email&address={}",
+        identity_server_url, 
         email
     );
     
