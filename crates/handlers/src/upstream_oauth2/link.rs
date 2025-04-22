@@ -439,15 +439,13 @@ pub(crate) async fn get(
                 )? {
                     Some(value) => {
                         //:tchap:
-                        let server_name = homeserver.homeserver();             
-                        let email_result = 
-                            tchap::is_email_allowed(&value, &server_name)
-                            .await;
-                        
+                        let server_name = homeserver.homeserver();
+                        let email_result = tchap::is_email_allowed(&value, &server_name).await;
+
                         match email_result {
                             EmailAllowedResult::Allowed => {
                                 // Email is allowed, continue
-                            },
+                            }
                             EmailAllowedResult::WrongServer => {
                                 // Email is mapped to a different server
                                 let ctx = ErrorContext::new()
@@ -458,13 +456,13 @@ pub(crate) async fn get(
                                     ))
                                     .with_details(format!("Veuillez-vous contacter le support de Tchap support@tchap.beta.gouv.fr"))
                                     .with_language(&locale);
-                                
+
                                 //return error template
                                 return Ok((
                                     cookie_jar,
                                     Html(templates.render_error(&ctx)?).into_response(),
                                 ));
-                            },
+                            }
                             EmailAllowedResult::InvitationMissing => {
                                 // Server requires an invitation that is not present
                                 let ctx = ErrorContext::new()
@@ -474,7 +472,7 @@ pub(crate) async fn get(
                                     ))
                                     .with_details(format!("Les partenaires externes peuvent accéder à Tchap uniquement avec une invitation d'un agent public."))
                                     .with_language(&locale);
-                                
+
                                 //return error template
                                 return Ok((
                                     cookie_jar,
@@ -483,9 +481,9 @@ pub(crate) async fn get(
                             }
                         }
                         //:tchap: end
-                    
+
                         ctx.with_email(value, provider.claims_imports.email.is_forced())
-                    },
+                    }
                     None => ctx,
                 }
             };

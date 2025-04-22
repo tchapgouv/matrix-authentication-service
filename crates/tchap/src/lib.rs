@@ -2,9 +2,9 @@ extern crate tracing;
 use tracing::info;
 
 use reqwest;
+use serde::{Deserialize, Serialize};
 use std::time::Duration;
 use url::Url;
-use serde::{Deserialize, Serialize};
 
 /// Configuration for Tchap-specific functionality
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -42,7 +42,7 @@ fn default_identity_server_url() -> Url {
             );
         }
     }
-    
+
     // Valeur par défaut si la variable d'environnement n'est pas définie ou invalide
     Url::parse("http://localhost:8083").unwrap()
 }
@@ -84,15 +84,17 @@ pub enum EmailAllowedResult {
 pub async fn is_email_allowed(email: &str, server_name: &str) -> EmailAllowedResult {
     // Get the identity server URL from the environment variable or use the default
     let identity_server_url = default_identity_server_url();
-    
+
     // Construct the URL with the email address
     let url = format!(
         "{}_matrix/identity/api/v1/info?medium=email&address={}",
-        identity_server_url, 
-        email
+        identity_server_url, email
     );
-    
-    info!("Checking if email {} is allowed on server {}", email, server_name);
+
+    info!(
+        "Checking if email {} is allowed on server {}",
+        email, server_name
+    );
     info!("Making request to identity server: {}", url);
 
     // Create a client with a timeout
@@ -100,12 +102,9 @@ pub async fn is_email_allowed(email: &str, server_name: &str) -> EmailAllowedRes
         .timeout(Duration::from_secs(5))
         .build()
         .unwrap_or_default();
-        
+
     // Make the HTTP request asynchronously
-    match client.get(&url)
-        .send()
-        .await
-    {
+    match client.get(&url).send().await {
         Ok(response) => {
             // Parse the JSON response
             match response.json::<serde_json::Value>().await {
@@ -117,35 +116,37 @@ pub async fn is_email_allowed(email: &str, server_name: &str) -> EmailAllowedRes
                         // Email is mapped to a different server or no server at all
                         return EmailAllowedResult::WrongServer;
                     }
-                    
+
                     info!("hs: {} ", hs.unwrap());
 
                     // Check if requires_invite is true and invited is false
-                    let requires_invite = json.get("requires_invite")
+                    let requires_invite = json
+                        .get("requires_invite")
                         .and_then(|v| v.as_bool())
                         .unwrap_or(false);
-                        
-                    let invited = json.get("invited")
+
+                    let invited = json
+                        .get("invited")
                         .and_then(|v| v.as_bool())
                         .unwrap_or(false);
-                    
+
                     info!("requires_invite: {} invited: {}", requires_invite, invited);
 
                     if requires_invite && !invited {
                         // Requires an invite but hasn't been invited
                         return EmailAllowedResult::InvitationMissing;
                     }
-                    
+
                     // All checks passed
                     EmailAllowedResult::Allowed
-                },
+                }
                 Err(err) => {
                     // Log the error and return WrongServer as a default error
                     eprintln!("Failed to parse JSON response: {}", err);
                     EmailAllowedResult::WrongServer
                 }
             }
-        },
+        }
         Err(err) => {
             // Log the error and return WrongServer as a default error
             eprintln!("HTTP request failed: {}", err);
