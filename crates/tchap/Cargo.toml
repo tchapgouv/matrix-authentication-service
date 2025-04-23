@@ -3,13 +3,7 @@ name = "tchap"
 version = "0.1.0"
 description = "Tchap-specific functionality for Matrix Authentication Service"
 license = "MIT"
-
-[dependencies][package]
-name = "tchap"
-version = "0.1.0"
-description = "Tchap-specific functionality for Matrix Authentication Service"
-license = "MIT"
-edition = "2024"
+edition.workspace = true
 
 
 [dependencies]

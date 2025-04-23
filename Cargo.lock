@@ -3341,7 +3341,6 @@ dependencies = [
  "sha2",
  "sqlx",
  "tchap",
- "tchap",
  "thiserror 2.0.12",
  "time",
  "tokio",
