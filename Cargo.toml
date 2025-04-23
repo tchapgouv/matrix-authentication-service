@@ -55,7 +55,12 @@ mas-templates = { path = "./crates/templates/", version = "=0.15.0-rc.0" }
 mas-tower = { path = "./crates/tower/", version = "=0.15.0-rc.0" }
 oauth2-types = { path = "./crates/oauth2-types/", version = "=0.15.0-rc.0" }
 syn2mas = { path = "./crates/syn2mas", version = "=0.15.0-rc.0" }
-tchap = { path = "./crates/tchap", version = "=0.1.0" }
+
+# :tchap:
+[workspace.dependencies.tchap]
+path = "./crates/tchap"
+version = "=0.1.0"
+# :tchap:end
 
 # OpenAPI schema generation and validation
 [workspace.dependencies.aide]
