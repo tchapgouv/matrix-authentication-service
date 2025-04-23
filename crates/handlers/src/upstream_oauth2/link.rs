@@ -40,6 +40,9 @@ use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use tracing::warn;
 use ulid::Ulid;
+//:tchap:
+use tchap::{self, EmailAllowedResult};
+//:tchap: end
 
 use super::{
     UpstreamSessionsCookie,
@@ -434,7 +437,53 @@ pub(crate) async fn get(
                     &context,
                     provider.claims_imports.email.is_required(),
                 )? {
-                    Some(value) => ctx.with_email(value, provider.claims_imports.email.is_forced()),
+                    Some(value) => {
+                        //:tchap:
+                        let server_name = homeserver.homeserver();
+                        let email_result = tchap::is_email_allowed(&value, &server_name).await;
+
+                        match email_result {
+                            EmailAllowedResult::Allowed => {
+                                // Email is allowed, continue
+                            }
+                            EmailAllowedResult::WrongServer => {
+                                // Email is mapped to a different server
+                                let ctx = ErrorContext::new()
+                                    .with_code("wrong_server")
+                                    .with_description(format!(
+                                        "Votre adresse mail {} est associée à un autre serveur.",
+                                        value
+                                    ))
+                                    .with_details(format!("Veuillez-vous contacter le support de Tchap support@tchap.beta.gouv.fr"))
+                                    .with_language(&locale);
+
+                                //return error template
+                                return Ok((
+                                    cookie_jar,
+                                    Html(templates.render_error(&ctx)?).into_response(),
+                                ));
+                            }
+                            EmailAllowedResult::InvitationMissing => {
+                                // Server requires an invitation that is not present
+                                let ctx = ErrorContext::new()
+                                    .with_code("invitation_missing")
+                                    .with_description(format!(
+                                        "Vous avez besoin d'une invitation pour accéder à Tchap."
+                                    ))
+                                    .with_details(format!("Les partenaires externes peuvent accéder à Tchap uniquement avec une invitation d'un agent public."))
+                                    .with_language(&locale);
+
+                                //return error template
+                                return Ok((
+                                    cookie_jar,
+                                    Html(templates.render_error(&ctx)?).into_response(),
+                                ));
+                            }
+                        }
+                        //:tchap: end
+
+                        ctx.with_email(value, provider.claims_imports.email.is_forced())
+                    }
                     None => ctx,
                 }
             };
