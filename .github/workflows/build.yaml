@@ -5,6 +5,7 @@ on:
     branches:
       - main_tchap
       - "release/**"
+      - "test/**"
     tags:
       - "v*"
 
