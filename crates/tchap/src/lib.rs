@@ -37,7 +37,7 @@ pub async fn is_email_allowed(email: &str, server_name: &str) -> EmailAllowedRes
             let hs = json.get("hs");
 
             // Check if "hs" is in the response or if hs different from server_name
-            if !hs.is_some() || hs.unwrap() != server_name {
+            if hs.is_none() || hs.unwrap() != server_name {
                 // Email is mapped to a different server or no server at all
                 return EmailAllowedResult::WrongServer;
             }

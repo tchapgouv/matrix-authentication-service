@@ -3,7 +3,6 @@
 
 use std::time::Duration;
 
-use reqwest;
 use serde::{Deserialize, Serialize};
 use tracing::info;
 use url::Url;
@@ -81,7 +80,9 @@ pub async fn query_identity_server(email: &str) -> Result<serde_json::Value, req
         .build()
         .unwrap_or_default();
 
+
     // Make the HTTP request asynchronously
+    #[allow(clippy::disallowed_methods)]
     let response = client.get(&url).send().await?;
 
     // Parse the JSON response
