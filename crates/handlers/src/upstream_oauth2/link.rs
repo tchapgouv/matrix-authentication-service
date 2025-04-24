@@ -37,13 +37,13 @@ use mas_templates::{
 use minijinja::Environment;
 use opentelemetry::{Key, KeyValue, metrics::Counter};
 use serde::{Deserialize, Serialize};
+//:tchap:
+use tchap::{self, EmailAllowedResult};
 use thiserror::Error;
 use tracing::warn;
 use ulid::Ulid;
-//:tchap:
-use tchap::{self, EmailAllowedResult};
-//:tchap: end
 
+//:tchap: end
 use super::{
     UpstreamSessionsCookie,
     template::{AttributeMappingContext, environment},

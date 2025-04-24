@@ -16,9 +16,9 @@ pub enum EmailAllowedResult {
 
 /// Checks if an email address is allowed to be associated in the current server
 ///
-/// This function makes an asynchronous GET request to the Matrix identity server API
-/// to retrieve information about the home server associated with an email address,
-/// then applies logic to determine if the email is allowed.
+/// This function makes an asynchronous GET request to the Matrix identity
+/// server API to retrieve information about the home server associated with an
+/// email address, then applies logic to determine if the email is allowed.
 ///
 /// # Parameters
 ///
@@ -27,7 +27,8 @@ pub enum EmailAllowedResult {
 ///
 /// # Returns
 ///
-/// An `EmailAllowedResult` indicating whether the email is allowed and if not, why
+/// An `EmailAllowedResult` indicating whether the email is allowed and if not,
+/// why
 #[must_use]
 pub async fn is_email_allowed(email: &str, server_name: &str) -> EmailAllowedResult {
     // Query the identity server

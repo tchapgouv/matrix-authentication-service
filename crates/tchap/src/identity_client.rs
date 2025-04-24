@@ -1,8 +1,10 @@
-//! This module provides utilities for interacting with the Matrix identity server API.
+//! This module provides utilities for interacting with the Matrix identity
+//! server API.
+
+use std::time::Duration;
 
 use reqwest;
 use serde::{Deserialize, Serialize};
-use std::time::Duration;
 use tracing::info;
 use url::Url;
 
