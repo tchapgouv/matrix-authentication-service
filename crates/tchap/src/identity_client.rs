@@ -68,7 +68,7 @@ pub async fn query_identity_server(email: &str) -> Result<serde_json::Value, req
 
     // Construct the URL with the email address
     let url = format!(
-        "{}_matrix/identity/api/v1/info?medium=email&address={}",
+        "{}_matrix/identity/api/v1/internal-info?medium=email&address={}",
         identity_server_url, email
     );
 
