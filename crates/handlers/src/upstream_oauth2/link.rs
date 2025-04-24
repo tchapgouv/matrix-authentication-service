@@ -440,7 +440,7 @@ pub(crate) async fn get(
                     Some(value) => {
                         //:tchap:
                         let server_name = homeserver.homeserver();
-                        let email_result = tchap::is_email_allowed(&value, &server_name).await;
+                        let email_result = check_email_allowed(&value, &server_name).await;
 
                         match email_result {
                             EmailAllowedResult::Allowed => {
@@ -936,6 +936,16 @@ pub(crate) async fn post(
     repo.save().await?;
 
     Ok((cookie_jar, post_auth_action.go_next(&url_builder)).into_response())
+}
+
+#[cfg(not(test))]
+async fn check_email_allowed(email: &str, server_name: &str) -> EmailAllowedResult {
+    tchap::is_email_allowed(email, server_name).await
+}
+
+#[cfg(test)]
+async fn check_email_allowed(_email: &str, _server_name: &str) -> EmailAllowedResult {
+    EmailAllowedResult::Allowed
 }
 
 #[cfg(test)]
