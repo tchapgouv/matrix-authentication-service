@@ -62,6 +62,7 @@ syn2mas = { path = "./crates/syn2mas", version = "=0.15.0-rc.0" }
 # version = "=0.1.0"
 # :tchap:end
 
+
 # OpenAPI schema generation and validation
 [workspace.dependencies.aide]
 version = "0.14.2"
