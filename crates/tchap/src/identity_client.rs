@@ -1,8 +1,9 @@
-//! This module provides utilities for interacting with the Matrix identity server API.
+//! This module provides utilities for interacting with the Matrix identity
+//! server API.
 
-use reqwest;
-use serde::{Deserialize, Serialize};
 use std::time::Duration;
+
+use serde::{Deserialize, Serialize};
 use tracing::info;
 use url::Url;
 
@@ -67,7 +68,7 @@ pub async fn query_identity_server(email: &str) -> Result<serde_json::Value, req
 
     // Construct the URL with the email address
     let url = format!(
-        "{}_matrix/identity/api/v1/info?medium=email&address={}",
+        "{}_matrix/identity/api/v1/internal-info?medium=email&address={}",
         identity_server_url, email
     );
 
@@ -79,7 +80,10 @@ pub async fn query_identity_server(email: &str) -> Result<serde_json::Value, req
         .build()
         .unwrap_or_default();
 
+
     // Make the HTTP request asynchronously
+    // should use mas-http instead like SynapseConnection
+    #[allow(clippy::disallowed_methods)]
     let response = client.get(&url).send().await?;
 
     // Parse the JSON response
