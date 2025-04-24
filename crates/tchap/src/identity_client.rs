@@ -82,6 +82,7 @@ pub async fn query_identity_server(email: &str) -> Result<serde_json::Value, req
 
 
     // Make the HTTP request asynchronously
+    // should use mas-http instead like SynapseConnection
     #[allow(clippy::disallowed_methods)]
     let response = client.get(&url).send().await?;
 
