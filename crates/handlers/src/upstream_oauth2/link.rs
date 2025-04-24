@@ -938,15 +938,18 @@ pub(crate) async fn post(
     Ok((cookie_jar, post_auth_action.go_next(&url_builder)).into_response())
 }
 
+//:tchap:
+///real function used when not testing
 #[cfg(not(test))]
 async fn check_email_allowed(email: &str, server_name: &str) -> EmailAllowedResult {
     tchap::is_email_allowed(email, server_name).await
 }
-
+///mock function used when testing
 #[cfg(test)]
 async fn check_email_allowed(_email: &str, _server_name: &str) -> EmailAllowedResult {
     EmailAllowedResult::Allowed
 }
+//:tchap:end
 
 #[cfg(test)]
 mod tests {
