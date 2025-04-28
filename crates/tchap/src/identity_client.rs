@@ -3,16 +3,9 @@
 
 use std::time::Duration;
 
-use serde::{Deserialize, Serialize};
 use tracing::info;
 use url::Url;
 
-/// Configuration for Tchap-specific functionality
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct TchapConfig {
-    /// The base URL of the identity server API
-    pub identity_server_url: Url,
-}
 
 fn default_identity_server_url() -> Url {
     // Try to read the TCHAP_IDENTITY_SERVER_URL environment variable
@@ -48,13 +41,6 @@ fn default_identity_server_url() -> Url {
     Url::parse("http://localhost:8083").unwrap()
 }
 
-impl Default for TchapConfig {
-    fn default() -> Self {
-        Self {
-            identity_server_url: default_identity_server_url(),
-        }
-    }
-}
 /// Queries the identity server for information about an email address
 ///
 /// # Parameters
