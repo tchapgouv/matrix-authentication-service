@@ -62,7 +62,7 @@ fn map_claims_imports(
     }
 }
 
-#[tracing::instrument(name = "config.sync", skip_all, err(Debug))]
+#[tracing::instrument(name = "config.sync", skip_all)]
 pub async fn config_sync(
     upstream_oauth2_config: UpstreamOAuth2Config,
     clients_config: ClientsConfig,
@@ -175,11 +175,11 @@ pub async fn config_sync(
 
             let _span = info_span!("provider", %provider.id).entered();
             if existing_enabled_ids.contains(&provider.id) {
-                info!("Updating provider");
+                info!(provider.id = %provider.id, "Updating provider");
             } else if existing_disabled.contains_key(&provider.id) {
-                info!("Enabling and updating provider");
+                info!(provider.id = %provider.id, "Enabling and updating provider");
             } else {
-                info!("Adding provider");
+                info!(provider.id = %provider.id, "Adding provider");
             }
 
             if dry_run {
@@ -189,10 +189,18 @@ pub async fn config_sync(
             let encrypted_client_secret =
                 if let Some(client_secret) = provider.client_secret.as_deref() {
                     Some(encrypter.encrypt_to_string(client_secret.as_bytes())?)
-                } else if let Some(siwa) = provider.sign_in_with_apple.as_ref() {
-                    // For SIWA, we JSON-encode the config and encrypt it, reusing the client_secret
-                    // field in the database
-                    let encoded = serde_json::to_vec(siwa)?;
+                } else if let Some(mut siwa) = provider.sign_in_with_apple.clone() {
+                    // if private key file is defined and not private key (raw), we populate the
+                    // private key to hold the content of the private key file.
+                    // private key (raw) takes precedence so both can be defined
+                    // without issues
+                    if siwa.private_key.is_none() {
+                        if let Some(private_key_file) = siwa.private_key_file.take() {
+                            let key = tokio::fs::read_to_string(private_key_file).await?;
+                            siwa.private_key = Some(key);
+                        }
+                    }
+                    let encoded = serde_json::to_vec(&siwa)?;
                     Some(encrypter.encrypt_to_string(&encoded)?)
                 } else {
                     None
@@ -244,15 +252,15 @@ pub async fn config_sync(
 
             if discovery_mode.is_disabled() {
                 if provider.authorization_endpoint.is_none() {
-                    error!("Provider has discovery disabled but no authorization endpoint set");
+                    error!(provider.id = %provider.id, "Provider has discovery disabled but no authorization endpoint set");
                 }
 
                 if provider.token_endpoint.is_none() {
-                    error!("Provider has discovery disabled but no token endpoint set");
+                    error!(provider.id = %provider.id, "Provider has discovery disabled but no token endpoint set");
                 }
 
                 if provider.jwks_uri.is_none() {
-                    warn!("Provider has discovery disabled but no JWKS URI set");
+                    warn!(provider.id = %provider.id, "Provider has discovery disabled but no JWKS URI set");
                 }
             }
 
@@ -340,9 +348,9 @@ pub async fn config_sync(
         for client in clients_config {
             let _span = info_span!("client", client.id = %client.client_id).entered();
             if existing_ids.contains(&client.client_id) {
-                info!("Updating client");
+                info!(client.id = %client.client_id, "Updating client");
             } else {
-                info!("Adding client");
+                info!(client.id = %client.client_id, "Adding client");
             }
 
             if dry_run {
@@ -350,6 +358,7 @@ pub async fn config_sync(
             }
 
             let client_secret = client.client_secret.as_deref();
+            let client_name = client.client_name.as_ref();
             let client_auth_method = client.client_auth_method();
             let jwks = client.jwks.as_ref();
             let jwks_uri = client.jwks_uri.as_ref();
@@ -362,6 +371,7 @@ pub async fn config_sync(
             repo.oauth2_client()
                 .upsert_static(
                     client.client_id,
+                    client_name.cloned(),
                     client_auth_method,
                     encrypted_client_secret,
                     jwks.cloned(),

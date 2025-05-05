@@ -4,8 +4,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Please see LICENSE in the repository root for full details.
 
-use std::num::NonZeroU32;
-
 use async_trait::async_trait;
 use mas_data_model::{AuthorizationCode, AuthorizationGrant, Client, Session};
 use oauth2_types::{requests::ResponseMode, scope::Scope};
@@ -37,13 +35,12 @@ pub trait OAuth2AuthorizationGrantRepository: Send + Sync {
     ///   `response_type` was requested
     /// * `state`: The state the client sent, if set
     /// * `nonce`: The nonce the client sent, if set
-    /// * `max_age`: The maximum age since the user last authenticated, if asked
-    ///   by the client
     /// * `response_mode`: The response mode the client requested
     /// * `response_type_id_token`: Whether the `id_token` `response_type` was
     ///   requested
-    /// * `requires_consent`: Whether the client explicitly requested consent
     /// * `login_hint`: The login_hint the client sent, if set
+    /// * `locale`: The locale the detected when the user asked for the
+    ///   authorization grant
     ///
     /// # Errors
     ///
@@ -59,11 +56,10 @@ pub trait OAuth2AuthorizationGrantRepository: Send + Sync {
         code: Option<AuthorizationCode>,
         state: Option<String>,
         nonce: Option<String>,
-        max_age: Option<NonZeroU32>,
         response_mode: ResponseMode,
         response_type_id_token: bool,
-        requires_consent: bool,
         login_hint: Option<String>,
+        locale: Option<String>,
     ) -> Result<AuthorizationGrant, Self::Error>;
 
     /// Lookup an authorization grant by its ID
@@ -131,22 +127,6 @@ pub trait OAuth2AuthorizationGrantRepository: Send + Sync {
         clock: &dyn Clock,
         authorization_grant: AuthorizationGrant,
     ) -> Result<AuthorizationGrant, Self::Error>;
-
-    /// Unset the `requires_consent` flag on an authorization grant
-    ///
-    /// Returns the updated authorization grant
-    ///
-    /// # Parameters
-    ///
-    /// * `authorization_grant`: The authorization grant to update
-    ///
-    /// # Errors
-    ///
-    /// Returns [`Self::Error`] if the underlying repository fails
-    async fn give_consent(
-        &mut self,
-        authorization_grant: AuthorizationGrant,
-    ) -> Result<AuthorizationGrant, Self::Error>;
 }
 
 repository_impl!(OAuth2AuthorizationGrantRepository:
@@ -160,11 +140,10 @@ repository_impl!(OAuth2AuthorizationGrantRepository:
         code: Option<AuthorizationCode>,
         state: Option<String>,
         nonce: Option<String>,
-        max_age: Option<NonZeroU32>,
         response_mode: ResponseMode,
         response_type_id_token: bool,
-        requires_consent: bool,
         login_hint: Option<String>,
+        locale: Option<String>,
     ) -> Result<AuthorizationGrant, Self::Error>;
 
     async fn lookup(&mut self, id: Ulid) -> Result<Option<AuthorizationGrant>, Self::Error>;
@@ -182,11 +161,6 @@ repository_impl!(OAuth2AuthorizationGrantRepository:
     async fn exchange(
         &mut self,
         clock: &dyn Clock,
-        authorization_grant: AuthorizationGrant,
-    ) -> Result<AuthorizationGrant, Self::Error>;
-
-    async fn give_consent(
-        &mut self,
         authorization_grant: AuthorizationGrant,
     ) -> Result<AuthorizationGrant, Self::Error>;
 );

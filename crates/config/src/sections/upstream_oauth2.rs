@@ -6,6 +6,7 @@
 
 use std::collections::BTreeMap;
 
+use camino::Utf8PathBuf;
 use mas_iana::jose::JsonWebSignatureAlg;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize, de::Error};
@@ -383,8 +384,14 @@ fn signed_response_alg_default() -> JsonWebSignatureAlg {
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct SignInWithApple {
+    /// The private key file used to sign the `id_token`
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<String>")]
+    pub private_key_file: Option<Utf8PathBuf>,
+
     /// The private key used to sign the `id_token`
-    pub private_key: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub private_key: Option<String>,
 
     /// The Team ID of the Apple Developer Portal
     pub team_id: String,
@@ -410,6 +417,23 @@ pub struct Provider {
         description = "A ULID as per https://github.com/ulid/spec"
     )]
     pub id: Ulid,
+
+    /// The ID of the provider that was used by Synapse.
+    /// In order to perform a Synapse-to-MAS migration, this must be specified.
+    ///
+    /// ## For providers that used OAuth 2.0 or OpenID Connect in Synapse
+    ///
+    /// ### For `oidc_providers`:
+    /// This should be specified as `oidc-` followed by the ID that was
+    /// configured as `idp_id` in one of the `oidc_providers` in the Synapse
+    /// configuration.
+    /// For example, if Synapse's configuration contained `idp_id: wombat` for
+    /// this provider, then specify `oidc-wombat` here.
+    ///
+    /// ### For `oidc_config` (legacy):
+    /// Specify `oidc` here.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub synapse_idp_id: Option<String>,
 
     /// The OIDC issuer URL
     ///
@@ -548,21 +572,4 @@ pub struct Provider {
     /// Orders of the keys are not preserved.
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub additional_authorization_parameters: BTreeMap<String, String>,
-
-    /// The ID of the provider that was used by Synapse.
-    /// In order to perform a Synapse-to-MAS migration, this must be specified.
-    ///
-    /// ## For providers that used OAuth 2.0 or OpenID Connect in Synapse
-    ///
-    /// ### For `oidc_providers`:
-    /// This should be specified as `oidc-` followed by the ID that was
-    /// configured as `idp_id` in one of the `oidc_providers` in the Synapse
-    /// configuration.
-    /// For example, if Synapse's configuration contained `idp_id: wombat` for
-    /// this provider, then specify `oidc-wombat` here.
-    ///
-    /// ### For `oidc_config` (legacy):
-    /// Specify `oidc` here.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub synapse_idp_id: Option<String>,
 }

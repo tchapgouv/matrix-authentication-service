@@ -6,20 +6,15 @@
 
 use std::{
     collections::{BTreeMap, BTreeSet},
-    str::FromStr,
     string::ToString,
 };
 
 use async_trait::async_trait;
-use mas_data_model::{Client, JwksOrJwksUri, User};
+use mas_data_model::{Client, JwksOrJwksUri};
 use mas_iana::{jose::JsonWebSignatureAlg, oauth::OAuthClientAuthenticationMethod};
 use mas_jose::jwk::PublicJsonWebKeySet;
 use mas_storage::{Clock, oauth2::OAuth2ClientRepository};
-use oauth2_types::{
-    oidc::ApplicationType,
-    requests::GrantType,
-    scope::{Scope, ScopeToken},
-};
+use oauth2_types::{oidc::ApplicationType, requests::GrantType};
 use opentelemetry_semantic_conventions::attribute::DB_QUERY_TEXT;
 use rand::RngCore;
 use sqlx::PgConnection;
@@ -559,6 +554,7 @@ impl OAuth2ClientRepository for PgOAuth2ClientRepository<'_> {
     async fn upsert_static(
         &mut self,
         client_id: Ulid,
+        client_name: Option<String>,
         client_auth_method: OAuthClientAuthenticationMethod,
         encrypted_client_secret: Option<String>,
         jwks: Option<PublicJsonWebKeySet>,
@@ -586,11 +582,12 @@ impl OAuth2ClientRepository for PgOAuth2ClientRepository<'_> {
                     , grant_type_device_code
                     , token_endpoint_auth_method
                     , jwks
+                    , client_name
                     , jwks_uri
                     , is_static
                     )
                 VALUES
-                    ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, TRUE)
+                    ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, TRUE)
                 ON CONFLICT (oauth2_client_id)
                 DO
                     UPDATE SET encrypted_client_secret = EXCLUDED.encrypted_client_secret
@@ -601,6 +598,7 @@ impl OAuth2ClientRepository for PgOAuth2ClientRepository<'_> {
                              , grant_type_device_code = EXCLUDED.grant_type_device_code
                              , token_endpoint_auth_method = EXCLUDED.token_endpoint_auth_method
                              , jwks = EXCLUDED.jwks
+                             , client_name = EXCLUDED.client_name
                              , jwks_uri = EXCLUDED.jwks_uri
                              , is_static = TRUE
             "#,
@@ -613,6 +611,7 @@ impl OAuth2ClientRepository for PgOAuth2ClientRepository<'_> {
             true,
             client_auth_method,
             jwks_json,
+            client_name,
             jwks_uri.as_ref().map(Url::as_str),
         )
         .traced()
@@ -638,7 +637,7 @@ impl OAuth2ClientRepository for PgOAuth2ClientRepository<'_> {
                 GrantType::RefreshToken,
                 GrantType::ClientCredentials,
             ],
-            client_name: None,
+            client_name,
             logo_uri: None,
             client_uri: None,
             policy_uri: None,
@@ -696,97 +695,6 @@ impl OAuth2ClientRepository for PgOAuth2ClientRepository<'_> {
         res.into_iter()
             .map(|r| r.try_into().map_err(DatabaseError::from))
             .collect()
-    }
-
-    #[tracing::instrument(
-        name = "db.oauth2_client.get_consent_for_user",
-        skip_all,
-        fields(
-            db.query.text,
-            %user.id,
-            %client.id,
-        ),
-        err,
-    )]
-    async fn get_consent_for_user(
-        &mut self,
-        client: &Client,
-        user: &User,
-    ) -> Result<Scope, Self::Error> {
-        let scope_tokens: Vec<String> = sqlx::query_scalar!(
-            r#"
-                SELECT scope_token
-                FROM oauth2_consents
-                WHERE user_id = $1 AND oauth2_client_id = $2
-            "#,
-            Uuid::from(user.id),
-            Uuid::from(client.id),
-        )
-        .fetch_all(&mut *self.conn)
-        .await?;
-
-        let scope: Result<Scope, _> = scope_tokens
-            .into_iter()
-            .map(|s| ScopeToken::from_str(&s))
-            .collect();
-
-        let scope = scope.map_err(|e| {
-            DatabaseInconsistencyError::on("oauth2_consents")
-                .column("scope_token")
-                .source(e)
-        })?;
-
-        Ok(scope)
-    }
-
-    #[tracing::instrument(
-        name = "db.oauth2_client.give_consent_for_user",
-        skip_all,
-        fields(
-            db.query.text,
-            %user.id,
-            %client.id,
-            %scope,
-        ),
-        err,
-    )]
-    async fn give_consent_for_user(
-        &mut self,
-        rng: &mut (dyn RngCore + Send),
-        clock: &dyn Clock,
-        client: &Client,
-        user: &User,
-        scope: &Scope,
-    ) -> Result<(), Self::Error> {
-        let now = clock.now();
-        let (tokens, ids): (Vec<String>, Vec<Uuid>) = scope
-            .iter()
-            .map(|token| {
-                (
-                    token.to_string(),
-                    Uuid::from(Ulid::from_datetime_with_source(now.into(), rng)),
-                )
-            })
-            .unzip();
-
-        sqlx::query!(
-            r#"
-                INSERT INTO oauth2_consents
-                    (oauth2_consent_id, user_id, oauth2_client_id, scope_token, created_at)
-                SELECT id, $2, $3, scope_token, $5 FROM UNNEST($1::uuid[], $4::text[]) u(id, scope_token)
-                ON CONFLICT (user_id, oauth2_client_id, scope_token) DO UPDATE SET refreshed_at = $5
-            "#,
-            &ids,
-            Uuid::from(user.id),
-            Uuid::from(client.id),
-            &tokens,
-            now,
-        )
-        .traced()
-        .execute(&mut *self.conn)
-        .await?;
-
-        Ok(())
     }
 
     #[tracing::instrument(

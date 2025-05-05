@@ -10,10 +10,8 @@ use axum::{Json, extract::State, response::IntoResponse};
 use axum_extra::typed_header::TypedHeader;
 use chrono::Duration;
 use hyper::StatusCode;
-use mas_axum_utils::sentry::SentryEventID;
-use mas_data_model::{
-    CompatSession, CompatSsoLoginState, Device, SiteConfig, TokenType, User, UserAgent,
-};
+use mas_axum_utils::record_error;
+use mas_data_model::{CompatSession, CompatSsoLoginState, Device, SiteConfig, TokenType, User};
 use mas_matrix::HomeserverConnection;
 use mas_storage::{
     BoxClock, BoxRepository, BoxRng, Clock, RepositoryAccess,
@@ -118,6 +116,9 @@ pub struct RequestBody {
     /// this is not specified.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     device_id: Option<String>,
+
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    initial_device_display_name: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -210,7 +211,8 @@ impl_from_error_for_route!(mas_storage::RepositoryError);
 
 impl IntoResponse for RouteError {
     fn into_response(self) -> axum::response::Response {
-        let event_id = sentry::capture_error(&self);
+        let sentry_event_id =
+            record_error!(self, Self::Internal(_) | Self::ProvisionDeviceFailed(_));
         LOGIN_COUNTER.add(1, &[KeyValue::new(RESULT, "error")]);
         let response = match self {
             Self::Internal(_) | Self::ProvisionDeviceFailed(_) => MatrixError {
@@ -257,11 +259,11 @@ impl IntoResponse for RouteError {
             },
         };
 
-        (SentryEventID::from(event_id), response).into_response()
+        (sentry_event_id, response).into_response()
     }
 }
 
-#[tracing::instrument(name = "handlers.compat.login.post", skip_all, err)]
+#[tracing::instrument(name = "handlers.compat.login.post", skip_all)]
 pub(crate) async fn post(
     mut rng: BoxRng,
     clock: BoxClock,
@@ -275,7 +277,7 @@ pub(crate) async fn post(
     user_agent: Option<TypedHeader<headers::UserAgent>>,
     MatrixJsonBody(input): MatrixJsonBody<RequestBody>,
 ) -> Result<impl IntoResponse, RouteError> {
-    let user_agent = user_agent.map(|ua| UserAgent::parse(ua.as_str().to_owned()));
+    let user_agent = user_agent.map(|ua| ua.as_str().to_owned());
     let login_type = input.credentials.login_type();
     let (mut session, user) = match (password_manager.is_enabled(), input.credentials) {
         (
@@ -310,18 +312,20 @@ pub(crate) async fn post(
                 user,
                 password,
                 input.device_id, // TODO check for validity
+                input.initial_device_display_name,
             )
             .await?
         }
 
         (_, Credentials::Token { token }) => {
             token_login(
-                &mut repo,
+                &mut rng,
                 &clock,
+                &mut repo,
+                &homeserver,
                 &token,
                 input.device_id,
-                &homeserver,
-                &mut rng,
+                input.initial_device_display_name,
             )
             .await?
         }
@@ -388,12 +392,13 @@ pub(crate) async fn post(
 }
 
 async fn token_login(
-    repo: &mut BoxRepository,
+    rng: &mut (dyn RngCore + Send),
     clock: &dyn Clock,
+    repo: &mut BoxRepository,
+    homeserver: &dyn HomeserverConnection,
     token: &str,
     requested_device_id: Option<String>,
-    homeserver: &dyn HomeserverConnection,
-    rng: &mut (dyn RngCore + Send),
+    initial_device_display_name: Option<String>,
 ) -> Result<(CompatSession, User), RouteError> {
     let login = repo
         .compat_sso_login()
@@ -468,7 +473,11 @@ async fn token_login(
     };
     let mxid = homeserver.mxid(&browser_session.user.username);
     homeserver
-        .create_device(&mxid, device.as_str())
+        .create_device(
+            &mxid,
+            device.as_str(),
+            initial_device_display_name.as_deref(),
+        )
         .await
         .map_err(RouteError::ProvisionDeviceFailed)?;
 
@@ -485,6 +494,7 @@ async fn token_login(
             device,
             Some(&browser_session),
             false,
+            initial_device_display_name,
         )
         .await?;
 
@@ -506,6 +516,7 @@ async fn user_password_login(
     username: String,
     password: String,
     requested_device_id: Option<String>,
+    initial_device_display_name: Option<String>,
 ) -> Result<(CompatSession, User), RouteError> {
     // Try getting the localpart out of the MXID
     let username = homeserver.localpart(&username).unwrap_or(&username);
@@ -567,7 +578,11 @@ async fn user_password_login(
         Device::generate(&mut rng)
     };
     homeserver
-        .create_device(&mxid, device.as_str())
+        .create_device(
+            &mxid,
+            device.as_str(),
+            initial_device_display_name.as_deref(),
+        )
         .await
         .map_err(RouteError::ProvisionDeviceFailed)?;
 
@@ -577,7 +592,15 @@ async fn user_password_login(
 
     let session = repo
         .compat_session()
-        .add(&mut rng, clock, &user, device, None, false)
+        .add(
+            &mut rng,
+            clock,
+            &user,
+            device,
+            None,
+            false,
+            initial_device_display_name,
+        )
         .await?;
 
     Ok((session, user))

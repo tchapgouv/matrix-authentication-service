@@ -7,10 +7,10 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use async_trait::async_trait;
-use mas_data_model::{Client, User};
+use mas_data_model::Client;
 use mas_iana::{jose::JsonWebSignatureAlg, oauth::OAuthClientAuthenticationMethod};
 use mas_jose::jwk::PublicJsonWebKeySet;
-use oauth2_types::{oidc::ApplicationType, requests::GrantType, scope::Scope};
+use oauth2_types::{oidc::ApplicationType, requests::GrantType};
 use rand_core::RngCore;
 use ulid::Ulid;
 use url::Url;
@@ -157,6 +157,7 @@ pub trait OAuth2ClientRepository: Send + Sync {
     async fn upsert_static(
         &mut self,
         client_id: Ulid,
+        client_name: Option<String>,
         client_auth_method: OAuthClientAuthenticationMethod,
         encrypted_client_secret: Option<String>,
         jwks: Option<PublicJsonWebKeySet>,
@@ -170,45 +171,6 @@ pub trait OAuth2ClientRepository: Send + Sync {
     ///
     /// Returns [`Self::Error`] if the underlying repository fails
     async fn all_static(&mut self) -> Result<Vec<Client>, Self::Error>;
-
-    /// Get the list of scopes that the user has given consent for the given
-    /// client
-    ///
-    /// # Parameters
-    ///
-    /// * `client`: The client to get the consent for
-    /// * `user`: The user to get the consent for
-    ///
-    /// # Errors
-    ///
-    /// Returns [`Self::Error`] if the underlying repository fails
-    async fn get_consent_for_user(
-        &mut self,
-        client: &Client,
-        user: &User,
-    ) -> Result<Scope, Self::Error>;
-
-    /// Give consent for a set of scopes for the given client and user
-    ///
-    /// # Parameters
-    ///
-    /// * `rng`: The random number generator to use
-    /// * `clock`: The clock used to generate timestamps
-    /// * `client`: The client to give the consent for
-    /// * `user`: The user to give the consent for
-    /// * `scope`: The scope to give consent for
-    ///
-    /// # Errors
-    ///
-    /// Returns [`Self::Error`] if the underlying repository fails
-    async fn give_consent_for_user(
-        &mut self,
-        rng: &mut (dyn RngCore + Send),
-        clock: &dyn Clock,
-        client: &Client,
-        user: &User,
-        scope: &Scope,
-    ) -> Result<(), Self::Error>;
 
     /// Delete a client
     ///
@@ -276,6 +238,7 @@ repository_impl!(OAuth2ClientRepository:
     async fn upsert_static(
         &mut self,
         client_id: Ulid,
+        client_name: Option<String>,
         client_auth_method: OAuthClientAuthenticationMethod,
         encrypted_client_secret: Option<String>,
         jwks: Option<PublicJsonWebKeySet>,
@@ -288,19 +251,4 @@ repository_impl!(OAuth2ClientRepository:
     async fn delete(&mut self, client: Client) -> Result<(), Self::Error>;
 
     async fn delete_by_id(&mut self, id: Ulid) -> Result<(), Self::Error>;
-
-    async fn get_consent_for_user(
-        &mut self,
-        client: &Client,
-        user: &User,
-    ) -> Result<Scope, Self::Error>;
-
-    async fn give_consent_for_user(
-        &mut self,
-        rng: &mut (dyn RngCore + Send),
-        clock: &dyn Clock,
-        client: &Client,
-        user: &User,
-        scope: &Scope,
-    ) -> Result<(), Self::Error>;
 );

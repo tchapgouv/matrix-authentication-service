@@ -35,11 +35,11 @@ mod macros;
 pub use self::{
     context::{
         AccountInactiveContext, ApiDocContext, AppContext, CompatSsoContext, ConsentContext,
-        DeviceConsentContext, DeviceLinkContext, DeviceLinkFormField, EmailRecoveryContext,
-        EmailVerificationContext, EmptyContext, ErrorContext, FormPostContext, IndexContext,
-        LoginContext, LoginFormField, NotFoundContext, PasswordRegisterContext,
-        PolicyViolationContext, PostAuthContext, PostAuthContextInner, ReauthContext,
-        ReauthFormField, RecoveryExpiredContext, RecoveryFinishContext, RecoveryFinishFormField,
+        DeviceConsentContext, DeviceLinkContext, DeviceLinkFormField, DeviceNameContext,
+        EmailRecoveryContext, EmailVerificationContext, EmptyContext, ErrorContext,
+        FormPostContext, IndexContext, LoginContext, LoginFormField, NotFoundContext,
+        PasswordRegisterContext, PolicyViolationContext, PostAuthContext, PostAuthContextInner,
+        RecoveryExpiredContext, RecoveryFinishContext, RecoveryFinishFormField,
         RecoveryProgressContext, RecoveryStartContext, RecoveryStartFormField, RegisterContext,
         RegisterFormField, RegisterStepsDisplayNameContext, RegisterStepsDisplayNameFormField,
         RegisterStepsEmailInUseContext, RegisterStepsVerifyEmailContext,
@@ -138,7 +138,6 @@ impl Templates {
         name = "templates.load",
         skip_all,
         fields(%path),
-        err,
     )]
     pub async fn load(
         path: Utf8PathBuf,
@@ -258,7 +257,6 @@ impl Templates {
         name = "templates.reload",
         skip_all,
         fields(path = %self.path),
-        err,
     )]
     pub async fn reload(&self) -> Result<(), TemplateLoadingError> {
         let (translator, environment) = Self::load_(
@@ -372,9 +370,6 @@ register_templates! {
     /// Render the account recovery disabled page
     pub fn render_recovery_disabled(WithLanguage<EmptyContext>) { "pages/recovery/disabled.html" }
 
-    /// Render the re-authentication form
-    pub fn render_reauth(WithLanguage<WithCsrf<WithSession<ReauthContext>>>) { "pages/reauth.html" }
-
     /// Render the form used by the form_post response mode
     pub fn render_form_post<T: Serialize>(WithLanguage<FormPostContext<T>>) { "form_post.html" }
 
@@ -422,6 +417,9 @@ register_templates! {
 
     /// Render the 'account logged out' page
     pub fn render_account_logged_out(WithLanguage<WithCsrf<AccountInactiveContext>>) { "pages/account/logged_out.html" }
+
+    /// Render the automatic device name for OAuth 2.0 client
+    pub fn render_device_name(WithLanguage<DeviceNameContext>) { "device_name.txt" }
 }
 
 impl Templates {
@@ -456,15 +454,23 @@ impl Templates {
         check::render_recovery_expired(self, now, rng)?;
         check::render_recovery_consumed(self, now, rng)?;
         check::render_recovery_disabled(self, now, rng)?;
-        check::render_reauth(self, now, rng)?;
         check::render_form_post::<EmptyContext>(self, now, rng)?;
         check::render_error(self, now, rng)?;
+        check::render_email_recovery_txt(self, now, rng)?;
+        check::render_email_recovery_html(self, now, rng)?;
+        check::render_email_recovery_subject(self, now, rng)?;
         check::render_email_verification_txt(self, now, rng)?;
         check::render_email_verification_html(self, now, rng)?;
         check::render_email_verification_subject(self, now, rng)?;
         check::render_upstream_oauth2_link_mismatch(self, now, rng)?;
         check::render_upstream_oauth2_suggest_link(self, now, rng)?;
         check::render_upstream_oauth2_do_register(self, now, rng)?;
+        check::render_device_link(self, now, rng)?;
+        check::render_device_consent(self, now, rng)?;
+        check::render_account_deactivated(self, now, rng)?;
+        check::render_account_locked(self, now, rng)?;
+        check::render_account_logged_out(self, now, rng)?;
+        check::render_device_name(self, now, rng)?;
         Ok(())
     }
 }
