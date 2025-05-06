@@ -467,7 +467,38 @@ pub(crate) async fn get(
                         // We could run policy & existing user checks when the user submits the
                         // form, but this lead to poor UX. This is why we do
                         // it ahead of time here.
-                        let maybe_existing_user = repo.user().find_by_username(&localpart).await?;
+                        let mut maybe_existing_user = repo.user().find_by_username(&localpart).await?;
+
+                        if maybe_existing_user.is_none(){
+
+                            //check by email
+                            let template = provider
+                            .claims_imports
+                            .email
+                            .template
+                            .as_deref()
+                            .unwrap_or(DEFAULT_EMAIL_TEMPLATE);
+
+                            let maybe_email = render_attribute_template(
+                                    &env,
+                                    template,
+                                    &context,
+                                    provider.claims_imports.email.is_required(),
+                                );
+                            
+                            if let Ok(Some(email)) = maybe_email{
+                                let maybe_user_email = repo.user_email().find_by_email(&email).await?;
+                                
+                                if let Some(user_email) = maybe_user_email {
+                                    let user = repo.user().lookup(user_email.user_id).await?;
+                        
+                                    if user.is_some() {
+                                        maybe_existing_user = user;
+                                    }
+                                }
+                            };
+                        }
+                        
                         let is_available = homeserver
                             .is_localpart_available(&localpart)
                             .await
