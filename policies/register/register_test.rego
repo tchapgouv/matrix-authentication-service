@@ -2,6 +2,8 @@ package register_test
 
 import data.register
 import rego.v1
+import future.keywords.if
+import future.keywords.in
 
 mock_registration := {
 	"registration_method": "password",
@@ -110,4 +112,52 @@ test_ip_ban if {
 		"requester": {"user_agent": "Evil Client"},
 	}
 		with data.requester.banned_user_agents.substrings as ["Evil"]
+}
+
+# Test external service allowing registration
+test_external_service_allowed if {
+	# Create a test input with only the necessary fields
+	test_input := {
+		"username": "hello",
+		"email": "hello@example.com",
+		"registration_method": "password",
+	}
+	
+	register.allow with input as test_input
+		with  as {
+			"url": "https://matrix.agent.agriculture.tchap.gouv.fr/_matrix/identity/api/v1/info"
+		}
+		with data.server_name as "matrix.org"
+}
+
+mock_http_missing_hs_response(request) = response if {
+	response := {
+		"status_code": 200,
+		"body": {
+			"invited": true,
+			"requires_invite": false
+		}
+	}
+}
+
+mock_http_wrong_hs_response(request) = response if {
+	response := {
+		"status_code": 200,
+		"body": {
+			"hs": "wrong.org",
+			"invited": true,
+			"requires_invite": false
+		}
+	}
+}
+
+mock_http_requires_invite_response(request) = response if {
+	response := {
+		"status_code": 200,
+		"body": {
+			"hs": "matrix.org",
+			"invited": false,
+			"requires_invite": true
+		}
+	}
 }
