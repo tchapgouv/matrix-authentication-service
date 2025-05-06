@@ -4,9 +4,13 @@
 package register
 
 import rego.v1
+import data.identity
 
 import data.common
 import data.email as email_policy
+import future.keywords.contains
+import future.keywords.if
+import future.keywords.in
 
 default allow := false
 
@@ -91,4 +95,70 @@ violation contains object.union({"field": "email"}, v) if {
 
 	# Get the violation object from the email policy
 	some v in email_policy.violation
+}
+
+
+# Violation for email on wrong homeserver
+violation contains {
+	"field": "email", 
+	"code": "email-wrong-homeserver",
+	"msg": "email is registered on a different homeserver"
+} if {
+	# Check if email is present
+	input.email
+	
+	# Check if external service configuration exists
+	data.external_service
+	
+	# Get API response
+	identity_info_json := identity.get_identity_info
+		
+	# Check if "hs" is present in the response
+	"hs" in identity_info_json
+	
+	# Check if the hs does NOT match the server_name
+	identity_info_json.hs != data.server_name
+}
+
+# Violation for email requiring invitation
+violation contains {
+	"field": "email", 
+	"code": "email-invitation-required",
+	"msg": "invitation required for this email"
+} if {
+	# Check if email is present
+	input.email
+	
+	# Check if external service configuration exists
+	data.external_service
+	
+	# Get API response
+	identity_info_json := identity.get_identity_info
+
+	# Check if "hs" is present and matches server_name
+	"hs" in identity_info_json
+	identity_info_json.hs == data.server_name
+	
+	# Check if requires_invite is true and invited is false
+	identity_info_json.requires_invite == true
+	identity_info_json.invited == false
+}
+
+# Violation for email with missing hs field
+violation contains {
+	"field": "email", 
+	"code": "email-invalid-response",
+	"msg": "invalid response from identity server"
+} if {
+	# Check if email is present
+	input.email
+	
+	# Check if external service configuration exists
+	data.external_service
+	
+	# Get API response
+	identity_info_json := identity.get_identity_info
+	
+	# Check if "hs" is NOT present in the response
+	not "hs" in identity_info_json
 }
