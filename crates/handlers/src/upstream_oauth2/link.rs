@@ -1145,12 +1145,6 @@ mod tests {
             },
             ..UpstreamOAuthProviderClaimsImports::default()
         };
-/* 
-        let id_token = serde_json::json!({
-            "preferred_username": oidc_username.to_owned(),
-            "email": oidc_email.to_owned(),
-            "email_verified": true,
-        }); */
 
         let id_token = serde_json::json!({
             "preferred_username": oidc_username,
