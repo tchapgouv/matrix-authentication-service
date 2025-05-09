@@ -1113,9 +1113,21 @@ mod tests {
 
     #[sqlx::test(migrator = "mas_storage_pg::MIGRATOR")]
     async fn test_link_existing_account(pool: PgPool) {
-        let existing_username = "john";
-        let existing_email = "john@example.com";
-        let oidc_email = "new@example.com";
+        #[allow(clippy::disallowed_methods)]
+        let timestamp = chrono::Utc::now().timestamp_millis();
+        
+        //suffix timestamp to generate unique test data
+        let existing_username  = format!("{}{}", "john",timestamp);
+        let existing_email  = format!("{}@{}", existing_username, "example.com");
+        
+        //existing username matches oidc username
+        let oidc_username = existing_username.clone(); 
+
+        //oidc email is different from existing email
+        let oidc_email: String = format!("{}{}@{}", "any_email", timestamp,"example.com");
+        
+        //generate unique subject
+        let subject = format!("{}+{}", "subject", timestamp);
 
         setup();
         let state = TestState::from_pool(pool).await.unwrap();
@@ -1133,10 +1145,16 @@ mod tests {
             },
             ..UpstreamOAuthProviderClaimsImports::default()
         };
+/* 
+        let id_token = serde_json::json!({
+            "preferred_username": oidc_username.to_owned(),
+            "email": oidc_email.to_owned(),
+            "email_verified": true,
+        }); */
 
         let id_token = serde_json::json!({
-            "preferred_username": existing_username.to_owned(),
-            "email": oidc_email.to_owned(),
+            "preferred_username": oidc_username,
+            "email": oidc_email,
             "email_verified": true,
         });
 
@@ -1209,7 +1227,7 @@ mod tests {
                 &mut rng,
                 &state.clock,
                 &provider,
-                "subject".to_owned(),
+                subject.clone(),
                 None,
             )
             .await
@@ -1231,13 +1249,13 @@ mod tests {
         //create a user with an email
         let user = repo
             .user()
-            .add(&mut rng, &state.clock, existing_username.to_owned())
+            .add(&mut rng, &state.clock, existing_username.clone())
             .await
             .unwrap();
 
         let _user_email = repo
             .user_email()
-            .add(&mut rng, &state.clock, &user, existing_email.to_owned())
+            .add(&mut rng, &state.clock, &user, existing_email.clone())
             .await;
 
         repo.save().await.unwrap();
@@ -1280,12 +1298,12 @@ mod tests {
         cookies.save_cookies(&response);
         response.assert_status(StatusCode::SEE_OTHER);
 
-        // Check that the existing user has a link
+        // Check that the existing user has the oidc link
         let mut repo = state.repository().await.unwrap();
 
         let link = repo
             .upstream_oauth_link()
-            .find_by_subject(&provider, "subject")
+            .find_by_subject(&provider, &subject)
             .await
             .unwrap()
             .expect("link exists");
@@ -1298,7 +1316,7 @@ mod tests {
             .await
             .unwrap();
 
-        //check that the existing email has been updated
+        //check that the existing user email is updated by oidc email
         assert_eq!(page.edges.len(), 1);
         let email = page.edges.first().expect("email exists");
 
