@@ -470,7 +470,7 @@ pub(crate) async fn get(
                         // it ahead of time here.
                         let mut maybe_existing_user = repo.user().find_by_username(&localpart).await?;
 
-                        let fallback_rules: Value = serde_json::from_str(r#"[{"match":"@numerique.gouv.fr", "search":"@beta.gouv.fr"}]"#).unwrap();
+                        //:tchap:
 
                         //if not found by username, check by email
                         if maybe_existing_user.is_none(){
@@ -504,6 +504,8 @@ pub(crate) async fn get(
                                         tracing::info!("User found by email for localpart {} : {} : {}",user_found.unwrap().id, localpart, email);
                                     }
                                 }else{
+                                    let fallback_rules: Value = serde_json::from_str(r#"[{"match":"@numerique.gouv.fr", "search":"@beta.gouv.fr"}]"#).unwrap();
+
                                     tracing::info!("Email not found, Matching oidc identity by email using fallback rules:{} for user:{}", email, localpart);
 
                                     //iterate on fallback_rules, if a rule 'match' matches the email, replace by value of 'search' and lookup again the email
@@ -546,7 +548,7 @@ pub(crate) async fn get(
                             tracing::info!("User found {}",maybe_existing_user.clone().unwrap().id.to_string());
                         }
                         
-
+                        //:tchap: end
 
                         let is_available = homeserver
                             .is_localpart_available(&localpart)
