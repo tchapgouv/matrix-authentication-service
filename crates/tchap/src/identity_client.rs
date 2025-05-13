@@ -45,7 +45,7 @@ fn default_identity_server_url() -> Url {
     }
 
     // Default value if the environment variable is not defined or invalid
-    Url::parse("http://localhost:8083").unwrap()
+    Url::parse("http://localhost:8090").unwrap()
 }
 
 impl Default for TchapConfig {
