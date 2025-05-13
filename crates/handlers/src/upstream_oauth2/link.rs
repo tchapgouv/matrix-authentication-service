@@ -37,10 +37,13 @@ use mas_templates::{
 use minijinja::Environment;
 use opentelemetry::{Key, KeyValue, metrics::Counter};
 use serde::{Deserialize, Serialize};
+//:tchap:
+use tchap::{self, EmailAllowedResult};
 use thiserror::Error;
 use tracing::warn;
 use ulid::Ulid;
 
+//:tchap: end
 use super::{
     UpstreamSessionsCookie,
     template::{AttributeMappingContext, environment},
@@ -434,7 +437,53 @@ pub(crate) async fn get(
                     &context,
                     provider.claims_imports.email.is_required(),
                 )? {
-                    Some(value) => ctx.with_email(value, provider.claims_imports.email.is_forced()),
+                    Some(value) => {
+                        //:tchap:
+                        let server_name = homeserver.homeserver();
+                        let email_result = check_email_allowed(&value, &server_name).await;
+
+                        match email_result {
+                            EmailAllowedResult::Allowed => {
+                                // Email is allowed, continue
+                            }
+                            EmailAllowedResult::WrongServer => {
+                                // Email is mapped to a different server
+                                let ctx = ErrorContext::new()
+                                    .with_code("wrong_server")
+                                    .with_description(format!(
+                                        "Votre adresse mail {} est associée à un autre serveur.",
+                                        value
+                                    ))
+                                    .with_details(format!("Veuillez-vous contacter le support de Tchap support@tchap.beta.gouv.fr"))
+                                    .with_language(&locale);
+
+                                //return error template
+                                return Ok((
+                                    cookie_jar,
+                                    Html(templates.render_error(&ctx)?).into_response(),
+                                ));
+                            }
+                            EmailAllowedResult::InvitationMissing => {
+                                // Server requires an invitation that is not present
+                                let ctx = ErrorContext::new()
+                                    .with_code("invitation_missing")
+                                    .with_description(format!(
+                                        "Vous avez besoin d'une invitation pour accéder à Tchap."
+                                    ))
+                                    .with_details(format!("Les partenaires externes peuvent accéder à Tchap uniquement avec une invitation d'un agent public."))
+                                    .with_language(&locale);
+
+                                //return error template
+                                return Ok((
+                                    cookie_jar,
+                                    Html(templates.render_error(&ctx)?).into_response(),
+                                ));
+                            }
+                        }
+                        //:tchap: end
+
+                        ctx.with_email(value, provider.claims_imports.email.is_forced())
+                    }
                     None => ctx,
                 }
             };
@@ -465,7 +514,9 @@ pub(crate) async fn get(
                             .await
                             .map_err(RouteError::HomeserverConnection)?;
 
-                        if maybe_existing_user.is_some() || !is_available {
+                        if !provider.allow_existing_users
+                            && (maybe_existing_user.is_some() || !is_available)
+                        {
                             if let Some(existing_user) = maybe_existing_user {
                                 // The mapper returned a username which already exists, but isn't
                                 // linked to this upstream user.
@@ -742,15 +793,16 @@ pub(crate) async fn post(
                         mas_templates::UpstreamRegisterFormField::Username,
                         FieldError::Required,
                     );
-                } else if repo.user().exists(&username).await? {
+                } else if !provider.allow_existing_users && repo.user().exists(&username).await? {
                     form_state.add_error_on_field(
                         mas_templates::UpstreamRegisterFormField::Username,
                         FieldError::Exists,
                     );
-                } else if !homeserver
-                    .is_localpart_available(&username)
-                    .await
-                    .map_err(RouteError::HomeserverConnection)?
+                } else if !provider.allow_existing_users
+                    && !homeserver
+                        .is_localpart_available(&username)
+                        .await
+                        .map_err(RouteError::HomeserverConnection)?
                 {
                     // The user already exists on the homeserver
                     tracing::warn!(
@@ -830,10 +882,22 @@ pub(crate) async fn post(
                     .into_response());
             }
 
-            REGISTRATION_COUNTER.add(1, &[KeyValue::new(PROVIDER, provider.id.to_string())]);
-
-            // Now we can create the user
-            let user = repo.user().add(&mut rng, &clock, username).await?;
+            let user = if provider.allow_existing_users {
+                // If the provider allows existing users, we can use the existing user
+                let existing_user = repo.user().find_by_username(&username).await?;
+                if existing_user.is_some() {
+                    existing_user.unwrap()
+                } else {
+                    REGISTRATION_COUNTER
+                        .add(1, &[KeyValue::new(PROVIDER, provider.id.to_string())]);
+                    // This case should not happen
+                    repo.user().add(&mut rng, &clock, username).await?
+                }
+            } else {
+                REGISTRATION_COUNTER.add(1, &[KeyValue::new(PROVIDER, provider.id.to_string())]);
+                // Now we can create the user
+                repo.user().add(&mut rng, &clock, username).await?
+            };
 
             if let Some(terms_url) = &site_config.tos_uri {
                 repo.user_terms()
@@ -888,6 +952,19 @@ pub(crate) async fn post(
 
     Ok((cookie_jar, post_auth_action.go_next(&url_builder)).into_response())
 }
+
+//:tchap:
+///real function used when not testing
+#[cfg(not(test))]
+async fn check_email_allowed(email: &str, server_name: &str) -> EmailAllowedResult {
+    tchap::is_email_allowed(email, server_name).await
+}
+///mock function used when testing
+#[cfg(test)]
+async fn check_email_allowed(_email: &str, _server_name: &str) -> EmailAllowedResult {
+    EmailAllowedResult::Allowed
+}
+//:tchap:end
 
 #[cfg(test)]
 mod tests {
@@ -975,6 +1052,7 @@ mod tests {
                     discovery_mode: mas_data_model::UpstreamOAuthProviderDiscoveryMode::Oidc,
                     pkce_mode: mas_data_model::UpstreamOAuthProviderPkceMode::Auto,
                     response_mode: None,
+                    allow_existing_users: true,
                     additional_authorization_parameters: Vec::new(),
                     ui_order: 0,
                 },
