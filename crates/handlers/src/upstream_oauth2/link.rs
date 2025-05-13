@@ -468,9 +468,8 @@ pub(crate) async fn get(
                         // We could run policy & existing user checks when the user submits the
                         // form, but this lead to poor UX. This is why we do
                         // it ahead of time here.
+                        //:tchap: add mut
                         let mut maybe_existing_user = repo.user().find_by_username(&localpart).await?;
-
-                        //:tchap:
 
                         //if not found by username, check by email
                         if maybe_existing_user.is_none(){
@@ -487,68 +486,12 @@ pub(crate) async fn get(
                                     &context,
                                     provider.claims_imports.email.is_required(),
                                 );
-                            // error when can not get an email adresse, should not happen
-                            // if maybe_email.is_err() {
-                            //     tracing::error!("No email found for localpart {}", localpart);
-                            // }
 
                             if let Ok(Some(email)) = maybe_email{
-                                tracing::info!("Matching oidc identity by email:{} for user:{}", email, localpart);
-                                let maybe_user_email = repo.user_email().find_by_email(&email).await?;
-                                
-                                if let Some(user_email) = maybe_user_email {
-                                    let user_found: Option<mas_data_model::User> = repo.user().lookup(user_email.user_id).await?;
-                                    
-                                    if user_found.is_some() {
-                                        maybe_existing_user = user_found.clone();
-                                        tracing::info!("User found by email for localpart {} : {} : {}",user_found.unwrap().id, localpart, email);
-                                    }
-                                }else{
-                                    let fallback_rules: Value = serde_json::from_str(r#"[{"match":"@numerique.gouv.fr", "search":"@beta.gouv.fr"}]"#).unwrap();
-
-                                    tracing::info!("Email not found, Matching oidc identity by email using fallback rules:{} for user:{}", email, localpart);
-
-                                    //iterate on fallback_rules, if a rule 'match' matches the email, replace by value of 'search' and lookup again the email
-                                    if let Some(fallback_array) = fallback_rules.as_array() {
-                                        for rule in fallback_array {
-                                            if let (Some(match_pattern), Some(search_value)) = (
-                                                rule.get("match").and_then(Value::as_str),
-                                                rule.get("search").and_then(Value::as_str)
-                                            ) {
-                                                tracing::info!("Checking fallback rules {} : {}", match_pattern, search_value);
-
-                                                // Check if email contains the match pattern
-                                                if email.contains(match_pattern) {
-
-                                                    // Replace match pattern with search value
-                                                    let transformed_email = email.replace(match_pattern, search_value);
-                                                    
-                                                    tracing::debug!("Search by transformed email fallback rules {}", transformed_email);
-
-                                                    // Look up the transformed email
-                                                    let maybe_transformed_user_email = repo.user_email().find_by_email(&transformed_email).await?;
-
-                                                    if let Some(transformed_user_email) =  maybe_transformed_user_email {
-                                                        let user_found: Option<mas_data_model::User> = repo.user().lookup(transformed_user_email.user_id).await?;
-                                    
-                                                        if user_found.is_some() {
-                                                            maybe_existing_user = user_found.clone();
-                                                            tracing::info!("User found by email with fallback rules for localpart {} : {} : {}",user_found.unwrap().id, localpart, email);
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
+                                maybe_existing_user =  search_user_by_email(&mut repo, &email, &localpart).await?;
                             }
                         }
-
-                        if maybe_existing_user.is_some(){
-                            tracing::info!("User found {}",maybe_existing_user.clone().unwrap().id.to_string());
-                        }
-                        
-                        //:tchap: end
+                         //:tchap: end
 
                         let is_available = homeserver
                             .is_localpart_available(&localpart)
@@ -593,7 +536,16 @@ pub(crate) async fn get(
                                 },
                             })
                             .await?;
-
+                        /*
+                        if maybe_existing_user.is_some(){
+                            let user_found = maybe_existing_user.unwrap();
+                            tracing::info!("User found {} {}",user_found.id.to_string(), user_found.username);
+                            
+                            ctx.with_localpart(
+                                user_found.username,
+                                provider.claims_imports.localpart.is_forced(),
+                            )
+                        } else */
                         if res.valid() {
                             // The username passes the policy check, add it to the context
                             ctx.with_localpart(
@@ -817,6 +769,7 @@ pub(crate) async fn post(
 
                 render_attribute_template(&env, template, &context, true)?
             } else {
+                //:tchap tracing::info!("POST username {}",username.clone().unwrap());
                 // If there is no forced username, we can use the one the user entered
                 username
             }
@@ -926,9 +879,24 @@ pub(crate) async fn post(
             }
 
             let user = if provider.allow_existing_users {
+                
+                //:tchap:
+                //tracing::info!("POST username {}",username);
                 // If the provider allows existing users, we can use the existing user
-                let existing_user = repo.user().find_by_username(&username).await?;
+                let mut existing_user = repo.user().find_by_username(&username).await?;
+
+                if existing_user.is_none(){
+                    if let Some(email) = email.clone(){
+                        tracing::info!("Matching oidc identity by email:{} for user:{}", email, username);
+                        
+                        existing_user = search_user_by_email(&mut repo, &email, &username).await?;
+                        
+                    }
+                }
+                //:tchap: end
+                
                 if existing_user.is_some() {
+                    //:tchap tracing::info!("POST existing_user {}", existing_user.clone().unwrap().username);
                     existing_user.unwrap()
                 } else {
                     REGISTRATION_COUNTER
@@ -996,6 +964,66 @@ pub(crate) async fn post(
     Ok((cookie_jar, post_auth_action.go_next(&url_builder)).into_response())
 }
 
+//:tchap:
+/// Search for a user by email with fallback rules
+///
+/// # Parameters
+/// * `repo` - Repository access
+/// * `email` - The email to search for
+/// * `localpart` - The local part of the username
+/// * `fallback_rules` - Fallback rules for email transformation
+///
+/// # Returns
+/// Option<mas_data_model::User> - The found user if any
+async fn search_user_by_email(
+    repo: &mut BoxRepository,
+    email: &str,
+    localpart: &str
+) -> Result<Option<mas_data_model::User>, RouteError> {
+    tracing::info!("Matching oidc identity by email:{} for user:{}", email, localpart);
+    let maybe_user_email = repo.user_email().find_by_email(email).await?;
+
+    if let Some(user_email) = maybe_user_email {
+        let maybe_user_found: Option<mas_data_model::User> = repo.user().lookup(user_email.user_id).await?;
+        return Ok(maybe_user_found);
+    }
+
+    
+    tracing::info!("Email not found, Matching oidc identity by email using fallback rules:{} for user:{}", email, localpart);
+    let fallback_rules: Value = serde_json::from_str(r#"[{"match":"@numerique.gouv.fr", "search":"@beta.gouv.fr"}]"#).unwrap();
+
+    // Iterate on fallback_rules, if a rule 'match' matches the email,
+    // replace by value of 'search' and lookup again the email
+    if let Some(fallback_array) = fallback_rules.as_array() {
+        for rule in fallback_array {
+            if let (Some(match_pattern), Some(search_value)) = (
+                rule.get("match").and_then(Value::as_str),
+                rule.get("search").and_then(Value::as_str)
+            ) {
+                tracing::info!("Checking fallback rules {} : {}", match_pattern, search_value);
+
+                // Check if email contains the match pattern
+                if email.contains(match_pattern) {
+                    // Replace match pattern with search value
+                    let transformed_email = email.replace(match_pattern, search_value);
+                    tracing::debug!("Search by transformed email fallback rules {}", transformed_email);
+
+                    // Look up the transformed email
+                    let maybe_transformed_user_email = repo.user_email().find_by_email(&transformed_email).await?;
+
+                    if let Some(transformed_user_email) = maybe_transformed_user_email {
+                        let user_found: Option<mas_data_model::User> = repo.user().lookup(transformed_user_email.user_id).await?;
+                        return Ok(user_found);
+                    }
+                }
+            }
+        }
+    }
+
+    Ok(None)
+}
+//:tchap: end
+
 #[cfg(test)]
 mod tests {
     use hyper::{Request, StatusCode, header::CONTENT_TYPE};
@@ -1007,7 +1035,7 @@ mod tests {
     use mas_jose::jwt::{JsonWebSignatureHeader, Jwt};
     use mas_router::Route;
     use mas_storage::{
-        upstream_oauth2::{UpstreamOAuthProviderParams}, user::UserEmailFilter, Pagination
+        Pagination, upstream_oauth2::UpstreamOAuthProviderParams, user::UserEmailFilter,
     };
     use oauth2_types::scope::{OPENID, Scope};
     use sqlx::PgPool;
@@ -1197,18 +1225,17 @@ mod tests {
     }
 
     #[sqlx::test(migrator = "mas_storage_pg::MIGRATOR")]
-    async fn test_link_existing_account(pool: PgPool) {
+    async fn test_link_existing_account_by_username(pool: PgPool) {
         #[allow(clippy::disallowed_methods)]
-        let timestamp = chrono::Utc::now().timestamp_millis();
-        
         //suffix timestamp to generate unique test data
-        let existing_username  = format!("{}{}", "johny",timestamp);
+        let timestamp = chrono::Utc::now().timestamp_millis();
+        let existing_username  = format!("{}{}", "john",timestamp);
         let existing_email  = format!("{}@{}", existing_username, "example.com");
         
-        //existing username matches oidc username
+        //usernames match
         let oidc_username = existing_username.clone(); 
 
-        //oidc email is different from existing email
+        //emails don't match
         let oidc_email: String = format!("{}{}@{}", "any_email", timestamp,"example.com");
         
         //generate unique subject
@@ -1612,7 +1639,7 @@ mod tests {
         let existing_username  = format!("{}{}", "john",timestamp);
         let oidc_username = format!("{}{}", "any",timestamp); 
         
-        //email matches
+        //emails match
         let existing_email  = format!("{}@{}", existing_username, "beta.gouv.fr");
         let oidc_email: String = existing_email.clone();
         
@@ -1822,7 +1849,7 @@ mod tests {
         //usernames don't match
         let oidc_username = format!("{}{}", "any",timestamp); 
 
-        //existing email matches a fallback rule
+        //existing emails match a fallback rule
         let oidc_email: String = format!("{}@{}", existing_username, "numerique.gouv.fr");
         
         //generate unique subject
