@@ -107,6 +107,8 @@ mas-templates.workspace = true
 oauth2-types.workspace = true
 zxcvbn = "3.1.0"
 
+tchap.workspace = true
+
 [dev-dependencies]
 insta.workspace = true
 tracing-subscriber.workspace = true
