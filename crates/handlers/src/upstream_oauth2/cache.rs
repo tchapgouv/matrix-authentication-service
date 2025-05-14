@@ -427,6 +427,7 @@ mod tests {
             claims_imports: UpstreamOAuthProviderClaimsImports::default(),
             allow_existing_users: false,
             additional_authorization_parameters: Vec::new(),
+            forward_login_hint: false,
         };
 
         // Without any override, it should just use discovery

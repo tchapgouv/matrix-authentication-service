@@ -77,6 +77,7 @@ mod tests {
                     response_mode: None,
                     allow_existing_users: false,
                     additional_authorization_parameters: Vec::new(),
+                    forward_login_hint: false,
                     ui_order: 0,
                 },
             )
@@ -108,7 +109,7 @@ mod tests {
                 &provider,
                 "some-state".to_owned(),
                 None,
-                "some-nonce".to_owned(),
+                Some("some-nonce".to_owned()),
             )
             .await
             .unwrap();
@@ -325,6 +326,7 @@ mod tests {
                         response_mode: None,
                         allow_existing_users: false,
                         additional_authorization_parameters: Vec::new(),
+                        forward_login_hint: false,
                         ui_order: 0,
                     },
                 )
