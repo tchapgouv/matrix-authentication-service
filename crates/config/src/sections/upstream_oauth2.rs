@@ -110,6 +110,17 @@ impl ConfigurationSection for UpstreamOAuth2Config {
                     }
                 }
             }
+
+            if provider.allow_existing_users
+                && !matches!(
+                    provider.claims_imports.localpart.action,
+                    ImportAction::Force | ImportAction::Require
+                )
+            {
+                return annotate(figment::Error::custom(
+                    "When `allow_existing_users` is true, localpart claim import must be either `force` or `require`",
+                ));
+            }
         }
 
         Ok(())
