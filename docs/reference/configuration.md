@@ -771,6 +771,7 @@ upstream_oauth2:
         account_name:
           #template: "@{{ user.preferred_username }}"
       # set to true to allow a user logging in via OIDC to match a pre-existing account instead of failing. 
+      # Account matching is based on the localpart template which needs to be set to require or force.
       # This could be used if switching from password logins to OIDC. Defaults to false.
       allow_existing_users: true
 ```
