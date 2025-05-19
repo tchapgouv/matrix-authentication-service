@@ -848,7 +848,6 @@ pub(crate) async fn post(
                 } else {
                     REGISTRATION_COUNTER
                         .add(1, &[KeyValue::new(PROVIDER, provider.id.to_string())]);
-                    // This case should not happen
                     repo.user().add(&mut rng, &clock, username).await?
                 }
             } else {
