@@ -839,11 +839,12 @@ pub(crate) async fn post(
                 )
                     .into_response());
             }
-
+            let mut is_new_user = true;
             let user = if provider.allow_existing_users {
                 // If the provider allows existing users, we can use the existing user
                 let existing_user = repo.user().find_by_username(&username).await?;
                 if existing_user.is_some() {
+                    is_new_user = false;
                     existing_user.unwrap()
                 } else {
                     REGISTRATION_COUNTER
@@ -862,15 +863,18 @@ pub(crate) async fn post(
                     .await?;
             }
 
-            // And schedule the job to provision it
-            let mut job = ProvisionUserJob::new(&user);
-
-            // If we have a display name, set it during provisioning
-            if let Some(name) = display_name {
-                job = job.set_display_name(name);
+            //create user in synapse only if needed
+            if is_new_user {
+                // And schedule the job to provision it
+                let mut job = ProvisionUserJob::new(&user);
+                
+                // If we have a display name, set it during provisioning
+                if let Some(name) = display_name {
+                    job = job.set_display_name(name);
+                }
+                
+                repo.queue_job().schedule_job(&mut rng, &clock, job).await?;
             }
-
-            repo.queue_job().schedule_job(&mut rng, &clock, job).await?;
 
             // If we have an email, add it to the user
             if let Some(email) = email {
