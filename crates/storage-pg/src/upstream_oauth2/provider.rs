@@ -71,6 +71,7 @@ struct ProviderLookup {
     response_mode: Option<String>,
     allow_existing_users: bool,
     additional_parameters: Option<Json<Vec<(String, String)>>>,
+    forward_login_hint: bool,
 }
 
 impl TryFrom<ProviderLookup> for UpstreamOAuthProvider {
@@ -219,6 +220,7 @@ impl TryFrom<ProviderLookup> for UpstreamOAuthProvider {
             response_mode,
             allow_existing_users: value.allow_existing_users,
             additional_authorization_parameters,
+            forward_login_hint: value.forward_login_hint,
         })
     }
 }
@@ -277,7 +279,8 @@ impl UpstreamOAuthProviderRepository for PgUpstreamOAuthProviderRepository<'_> {
                     pkce_mode,
                     response_mode,
                     allow_existing_users,
-                    additional_parameters as "additional_parameters: Json<Vec<(String, String)>>"
+                    additional_parameters as "additional_parameters: Json<Vec<(String, String)>>",
+                    forward_login_hint
                 FROM upstream_oauth_providers
                 WHERE upstream_oauth_provider_id = $1
             "#,
@@ -340,9 +343,10 @@ impl UpstreamOAuthProviderRepository for PgUpstreamOAuthProviderRepository<'_> {
                 pkce_mode,
                 response_mode,
                 allow_existing_users,
+                forward_login_hint,
                 created_at
             ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
-                      $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22)
+                      $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23)
         "#,
             Uuid::from(id),
             params.issuer.as_deref(),
@@ -380,6 +384,7 @@ impl UpstreamOAuthProviderRepository for PgUpstreamOAuthProviderRepository<'_> {
             params.pkce_mode.as_str(),
             params.response_mode.as_ref().map(ToString::to_string),
             params.allow_existing_users,
+            params.forward_login_hint,
             created_at,
         )
         .traced()
@@ -411,6 +416,7 @@ impl UpstreamOAuthProviderRepository for PgUpstreamOAuthProviderRepository<'_> {
             response_mode: params.response_mode,
             allow_existing_users: params.allow_existing_users,
             additional_authorization_parameters: params.additional_authorization_parameters,
+            forward_login_hint: params.forward_login_hint,
         })
     }
 
@@ -524,10 +530,12 @@ impl UpstreamOAuthProviderRepository for PgUpstreamOAuthProviderRepository<'_> {
                     response_mode,
                     allow_existing_users,
                     additional_parameters,
+                    forward_login_hint,
                     ui_order,
                     created_at
                 ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11,
-                          $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24)
+                          $12, $13, $14, $15, $16, $17, $18, $19, $20,
+                          $21, $22, $23, $24, $25)
                 ON CONFLICT (upstream_oauth_provider_id)
                     DO UPDATE
                     SET
@@ -553,6 +561,7 @@ impl UpstreamOAuthProviderRepository for PgUpstreamOAuthProviderRepository<'_> {
                         response_mode = EXCLUDED.response_mode,
                         allow_existing_users = EXCLUDED.allow_existing_users,
                         additional_parameters = EXCLUDED.additional_parameters,
+                        forward_login_hint = EXCLUDED.forward_login_hint,
                         ui_order = EXCLUDED.ui_order
                 RETURNING created_at
             "#,
@@ -593,6 +602,7 @@ impl UpstreamOAuthProviderRepository for PgUpstreamOAuthProviderRepository<'_> {
             params.response_mode.as_ref().map(ToString::to_string),
             params.allow_existing_users,
             Json(&params.additional_authorization_parameters) as _,
+            params.forward_login_hint,
             params.ui_order,
             created_at,
         )
@@ -625,6 +635,7 @@ impl UpstreamOAuthProviderRepository for PgUpstreamOAuthProviderRepository<'_> {
             response_mode: params.response_mode,
             allow_existing_users: params.allow_existing_users,
             additional_authorization_parameters: params.additional_authorization_parameters,
+            forward_login_hint: params.forward_login_hint,
         })
     }
 
@@ -831,6 +842,13 @@ impl UpstreamOAuthProviderRepository for PgUpstreamOAuthProviderRepository<'_> {
             .expr_as(
                 Expr::col((
                     UpstreamOAuthProviders::Table,
+                    UpstreamOAuthProviders::AllowExistingUsers,
+                )),
+                ProviderLookupIden::AllowExistingUsers,
+            )
+            .expr_as(
+                Expr::col((
+                    UpstreamOAuthProviders::Table,
                     UpstreamOAuthProviders::AdditionalParameters,
                 )),
                 ProviderLookupIden::AdditionalParameters,
@@ -838,9 +856,9 @@ impl UpstreamOAuthProviderRepository for PgUpstreamOAuthProviderRepository<'_> {
             .expr_as(
                 Expr::col((
                     UpstreamOAuthProviders::Table,
-                    UpstreamOAuthProviders::AllowExistingUsers,
+                    UpstreamOAuthProviders::ForwardLoginHint,
                 )),
-                ProviderLookupIden::AllowExistingUsers,
+                ProviderLookupIden::ForwardLoginHint,
             )
             .from(UpstreamOAuthProviders::Table)
             .apply_filter(filter)
@@ -935,7 +953,8 @@ impl UpstreamOAuthProviderRepository for PgUpstreamOAuthProviderRepository<'_> {
                     pkce_mode,
                     response_mode,
                     allow_existing_users,
-                    additional_parameters as "additional_parameters: Json<Vec<(String, String)>>"
+                    additional_parameters as "additional_parameters: Json<Vec<(String, String)>>",
+                    forward_login_hint
                 FROM upstream_oauth_providers
                 WHERE disabled_at IS NULL
                 ORDER BY ui_order ASC, upstream_oauth_provider_id ASC

@@ -42,7 +42,7 @@ use mas_keystore::{Encrypter, Keystore};
 use mas_matrix::HomeserverConnection;
 use mas_policy::Policy;
 use mas_router::{Route, UrlBuilder};
-use mas_storage::{BoxClock, BoxRepository, BoxRng};
+use mas_storage::{BoxClock, BoxRepository, BoxRepositoryFactory, BoxRng};
 use mas_templates::{ErrorContext, NotFoundContext, TemplateContext, Templates};
 use opentelemetry::metrics::Meter;
 use sqlx::PgPool;
@@ -249,6 +249,8 @@ where
                     ACCEPT_LANGUAGE,
                     CONTENT_LANGUAGE,
                     CONTENT_TYPE,
+                    // Swagger will send this header, so we have to allow it to avoid CORS errors
+                    HeaderName::from_static("x-requested-with"),
                 ])
                 .max_age(Duration::from_secs(60 * 60)),
         )
@@ -263,6 +265,7 @@ where
     Arc<dyn HomeserverConnection>: FromRef<S>,
     PasswordManager: FromRef<S>,
     Limiter: FromRef<S>,
+    BoxRepositoryFactory: FromRef<S>,
     BoundActivityTracker: FromRequestParts<S>,
     RequesterFingerprint: FromRequestParts<S>,
     BoxRepository: FromRequestParts<S>,
@@ -277,6 +280,10 @@ where
         .route(
             mas_router::CompatLogout::route(),
             post(self::compat::logout::post),
+        )
+        .route(
+            mas_router::CompatLogoutAll::route(),
+            post(self::compat::logout_all::post),
         )
         .route(
             mas_router::CompatRefresh::route(),

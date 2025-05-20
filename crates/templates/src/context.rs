@@ -1486,6 +1486,7 @@ impl TemplateContext for UpstreamRegister {
                 response_mode: None,
                 allow_existing_users: false,
                 additional_authorization_parameters: Vec::new(),
+                forward_login_hint: false,
                 created_at: now,
                 disabled_at: None,
             },

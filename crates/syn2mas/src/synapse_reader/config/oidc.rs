@@ -175,6 +175,8 @@ pub struct OidcProvider {
     #[serde(default)]
     additional_authorization_parameters: BTreeMap<String, String>,
     #[serde(default)]
+    forward_login_hint: bool,
+    #[serde(default)]
     user_mapping_provider: UserMappingProvider,
 }
 
@@ -343,6 +345,7 @@ impl OidcProvider {
             claims_imports,
             additional_authorization_parameters,
             allow_existing_users: true,
+            forward_login_hint: self.forward_login_hint,
         })
     }
 }

@@ -712,6 +712,10 @@ upstream_oauth2:
       # Additional parameters to include in the authorization request
       #additional_authorization_parameters:
       #  foo: "bar"
+      
+      # Whether the `login_hint` should be forwarded to the provider in the
+      # authorization request.
+      #forward_login_hint: false
 
       # How user attributes should be mapped
       #
@@ -767,6 +771,7 @@ upstream_oauth2:
         account_name:
           #template: "@{{ user.preferred_username }}"
       # set to true to allow a user logging in via OIDC to match a pre-existing account instead of failing. 
+      # Account matching is based on the localpart template which needs to be set to require or force.
       # This could be used if switching from password logins to OIDC. Defaults to false.
       allow_existing_users: true
 ```

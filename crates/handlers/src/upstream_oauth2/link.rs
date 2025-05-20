@@ -877,14 +877,13 @@ pub(crate) async fn post(
                 )
                     .into_response());
             }
+            
+            let mut existing_user: Option<mas_data_model::User> = None;
 
-            let user = if provider.allow_existing_users {
+            //search and use existing users if allowed
+            if provider.allow_existing_users {
+                existing_user = repo.user().find_by_username(&username).await?;
                 
-                //:tchap:
-                //tracing::info!("POST username {}",username);
-                // If the provider allows existing users, we can use the existing user
-                let mut existing_user = repo.user().find_by_username(&username).await?;
-
                 if existing_user.is_none(){
                     if let Some(email) = email.clone(){
                         tracing::info!("Matching oidc identity by email:{} for user:{}", email, username);
@@ -893,38 +892,35 @@ pub(crate) async fn post(
                         
                     }
                 }
-                //:tchap: end
-                
-                if existing_user.is_some() {
-                    //:tchap tracing::info!("POST existing_user {}", existing_user.clone().unwrap().username);
-                    existing_user.unwrap()
-                } else {
-                    REGISTRATION_COUNTER
-                        .add(1, &[KeyValue::new(PROVIDER, provider.id.to_string())]);
-                    // This case should not happen
-                    repo.user().add(&mut rng, &clock, username).await?
-                }
+            }
+
+            
+            let user = if existing_user.is_some(){
+                existing_user.unwrap()
             } else {
                 REGISTRATION_COUNTER.add(1, &[KeyValue::new(PROVIDER, provider.id.to_string())]);
+                
                 // Now we can create the user
-                repo.user().add(&mut rng, &clock, username).await?
+                let user = repo.user().add(&mut rng, &clock, username).await?;
+    
+                if let Some(terms_url) = &site_config.tos_uri {
+                    repo.user_terms()
+                        .accept_terms(&mut rng, &clock, &user, terms_url.clone())
+                        .await?;
+                }
+
+                // And schedule the job to provision it
+                let mut job = ProvisionUserJob::new(&user);
+                
+                // If we have a display name, set it during provisioning
+                if let Some(name) = display_name {
+                    job = job.set_display_name(name);
+                }
+                
+                repo.queue_job().schedule_job(&mut rng, &clock, job).await?;
+                
+                user
             };
-
-            if let Some(terms_url) = &site_config.tos_uri {
-                repo.user_terms()
-                    .accept_terms(&mut rng, &clock, &user, terms_url.clone())
-                    .await?;
-            }
-
-            // And schedule the job to provision it
-            let mut job = ProvisionUserJob::new(&user);
-
-            // If we have a display name, set it during provisioning
-            if let Some(name) = display_name {
-                job = job.set_display_name(name);
-            }
-
-            repo.queue_job().schedule_job(&mut rng, &clock, job).await?;
 
             // If we have an email, add it to the user
             if let Some(email) = email {
@@ -1112,6 +1108,7 @@ mod tests {
                     response_mode: None,
                     allow_existing_users: true,
                     additional_authorization_parameters: Vec::new(),
+                    forward_login_hint: false,
                     ui_order: 0,
                 },
             )
@@ -1126,7 +1123,7 @@ mod tests {
                 &provider,
                 "state".to_owned(),
                 None,
-                "nonce".to_owned(),
+                None,
             )
             .await
             .unwrap();
@@ -1308,6 +1305,7 @@ mod tests {
                     response_mode: None,
                     allow_existing_users: true,
                     additional_authorization_parameters: Vec::new(),
+                    forward_login_hint: false,
                     ui_order: 0,
                 },
             )
@@ -1322,7 +1320,7 @@ mod tests {
                 &provider,
                 "state".to_owned(),
                 None,
-                "nonce".to_owned(),
+                Some("nonce".to_owned()),
             )
             .await
             .unwrap();
@@ -1363,7 +1361,7 @@ mod tests {
 
         let _user_email = repo
             .user_email()
-            .add(&mut rng, &state.clock, &existing_user, existing_email.clone())
+            .add(&mut rng, &state.clock, &user, existing_email.to_owned())
             .await;
 
         repo.save().await.unwrap();

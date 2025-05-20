@@ -499,6 +499,7 @@ mod test {
                     response_mode: None,
                     allow_existing_users: true,
                     additional_authorization_parameters: Vec::new(),
+                    forward_login_hint: false,
                     ui_order: 0,
                 },
             )
@@ -541,6 +542,7 @@ mod test {
                     response_mode: None,
                     allow_existing_users: true,
                     additional_authorization_parameters: Vec::new(),
+                    forward_login_hint: false,
                     ui_order: 1,
                 },
             )

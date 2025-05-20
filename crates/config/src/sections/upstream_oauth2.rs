@@ -110,6 +110,17 @@ impl ConfigurationSection for UpstreamOAuth2Config {
                     }
                 }
             }
+
+            if provider.allow_existing_users
+                && !matches!(
+                    provider.claims_imports.localpart.action,
+                    ImportAction::Force | ImportAction::Require
+                )
+            {
+                return annotate(figment::Error::custom(
+                    "When `allow_existing_users` is true, localpart claim import must be either `force` or `require`",
+                ));
+            }
         }
 
         Ok(())
@@ -400,9 +411,18 @@ pub struct SignInWithApple {
     pub key_id: String,
 }
 
+fn default_scope() -> String {
+    "openid".to_owned()
+}
+
+fn is_default_scope(scope: &str) -> bool {
+    scope == default_scope()
+}
+
 /// Configuration for one upstream OAuth 2 provider.
 #[skip_serializing_none]
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[allow(clippy::struct_excessive_bools)]
 pub struct Provider {
     /// Whether this provider is enabled.
     ///
@@ -495,6 +515,9 @@ pub struct Provider {
     pub id_token_signed_response_alg: JsonWebSignatureAlg,
 
     /// The scopes to request from the provider
+    ///
+    /// Defaults to `openid`.
+    #[serde(default = "default_scope", skip_serializing_if = "is_default_scope")]
     pub scope: String,
 
     /// How to discover the provider's configuration
@@ -572,4 +595,11 @@ pub struct Provider {
     /// Orders of the keys are not preserved.
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub additional_authorization_parameters: BTreeMap<String, String>,
+
+    /// Whether the `login_hint` should be forwarded to the provider in the
+    /// authorization request.
+    ///
+    /// Defaults to `false`.
+    #[serde(default)]
+    pub forward_login_hint: bool,
 }

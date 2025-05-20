@@ -242,6 +242,7 @@ pub struct UpstreamOAuthProvider {
     pub claims_imports: ClaimsImports,
     pub allow_existing_users: bool,
     pub additional_authorization_parameters: Vec<(String, String)>,
+    pub forward_login_hint: bool,
 }
 
 impl PartialOrd for UpstreamOAuthProvider {
