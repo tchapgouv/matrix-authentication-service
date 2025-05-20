@@ -36,6 +36,7 @@ use mas_templates::{
 use minijinja::Environment;
 use opentelemetry::{Key, KeyValue, metrics::Counter};
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use thiserror::Error;
 use tracing::warn;
 use ulid::Ulid;
@@ -467,11 +468,38 @@ pub(crate) async fn get(
                         // We could run policy & existing user checks when the user submits the
                         // form, but this lead to poor UX. This is why we do
                         // it ahead of time here.
-                        let maybe_existing_user = repo.user().find_by_username(&localpart).await?;
+                        //:tchap: add mut
+                        let mut maybe_existing_user = repo.user().find_by_username(&localpart).await?;
+
+                        //if not found by username, check by email
+                        if maybe_existing_user.is_none(){
+                            let template = provider
+                                .claims_imports
+                                .email
+                                .template
+                                .as_deref()
+                                .unwrap_or(DEFAULT_EMAIL_TEMPLATE);
+
+                            let maybe_email = render_attribute_template(
+                                    &env,
+                                    template,
+                                    &context,
+                                    provider.claims_imports.email.is_required(),
+                                );
+
+                            if let Ok(Some(email)) = maybe_email{
+                                maybe_existing_user =  search_user_by_email(&mut repo, &email, &localpart).await?;
+                            }
+                        }
+                         //:tchap: end
+
                         let is_available = homeserver
                             .is_localpart_available(&localpart)
                             .await
                             .map_err(RouteError::HomeserverConnection)?;
+                        
+                        tracing::info!("is_available {}",is_available);
+
 
                         if !provider.allow_existing_users
                             && (maybe_existing_user.is_some() || !is_available)
@@ -508,7 +536,16 @@ pub(crate) async fn get(
                                 },
                             })
                             .await?;
-
+                        /*
+                        if maybe_existing_user.is_some(){
+                            let user_found = maybe_existing_user.unwrap();
+                            tracing::info!("User found {} {}",user_found.id.to_string(), user_found.username);
+                            
+                            ctx.with_localpart(
+                                user_found.username,
+                                provider.claims_imports.localpart.is_forced(),
+                            )
+                        } else */
                         if res.valid() {
                             // The username passes the policy check, add it to the context
                             ctx.with_localpart(
@@ -732,6 +769,7 @@ pub(crate) async fn post(
 
                 render_attribute_template(&env, template, &context, true)?
             } else {
+                //:tchap tracing::info!("POST username {}",username.clone().unwrap());
                 // If there is no forced username, we can use the one the user entered
                 username
             }
@@ -845,6 +883,15 @@ pub(crate) async fn post(
             //search and use existing users if allowed
             if provider.allow_existing_users {
                 existing_user = repo.user().find_by_username(&username).await?;
+                
+                if existing_user.is_none(){
+                    if let Some(email) = email.clone(){
+                        tracing::info!("Matching oidc identity by email:{} for user:{}", email, username);
+                        
+                        existing_user = search_user_by_email(&mut repo, &email, &username).await?;
+                        
+                    }
+                }
             }
 
             
@@ -912,6 +959,66 @@ pub(crate) async fn post(
 
     Ok((cookie_jar, post_auth_action.go_next(&url_builder)).into_response())
 }
+
+//:tchap:
+/// Search for a user by email with fallback rules
+///
+/// # Parameters
+/// * `repo` - Repository access
+/// * `email` - The email to search for
+/// * `localpart` - The local part of the username
+/// * `fallback_rules` - Fallback rules for email transformation
+///
+/// # Returns
+/// Option<mas_data_model::User> - The found user if any
+async fn search_user_by_email(
+    repo: &mut BoxRepository,
+    email: &str,
+    localpart: &str
+) -> Result<Option<mas_data_model::User>, RouteError> {
+    tracing::info!("Matching oidc identity by email:{} for user:{}", email, localpart);
+    let maybe_user_email = repo.user_email().find_by_email(email).await?;
+
+    if let Some(user_email) = maybe_user_email {
+        let maybe_user_found: Option<mas_data_model::User> = repo.user().lookup(user_email.user_id).await?;
+        return Ok(maybe_user_found);
+    }
+
+    
+    tracing::info!("Email not found, Matching oidc identity by email using fallback rules:{} for user:{}", email, localpart);
+    let fallback_rules: Value = serde_json::from_str(r#"[{"match":"@numerique.gouv.fr", "search":"@beta.gouv.fr"}]"#).unwrap();
+
+    // Iterate on fallback_rules, if a rule 'match' matches the email,
+    // replace by value of 'search' and lookup again the email
+    if let Some(fallback_array) = fallback_rules.as_array() {
+        for rule in fallback_array {
+            if let (Some(match_pattern), Some(search_value)) = (
+                rule.get("match").and_then(Value::as_str),
+                rule.get("search").and_then(Value::as_str)
+            ) {
+                tracing::info!("Checking fallback rules {} : {}", match_pattern, search_value);
+
+                // Check if email contains the match pattern
+                if email.contains(match_pattern) {
+                    // Replace match pattern with search value
+                    let transformed_email = email.replace(match_pattern, search_value);
+                    tracing::debug!("Search by transformed email fallback rules {}", transformed_email);
+
+                    // Look up the transformed email
+                    let maybe_transformed_user_email = repo.user_email().find_by_email(&transformed_email).await?;
+
+                    if let Some(transformed_user_email) = maybe_transformed_user_email {
+                        let user_found: Option<mas_data_model::User> = repo.user().lookup(transformed_user_email.user_id).await?;
+                        return Ok(user_found);
+                    }
+                }
+            }
+        }
+    }
+
+    Ok(None)
+}
+//:tchap: end
 
 #[cfg(test)]
 mod tests {
@@ -1115,18 +1222,17 @@ mod tests {
     }
 
     #[sqlx::test(migrator = "mas_storage_pg::MIGRATOR")]
-    async fn test_link_existing_account(pool: PgPool) {
+    async fn test_link_existing_account_by_username(pool: PgPool) {
         #[allow(clippy::disallowed_methods)]
-        let timestamp = chrono::Utc::now().timestamp_millis();
-        
         //suffix timestamp to generate unique test data
+        let timestamp = chrono::Utc::now().timestamp_millis();
         let existing_username  = format!("{}{}", "john",timestamp);
         let existing_email  = format!("{}@{}", existing_username, "example.com");
         
-        //existing username matches oidc username
+        //usernames match
         let oidc_username = existing_username.clone(); 
 
-        //oidc email is different from existing email
+        //emails don't match
         let oidc_email: String = format!("{}{}@{}", "any_email", timestamp,"example.com");
         
         //generate unique subject
@@ -1245,7 +1351,9 @@ mod tests {
             .unwrap();
 
         //create a user with an email
-        let user = repo
+        assert!(!repo.user().exists(&existing_username).await.unwrap());
+
+        let existing_user = repo
             .user()
             .add(&mut rng, &state.clock, existing_username.clone())
             .await
@@ -1253,7 +1361,7 @@ mod tests {
 
         let _user_email = repo
             .user_email()
-            .add(&mut rng, &state.clock, &user, existing_email.clone())
+            .add(&mut rng, &state.clock, &existing_user, existing_email.to_owned())
             .await;
 
         repo.save().await.unwrap();
@@ -1306,11 +1414,11 @@ mod tests {
             .unwrap()
             .expect("link exists");
 
-        assert_eq!(link.user_id, Some(user.id));
+        assert_eq!(link.user_id, Some(existing_user.id));
 
         let page = repo
             .user_email()
-            .list(UserEmailFilter::new().for_user(&user), Pagination::first(1))
+            .list(UserEmailFilter::new().for_user(&existing_user), Pagination::first(1))
             .await
             .unwrap();
 
@@ -1320,4 +1428,623 @@ mod tests {
 
         assert_eq!(email.email, oidc_email);
     }
+
+    #[sqlx::test(migrator = "mas_storage_pg::MIGRATOR")]
+    async fn test_link_when_neither_email_or_username_matches(pool: PgPool) {
+        #[allow(clippy::disallowed_methods)]
+        //suffix timestamp to generate unique test data
+        let timestamp = chrono::Utc::now().timestamp_millis();
+        
+        //usernames don't match
+        let existing_username  = format!("{}{}", "john-",timestamp);
+        let oidc_username = format!("{}{}", "any-",timestamp); 
+
+        //mails don't match
+        let existing_email  = format!("{}@{}", existing_username, "example.com");
+        let oidc_email  = format!("{}@{}", oidc_username, "example.com");
+
+        //generate unique subject
+        let subject = format!("{}+{}", "subject", timestamp);
+
+        setup();
+        let state = TestState::from_pool(pool).await.unwrap();
+        let mut rng = state.rng();
+        let cookies = CookieHelper::new();
+
+        let claims_imports = UpstreamOAuthProviderClaimsImports {
+            localpart: UpstreamOAuthProviderImportPreference {
+                action: mas_data_model::UpstreamOAuthProviderImportAction::Require,
+                template: None,
+            },
+            email: UpstreamOAuthProviderImportPreference {
+                action: mas_data_model::UpstreamOAuthProviderImportAction::Require,
+                template: None,
+            },
+            ..UpstreamOAuthProviderClaimsImports::default()
+        };
+
+        let id_token = serde_json::json!({
+            "preferred_username": oidc_username,
+            "email": oidc_email,
+            "email_verified": true,
+        });
+
+        // Grab a key to sign the id_token
+        // We could generate a key on the fly, but because we have one available here,
+        // why not use it?
+        let key = state
+            .key_store
+            .signing_key_for_algorithm(&JsonWebSignatureAlg::Rs256)
+            .unwrap();
+
+        let signer = key
+            .params()
+            .signing_key_for_alg(&JsonWebSignatureAlg::Rs256)
+            .unwrap();
+        let header = JsonWebSignatureHeader::new(JsonWebSignatureAlg::Rs256);
+        let id_token = Jwt::sign_with_rng(&mut rng, header, id_token, &signer).unwrap();
+
+        // Provision a provider and a link
+        let mut repo = state.repository().await.unwrap();
+        let provider = repo
+            .upstream_oauth_provider()
+            .add(
+                &mut rng,
+                &state.clock,
+                UpstreamOAuthProviderParams {
+                    issuer: Some("https://example.com/".to_owned()),
+                    human_name: Some("Example Ltd.".to_owned()),
+                    brand_name: None,
+                    scope: Scope::from_iter([OPENID]),
+                    token_endpoint_auth_method: UpstreamOAuthProviderTokenAuthMethod::None,
+                    token_endpoint_signing_alg: None,
+                    id_token_signed_response_alg: JsonWebSignatureAlg::Rs256,
+                    client_id: "client".to_owned(),
+                    encrypted_client_secret: None,
+                    claims_imports,
+                    authorization_endpoint_override: None,
+                    token_endpoint_override: None,
+                    userinfo_endpoint_override: None,
+                    fetch_userinfo: false,
+                    userinfo_signed_response_alg: None,
+                    jwks_uri_override: None,
+                    discovery_mode: mas_data_model::UpstreamOAuthProviderDiscoveryMode::Oidc,
+                    pkce_mode: mas_data_model::UpstreamOAuthProviderPkceMode::Auto,
+                    response_mode: None,
+                    allow_existing_users: true,
+                    additional_authorization_parameters: Vec::new(),
+                    forward_login_hint: false,
+                    ui_order: 0,
+                },
+            )
+            .await
+            .unwrap();
+
+        let session = repo
+            .upstream_oauth_session()
+            .add(
+                &mut rng,
+                &state.clock,
+                &provider,
+                "state".to_owned(),
+                None,
+                Some("nonce".to_owned()),
+            )
+            .await
+            .unwrap();
+
+        let link = repo
+            .upstream_oauth_link()
+            .add(
+                &mut rng,
+                &state.clock,
+                &provider,
+                subject.clone(),
+                None,
+            )
+            .await
+            .unwrap();
+
+        let session = repo
+            .upstream_oauth_session()
+            .complete_with_link(
+                &state.clock,
+                session,
+                &link,
+                Some(id_token.into_string()),
+                None,
+                None,
+            )
+            .await
+            .unwrap();
+
+        // test existing user should not exist
+        assert!(!repo.user().exists(&existing_username).await.unwrap());
+
+        let existing_user = repo
+            .user()
+            .add(&mut rng, &state.clock, existing_username.clone())
+            .await
+            .unwrap();
+
+        let _user_email = repo
+            .user_email()
+            .add(&mut rng, &state.clock, &existing_user, existing_email.clone())
+            .await;
+
+        repo.save().await.unwrap();
+
+        let cookie_jar = state.cookie_jar();
+        let upstream_sessions = UpstreamSessionsCookie::default()
+            .add(session.id, provider.id, "state".to_owned(), None)
+            .add_link_to_session(session.id, link.id)
+            .unwrap();
+        let cookie_jar = upstream_sessions.save(cookie_jar, &state.clock);
+        cookies.import(cookie_jar);
+
+        let request = Request::get(&*mas_router::UpstreamOAuth2Link::new(link.id).path()).empty();
+        let request = cookies.with_cookies(request);
+        let response = state.request(request).await;
+        cookies.save_cookies(&response);
+        response.assert_status(StatusCode::OK);
+        response.assert_header_value(CONTENT_TYPE, "text/html; charset=utf-8");
+
+        // Extract the CSRF token from the response body
+        let csrf_token = response
+            .body()
+            .split("name=\"csrf\" value=\"")
+            .nth(1)
+            .unwrap()
+            .split('\"')
+            .next()
+            .unwrap();
+
+        let request = Request::post(&*mas_router::UpstreamOAuth2Link::new(link.id).path()).form(
+            serde_json::json!({
+                "csrf": csrf_token,
+                "action": "register",
+                "import_email": "on",
+                "accept_terms": "on",
+            }),
+        );
+        let request = cookies.with_cookies(request);
+        let response = state.request(request).await;
+        cookies.save_cookies(&response);
+        response.assert_status(StatusCode::SEE_OTHER);
+
+        // Check that the existing user has the oidc link
+        let mut repo = state.repository().await.unwrap();
+
+        let link = repo
+            .upstream_oauth_link()
+            .find_by_subject(&provider, &subject)
+            .await
+            .unwrap()
+            .expect("link exists");
+
+        // a new user is created
+        assert_ne!(link.user_id, Some(existing_user.id));
+
+    }
+
+
+    #[sqlx::test(migrator = "mas_storage_pg::MIGRATOR")]
+    async fn test_link_existing_account_by_email(pool: PgPool) {
+        #[allow(clippy::disallowed_methods)]
+        //suffix timestamp to generate unique test data
+        let timestamp = chrono::Utc::now().timestamp_millis();
+        
+        //usernames don't match
+        let existing_username  = format!("{}{}", "john",timestamp);
+        let oidc_username = format!("{}{}", "any",timestamp); 
+        
+        //emails match
+        let existing_email  = format!("{}@{}", existing_username, "beta.gouv.fr");
+        let oidc_email: String = existing_email.clone();
+        
+        //generate unique subject
+        let subject = format!("{}+{}", "subject", timestamp);
+
+        setup();
+        let state = TestState::from_pool(pool).await.unwrap();
+        let mut rng = state.rng();
+        let cookies = CookieHelper::new();
+
+        let claims_imports = UpstreamOAuthProviderClaimsImports {
+            localpart: UpstreamOAuthProviderImportPreference {
+                action: mas_data_model::UpstreamOAuthProviderImportAction::Require,
+                template: Some(String::from("{{ user.preferred_username }}")),
+            },
+            email: UpstreamOAuthProviderImportPreference {
+                action: mas_data_model::UpstreamOAuthProviderImportAction::Require,
+                template: Some(String::from("{{ user.email }}")),
+            },
+            ..UpstreamOAuthProviderClaimsImports::default()
+        };
+
+        let id_token = serde_json::json!({
+            "preferred_username": oidc_username,
+            "email": oidc_email,
+            "email_verified": true,
+        });
+
+        // Grab a key to sign the id_token
+        // We could generate a key on the fly, but because we have one available here,
+        // why not use it?
+        let key = state
+            .key_store
+            .signing_key_for_algorithm(&JsonWebSignatureAlg::Rs256)
+            .unwrap();
+
+        let signer = key
+            .params()
+            .signing_key_for_alg(&JsonWebSignatureAlg::Rs256)
+            .unwrap();
+        let header = JsonWebSignatureHeader::new(JsonWebSignatureAlg::Rs256);
+        let id_token = Jwt::sign_with_rng(&mut rng, header, id_token, &signer).unwrap();
+
+        // Provision a provider and a link
+        let mut repo = state.repository().await.unwrap();
+        let provider = repo
+            .upstream_oauth_provider()
+            .add(
+                &mut rng,
+                &state.clock,
+                UpstreamOAuthProviderParams {
+                    issuer: Some("https://example.com/".to_owned()),
+                    human_name: Some("Example Ltd.".to_owned()),
+                    brand_name: None,
+                    scope: Scope::from_iter([OPENID]),
+                    token_endpoint_auth_method: UpstreamOAuthProviderTokenAuthMethod::None,
+                    token_endpoint_signing_alg: None,
+                    id_token_signed_response_alg: JsonWebSignatureAlg::Rs256,
+                    client_id: "client".to_owned(),
+                    encrypted_client_secret: None,
+                    claims_imports,
+                    authorization_endpoint_override: None,
+                    token_endpoint_override: None,
+                    userinfo_endpoint_override: None,
+                    fetch_userinfo: false,
+                    userinfo_signed_response_alg: None,
+                    jwks_uri_override: None,
+                    discovery_mode: mas_data_model::UpstreamOAuthProviderDiscoveryMode::Oidc,
+                    pkce_mode: mas_data_model::UpstreamOAuthProviderPkceMode::Auto,
+                    response_mode: None,
+                    allow_existing_users: true,
+                    additional_authorization_parameters: Vec::new(),
+                    forward_login_hint: false,
+                    ui_order: 0,
+                },
+            )
+            .await
+            .unwrap();
+
+        let session = repo
+            .upstream_oauth_session()
+            .add(
+                &mut rng,
+                &state.clock,
+                &provider,
+                "state".to_owned(),
+                None,
+                Some("nonce".to_owned()),
+            )
+            .await
+            .unwrap();
+
+        let link = repo
+            .upstream_oauth_link()
+            .add(
+                &mut rng,
+                &state.clock,
+                &provider,
+                subject.clone(),
+                None,
+            )
+            .await
+            .unwrap();
+
+        let session = repo
+            .upstream_oauth_session()
+            .complete_with_link(
+                &state.clock,
+                session,
+                &link,
+                Some(id_token.into_string()),
+                None,
+                None,
+            )
+            .await
+            .unwrap();
+
+        //create a user with an email
+        assert!(!repo.user().exists(&existing_username).await.unwrap());
+
+        let existing_user = repo
+            .user()
+            .add(&mut rng, &state.clock, existing_username.clone())
+            .await
+            .unwrap();
+
+        let _user_email = repo
+            .user_email()
+            .add(&mut rng, &state.clock, &existing_user, existing_email.clone())
+            .await;
+
+        repo.save().await.unwrap();
+
+        let cookie_jar = state.cookie_jar();
+        let upstream_sessions = UpstreamSessionsCookie::default()
+            .add(session.id, provider.id, "state".to_owned(), None)
+            .add_link_to_session(session.id, link.id)
+            .unwrap();
+        let cookie_jar = upstream_sessions.save(cookie_jar, &state.clock);
+        cookies.import(cookie_jar);
+
+        let request = Request::get(&*mas_router::UpstreamOAuth2Link::new(link.id).path()).empty();
+        let request = cookies.with_cookies(request);
+        let response = state.request(request).await;
+        cookies.save_cookies(&response);
+        response.assert_status(StatusCode::OK);
+        response.assert_header_value(CONTENT_TYPE, "text/html; charset=utf-8");
+
+        // Extract the CSRF token from the response body
+        let csrf_token = response
+            .body()
+            .split("name=\"csrf\" value=\"")
+            .nth(1)
+            .unwrap()
+            .split('\"')
+            .next()
+            .unwrap();
+
+        let request = Request::post(&*mas_router::UpstreamOAuth2Link::new(link.id).path()).form(
+            serde_json::json!({
+                "csrf": csrf_token,
+                "action": "register",
+                "import_email": "on",
+                "accept_terms": "on",
+            }),
+        );
+        let request = cookies.with_cookies(request);
+        let response = state.request(request).await;
+        cookies.save_cookies(&response);
+        response.assert_status(StatusCode::SEE_OTHER);
+
+        let mut repo = state.repository().await.unwrap();
+        
+        let link = repo
+        .upstream_oauth_link()
+        .find_by_subject(&provider, &subject)
+        .await
+        .unwrap()
+        .expect("link exists");
+    
+        // Check that the existing user has the oidc link
+        assert_eq!(link.user_id.unwrap().to_string(), existing_user.id.to_string());
+
+        let page = repo
+            .user_email()
+            .list(UserEmailFilter::new().for_user(&existing_user), Pagination::first(1))
+            .await
+            .unwrap();
+
+        //check that the existing user email is updated by oidc email
+        assert_eq!(page.edges.len(), 1);
+        let email = page.edges.first().expect("email exists");
+
+        assert_eq!(email.email, oidc_email);
+    }
+
+
+    #[sqlx::test(migrator = "mas_storage_pg::MIGRATOR")]
+    async fn test_link_existing_account_by_email_with_fallback(pool: PgPool) {
+        #[allow(clippy::disallowed_methods)]
+        let timestamp = chrono::Utc::now().timestamp_millis();
+        
+        //suffix timestamp to generate unique test data
+        let existing_username  = format!("{}{}", "john",timestamp);
+        let existing_email  = format!("{}@{}", existing_username, "beta.gouv.fr");
+        
+        //usernames don't match
+        let oidc_username = format!("{}{}", "any",timestamp); 
+
+        //existing emails match a fallback rule
+        let oidc_email: String = format!("{}@{}", existing_username, "numerique.gouv.fr");
+        
+        //generate unique subject
+        let subject = format!("{}+{}", "subject", timestamp);
+
+        setup();
+        let state = TestState::from_pool(pool).await.unwrap();
+        let mut rng = state.rng();
+        let cookies = CookieHelper::new();
+
+        let claims_imports = UpstreamOAuthProviderClaimsImports {
+            localpart: UpstreamOAuthProviderImportPreference {
+                action: mas_data_model::UpstreamOAuthProviderImportAction::Require,
+                template: None,
+            },
+            email: UpstreamOAuthProviderImportPreference {
+                action: mas_data_model::UpstreamOAuthProviderImportAction::Require,
+                template: None,
+            },
+            ..UpstreamOAuthProviderClaimsImports::default()
+        };
+
+        let id_token = serde_json::json!({
+            "preferred_username": oidc_username,
+            "email": oidc_email,
+            "email_verified": true,
+        });
+
+        // Grab a key to sign the id_token
+        // We could generate a key on the fly, but because we have one available here,
+        // why not use it?
+        let key = state
+            .key_store
+            .signing_key_for_algorithm(&JsonWebSignatureAlg::Rs256)
+            .unwrap();
+
+        let signer = key
+            .params()
+            .signing_key_for_alg(&JsonWebSignatureAlg::Rs256)
+            .unwrap();
+        let header = JsonWebSignatureHeader::new(JsonWebSignatureAlg::Rs256);
+        let id_token = Jwt::sign_with_rng(&mut rng, header, id_token, &signer).unwrap();
+
+        // Provision a provider and a link
+        let mut repo = state.repository().await.unwrap();
+        let provider = repo
+            .upstream_oauth_provider()
+            .add(
+                &mut rng,
+                &state.clock,
+                UpstreamOAuthProviderParams {
+                    issuer: Some("https://example.com/".to_owned()),
+                    human_name: Some("Example Ltd.".to_owned()),
+                    brand_name: None,
+                    scope: Scope::from_iter([OPENID]),
+                    token_endpoint_auth_method: UpstreamOAuthProviderTokenAuthMethod::None,
+                    token_endpoint_signing_alg: None,
+                    id_token_signed_response_alg: JsonWebSignatureAlg::Rs256,
+                    client_id: "client".to_owned(),
+                    encrypted_client_secret: None,
+                    claims_imports,
+                    authorization_endpoint_override: None,
+                    token_endpoint_override: None,
+                    userinfo_endpoint_override: None,
+                    fetch_userinfo: false,
+                    userinfo_signed_response_alg: None,
+                    jwks_uri_override: None,
+                    discovery_mode: mas_data_model::UpstreamOAuthProviderDiscoveryMode::Oidc,
+                    pkce_mode: mas_data_model::UpstreamOAuthProviderPkceMode::Auto,
+                    response_mode: None,
+                    allow_existing_users: true,
+                    additional_authorization_parameters: Vec::new(),
+                    forward_login_hint: false,
+                    ui_order: 0,
+                },
+            )
+            .await
+            .unwrap();
+
+        let session = repo
+            .upstream_oauth_session()
+            .add(
+                &mut rng,
+                &state.clock,
+                &provider,
+                "state".to_owned(),
+                None,
+                Some("nonce".to_owned()),
+            )
+            .await
+            .unwrap();
+
+        let link = repo
+            .upstream_oauth_link()
+            .add(
+                &mut rng,
+                &state.clock,
+                &provider,
+                subject.clone(),
+                None,
+            )
+            .await
+            .unwrap();
+
+        let session = repo
+            .upstream_oauth_session()
+            .complete_with_link(
+                &state.clock,
+                session,
+                &link,
+                Some(id_token.into_string()),
+                None,
+                None,
+            )
+            .await
+            .unwrap();
+
+        //create a new existing user with an email
+        assert!(!repo.user().exists(&existing_username).await.unwrap());
+
+        let existing_user = repo
+            .user()
+            .add(&mut rng, &state.clock, existing_username.clone())
+            .await
+            .unwrap();
+
+        let _user_email = repo
+            .user_email()
+            .add(&mut rng, &state.clock, &existing_user, existing_email.clone())
+            .await;
+
+        repo.save().await.unwrap();
+
+        let cookie_jar = state.cookie_jar();
+        let upstream_sessions = UpstreamSessionsCookie::default()
+            .add(session.id, provider.id, "state".to_owned(), None)
+            .add_link_to_session(session.id, link.id)
+            .unwrap();
+        let cookie_jar = upstream_sessions.save(cookie_jar, &state.clock);
+        cookies.import(cookie_jar);
+
+        let request = Request::get(&*mas_router::UpstreamOAuth2Link::new(link.id).path()).empty();
+        let request = cookies.with_cookies(request);
+        let response = state.request(request).await;
+        cookies.save_cookies(&response);
+        response.assert_status(StatusCode::OK);
+        response.assert_header_value(CONTENT_TYPE, "text/html; charset=utf-8");
+
+        // Extract the CSRF token from the response body
+        let csrf_token = response
+            .body()
+            .split("name=\"csrf\" value=\"")
+            .nth(1)
+            .unwrap()
+            .split('\"')
+            .next()
+            .unwrap();
+
+        let request = Request::post(&*mas_router::UpstreamOAuth2Link::new(link.id).path()).form(
+            serde_json::json!({
+                "csrf": csrf_token,
+                "action": "register",
+                "import_email": "on",
+                "accept_terms": "on",
+            }),
+        );
+        let request = cookies.with_cookies(request);
+        let response = state.request(request).await;
+        cookies.save_cookies(&response);
+        response.assert_status(StatusCode::SEE_OTHER);
+
+        // Check that the existing user has the oidc link
+        let mut repo = state.repository().await.unwrap();
+
+        let link = repo
+            .upstream_oauth_link()
+            .find_by_subject(&provider, &subject)
+            .await
+            .unwrap()
+            .expect("link exists");
+
+        assert_eq!(link.user_id.unwrap().to_string(), existing_user.id.to_string());
+
+        let page = repo
+            .user_email()
+            .list(UserEmailFilter::new().for_user(&existing_user), Pagination::first(1))
+            .await
+            .unwrap();
+
+        //check that the existing user email is updated by oidc email
+        assert_eq!(page.edges.len(), 1);
+        let email = page.edges.first().expect("email exists");
+
+        assert_eq!(email.email, oidc_email);
+    }
+
+
 }
