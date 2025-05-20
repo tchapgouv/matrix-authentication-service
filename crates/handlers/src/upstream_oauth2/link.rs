@@ -839,32 +839,29 @@ pub(crate) async fn post(
                 )
                     .into_response());
             }
-            let mut is_new_user = true;
-            let user = if provider.allow_existing_users {
-                // If the provider allows existing users, we can use the existing user
-                let existing_user = repo.user().find_by_username(&username).await?;
-                if existing_user.is_some() {
-                    is_new_user = false;
-                    existing_user.unwrap()
-                } else {
-                    REGISTRATION_COUNTER
-                        .add(1, &[KeyValue::new(PROVIDER, provider.id.to_string())]);
-                    repo.user().add(&mut rng, &clock, username).await?
-                }
-            } else {
-                REGISTRATION_COUNTER.add(1, &[KeyValue::new(PROVIDER, provider.id.to_string())]);
-                // Now we can create the user
-                repo.user().add(&mut rng, &clock, username).await?
-            };
+            
+            let mut existing_user: Option<mas_data_model::User> = None;
 
-            if let Some(terms_url) = &site_config.tos_uri {
-                repo.user_terms()
-                    .accept_terms(&mut rng, &clock, &user, terms_url.clone())
-                    .await?;
+            //search and use existing users if allowed
+            if provider.allow_existing_users {
+                existing_user = repo.user().find_by_username(&username).await?;
             }
 
-            //create user in synapse only if needed
-            if is_new_user {
+            
+            let user = if existing_user.is_some(){
+                existing_user.unwrap()
+            } else {
+                REGISTRATION_COUNTER.add(1, &[KeyValue::new(PROVIDER, provider.id.to_string())]);
+                
+                // Now we can create the user
+                let user = repo.user().add(&mut rng, &clock, username).await?;
+    
+                if let Some(terms_url) = &site_config.tos_uri {
+                    repo.user_terms()
+                        .accept_terms(&mut rng, &clock, &user, terms_url.clone())
+                        .await?;
+                }
+
                 // And schedule the job to provision it
                 let mut job = ProvisionUserJob::new(&user);
                 
@@ -874,7 +871,9 @@ pub(crate) async fn post(
                 }
                 
                 repo.queue_job().schedule_job(&mut rng, &clock, job).await?;
-            }
+                
+                user
+            };
 
             // If we have an email, add it to the user
             if let Some(email) = email {
