@@ -1361,7 +1361,7 @@ mod tests {
 
         let _user_email = repo
             .user_email()
-            .add(&mut rng, &state.clock, &user, existing_email.to_owned())
+            .add(&mut rng, &state.clock, &existing_user, existing_email.to_owned())
             .await;
 
         repo.save().await.unwrap();
@@ -1513,6 +1513,7 @@ mod tests {
                     response_mode: None,
                     allow_existing_users: true,
                     additional_authorization_parameters: Vec::new(),
+                    forward_login_hint: false,
                     ui_order: 0,
                 },
             )
@@ -1527,7 +1528,7 @@ mod tests {
                 &provider,
                 "state".to_owned(),
                 None,
-                "nonce".to_owned(),
+                Some("nonce".to_owned()),
             )
             .await
             .unwrap();
@@ -1711,6 +1712,7 @@ mod tests {
                     response_mode: None,
                     allow_existing_users: true,
                     additional_authorization_parameters: Vec::new(),
+                    forward_login_hint: false,
                     ui_order: 0,
                 },
             )
@@ -1725,7 +1727,7 @@ mod tests {
                 &provider,
                 "state".to_owned(),
                 None,
-                "nonce".to_owned(),
+                Some("nonce".to_owned()),
             )
             .await
             .unwrap();
@@ -1920,6 +1922,7 @@ mod tests {
                     response_mode: None,
                     allow_existing_users: true,
                     additional_authorization_parameters: Vec::new(),
+                    forward_login_hint: false,
                     ui_order: 0,
                 },
             )
@@ -1934,7 +1937,7 @@ mod tests {
                 &provider,
                 "state".to_owned(),
                 None,
-                "nonce".to_owned(),
+                Some("nonce".to_owned()),
             )
             .await
             .unwrap();
