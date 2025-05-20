@@ -487,7 +487,7 @@ pub(crate) async fn get(
                                 .with_code("User exists")
                                 .with_description(format!(
                                     r"Upstream account provider returned {localpart:?} as username,
-                                    which is not linked to that upstream account"
+                                    which is not linked to that upstream account. Homeserver does not allow linking existing account"
                                 ))
                                 .with_language(&locale);
 
@@ -509,7 +509,13 @@ pub(crate) async fn get(
                             })
                             .await?;
 
-                        if res.valid() {
+                        if provider.allow_existing_users && maybe_existing_user.is_some(){
+                            // use existing user if allowed
+                            ctx
+                                .with_existing_user(maybe_existing_user.unwrap())
+                                .with_localpart(localpart, true)
+                        }
+                        else if res.valid() {
                             // The username passes the policy check, add it to the context
                             ctx.with_localpart(
                                 localpart,

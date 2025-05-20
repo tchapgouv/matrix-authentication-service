@@ -1366,6 +1366,7 @@ pub struct UpstreamRegister {
     imported_email: Option<String>,
     force_email: bool,
     form_state: FormState<UpstreamRegisterFormField>,
+    existing_user: Option<User>,
 }
 
 impl UpstreamRegister {
@@ -1386,6 +1387,7 @@ impl UpstreamRegister {
             imported_email: None,
             force_email: false,
             form_state: FormState::default(),
+            existing_user: None,
         }
     }
 
@@ -1446,6 +1448,15 @@ impl UpstreamRegister {
     #[must_use]
     pub fn with_form_state(self, form_state: FormState<UpstreamRegisterFormField>) -> Self {
         Self { form_state, ..self }
+    }
+
+    /// Set the imported email
+    #[must_use]
+    pub fn with_existing_user(self, user: User) -> Self {
+        Self {
+            existing_user: Some(user),
+            ..self
+        }
     }
 }
 
