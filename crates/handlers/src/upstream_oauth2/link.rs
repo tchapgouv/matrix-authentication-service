@@ -1326,4 +1326,167 @@ mod tests {
 
         assert_eq!(email.email, oidc_email);
     }
+
+    #[sqlx::test(migrator = "mas_storage_pg::MIGRATOR")]
+    async fn test_link_existing_account_when_not_allowed(pool: PgPool) {
+        #[allow(clippy::disallowed_methods)]
+        let timestamp = chrono::Utc::now().timestamp_millis();
+        
+        //suffix timestamp to generate unique test data
+        let existing_username  = format!("{}{}", "john",timestamp);
+        let existing_email  = format!("{}@{}", existing_username, "example.com");
+        
+        //existing username matches oidc username
+        let oidc_username = existing_username.clone(); 
+
+        //oidc email is different from existing email
+        let oidc_email: String = format!("{}{}@{}", "any_email", timestamp,"example.com");
+        
+        let subject = format!("{}+{}", "subject", timestamp);
+
+        setup();
+        let state = TestState::from_pool(pool).await.unwrap();
+        let mut rng = state.rng();
+        let cookies = CookieHelper::new();
+
+        let claims_imports = UpstreamOAuthProviderClaimsImports {
+            localpart: UpstreamOAuthProviderImportPreference {
+                action: mas_data_model::UpstreamOAuthProviderImportAction::Require,
+                template: None,
+            },
+            email: UpstreamOAuthProviderImportPreference {
+                action: mas_data_model::UpstreamOAuthProviderImportAction::Require,
+                template: None,
+            },
+            ..UpstreamOAuthProviderClaimsImports::default()
+        };
+
+        let id_token = serde_json::json!({
+            "preferred_username": oidc_username,
+            "email": oidc_email,
+            "email_verified": true,
+        });
+
+        // Grab a key to sign the id_token
+        // We could generate a key on the fly, but because we have one available here,
+        // why not use it?
+        let key = state
+            .key_store
+            .signing_key_for_algorithm(&JsonWebSignatureAlg::Rs256)
+            .unwrap();
+
+        let signer = key
+            .params()
+            .signing_key_for_alg(&JsonWebSignatureAlg::Rs256)
+            .unwrap();
+        let header = JsonWebSignatureHeader::new(JsonWebSignatureAlg::Rs256);
+        let id_token = Jwt::sign_with_rng(&mut rng, header, id_token, &signer).unwrap();
+
+        // Provision a provider and a link
+        let mut repo = state.repository().await.unwrap();
+        let provider = repo
+            .upstream_oauth_provider()
+            .add(
+                &mut rng,
+                &state.clock,
+                UpstreamOAuthProviderParams {
+                    issuer: Some("https://example.com/".to_owned()),
+                    human_name: Some("Example Ltd.".to_owned()),
+                    brand_name: None,
+                    scope: Scope::from_iter([OPENID]),
+                    token_endpoint_auth_method: UpstreamOAuthProviderTokenAuthMethod::None,
+                    token_endpoint_signing_alg: None,
+                    id_token_signed_response_alg: JsonWebSignatureAlg::Rs256,
+                    client_id: "client".to_owned(),
+                    encrypted_client_secret: None,
+                    claims_imports,
+                    authorization_endpoint_override: None,
+                    token_endpoint_override: None,
+                    userinfo_endpoint_override: None,
+                    fetch_userinfo: false,
+                    userinfo_signed_response_alg: None,
+                    jwks_uri_override: None,
+                    discovery_mode: mas_data_model::UpstreamOAuthProviderDiscoveryMode::Oidc,
+                    pkce_mode: mas_data_model::UpstreamOAuthProviderPkceMode::Auto,
+                    response_mode: None,
+                    allow_existing_users: false,
+                    additional_authorization_parameters: Vec::new(),
+                    forward_login_hint: false,
+                    ui_order: 0,
+                },
+            )
+            .await
+            .unwrap();
+
+        let session = repo
+            .upstream_oauth_session()
+            .add(
+                &mut rng,
+                &state.clock,
+                &provider,
+                "state".to_owned(),
+                None,
+                Some("nonce".to_owned()),
+            )
+            .await
+            .unwrap();
+
+        let link = repo
+            .upstream_oauth_link()
+            .add(
+                &mut rng,
+                &state.clock,
+                &provider,
+                subject.clone(),
+                None,
+            )
+            .await
+            .unwrap();
+
+        let session = repo
+            .upstream_oauth_session()
+            .complete_with_link(
+                &state.clock,
+                session,
+                &link,
+                Some(id_token.into_string()),
+                None,
+                None,
+            )
+            .await
+            .unwrap();
+
+        //create a user with an email
+        let user = repo
+            .user()
+            .add(&mut rng, &state.clock, existing_username.clone())
+            .await
+            .unwrap();
+
+        let _user_email = repo
+            .user_email()
+            .add(&mut rng, &state.clock, &user, existing_email.clone())
+            .await;
+
+        repo.save().await.unwrap();
+
+        let cookie_jar = state.cookie_jar();
+        let upstream_sessions = UpstreamSessionsCookie::default()
+            .add(session.id, provider.id, "state".to_owned(), None)
+            .add_link_to_session(session.id, link.id)
+            .unwrap();
+        let cookie_jar = upstream_sessions.save(cookie_jar, &state.clock);
+        cookies.import(cookie_jar);
+
+        let request = Request::get(&*mas_router::UpstreamOAuth2Link::new(link.id).path()).empty();
+        let request = cookies.with_cookies(request);
+        let response = state.request(request).await;
+        cookies.save_cookies(&response);
+        response.assert_status(StatusCode::OK);
+        response.assert_header_value(CONTENT_TYPE, "text/html; charset=utf-8");
+
+        assert!(response
+            .body().contains("Unexpected error"));
+                  
+    }
 }
