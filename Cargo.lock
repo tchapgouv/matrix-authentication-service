@@ -3143,6 +3143,7 @@ name = "mas-cli"
 version = "0.16.0"
 dependencies = [
  "anyhow",
+ "async-trait",
  "axum",
  "bytes",
  "camino",
@@ -6237,6 +6238,16 @@ dependencies = [
  "tokio",
  "tracing",
  "url",
+]
+
+[[package]]
+name = "tchap-cli"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "mas-cli",
+ "tokio",
 ]
 
 [[package]]

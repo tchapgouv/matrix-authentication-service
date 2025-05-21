@@ -4,7 +4,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Please see LICENSE in the repository root for full details.
 
-use std::{convert::Infallible, net::IpAddr, sync::Arc};
+use std::{collections::HashMap, convert::Infallible, net::IpAddr, sync::Arc};
 
 use axum::extract::{FromRef, FromRequestParts};
 use ipnetwork::IpNetwork;
@@ -31,6 +31,12 @@ use tracing::Instrument;
 
 use crate::telemetry::METER;
 
+#[async_trait::async_trait]
+pub trait UserMapper: Send + Sync {
+    async fn map_user(&self, user_id: &str) -> Option<String>;
+}
+
+
 #[derive(Clone)]
 pub struct AppState {
     pub repository_factory: PgRepositoryFactory,
@@ -49,6 +55,7 @@ pub struct AppState {
     pub activity_tracker: ActivityTracker,
     pub trusted_proxies: Vec<IpNetwork>,
     pub limiter: Limiter,
+    pub user_mappers: HashMap<String, Arc<dyn UserMapper>>,
 }
 
 impl AppState {

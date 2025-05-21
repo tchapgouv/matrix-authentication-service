@@ -1,5 +1,5 @@
 [workspace]
-default-members = ["crates/cli"]
+default-members = ["crates/cli", "crates/tchap-cli"]
 members = ["crates/*"]
 resolver = "2"
 
@@ -57,6 +57,7 @@ mas-tower = { path = "./crates/tower/", version = "=0.16.0" }
 oauth2-types = { path = "./crates/oauth2-types/", version = "=0.16.0" }
 syn2mas = { path = "./crates/syn2mas", version = "=0.16.0" }
 tchap = { path = "./crates/tchap", version = "=0.1.0" }
+tchap-cli = { path = "./crates/tchap-cli", version = "=0.1.0" }
 
 # OpenAPI schema generation and validation
 [workspace.dependencies.aide]

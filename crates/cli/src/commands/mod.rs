@@ -13,6 +13,8 @@ use figment::{
     providers::{Env, Format, Yaml},
 };
 
+use crate::CompiledConfig;
+
 mod config;
 mod database;
 mod debug;
@@ -68,21 +70,21 @@ pub struct Options {
 }
 
 impl Options {
-    pub async fn run(self, figment: &Figment) -> anyhow::Result<ExitCode> {
+    pub async fn run(self, figment: &Figment, compiled_config: Option<CompiledConfig>) -> anyhow::Result<ExitCode> {
         use Subcommand as S;
         // We Box the futures for each subcommand so that we avoid this function being
         // big on the stack all the time
         match self.subcommand {
             Some(S::Config(c)) => Box::pin(c.run(figment)).await,
             Some(S::Database(c)) => Box::pin(c.run(figment)).await,
-            Some(S::Server(c)) => Box::pin(c.run(figment)).await,
+            Some(S::Server(c)) => Box::pin(c.run(figment, compiled_config)).await,
             Some(S::Worker(c)) => Box::pin(c.run(figment)).await,
             Some(S::Manage(c)) => Box::pin(c.run(figment)).await,
             Some(S::Templates(c)) => Box::pin(c.run(figment)).await,
             Some(S::Debug(c)) => Box::pin(c.run(figment)).await,
             Some(S::Doctor(c)) => Box::pin(c.run(figment)).await,
             Some(S::Syn2Mas(c)) => Box::pin(c.run(figment)).await,
-            None => Box::pin(self::server::Options::default().run(figment)).await,
+            None => Box::pin(self::server::Options::default().run(figment, compiled_config)).await,
         }
     }
 

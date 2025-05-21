@@ -1,0 +1,22 @@
+[package]
+name = "tchap-cli"
+version = "0.1.0"
+description = "Tchap-specific functionality for Matrix Authentication Service"
+license = "MIT"
+edition = "2024"
+
+publish = false
+
+build = "build.rs"
+
+[lints]
+workspace = true
+
+[dependencies]
+anyhow.workspace = true
+tokio.workspace = true
+mas-cli.workspace = true
+async-trait.workspace = true
+
+[build-dependencies]
+anyhow.workspace = true
