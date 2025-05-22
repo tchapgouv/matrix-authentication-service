@@ -509,13 +509,11 @@ pub(crate) async fn get(
                             })
                             .await?;
 
-                        if provider.allow_existing_users && maybe_existing_user.is_some(){
+                        if provider.allow_existing_users && maybe_existing_user.is_some() {
                             // use existing user if allowed
-                            ctx
-                                .with_existing_user(maybe_existing_user.unwrap())
+                            ctx.with_existing_user(maybe_existing_user.unwrap())
                                 .with_localpart(localpart, true)
-                        }
-                        else if res.valid() {
+                        } else if res.valid() {
                             // The username passes the policy check, add it to the context
                             ctx.with_localpart(
                                 localpart,
@@ -845,7 +843,7 @@ pub(crate) async fn post(
                 )
                     .into_response());
             }
-            
+
             let mut existing_user: Option<mas_data_model::User> = None;
 
             //search and use existing users if allowed
@@ -853,15 +851,14 @@ pub(crate) async fn post(
                 existing_user = repo.user().find_by_username(&username).await?;
             }
 
-            
-            let user = if existing_user.is_some(){
+            let user = if existing_user.is_some() {
                 existing_user.unwrap()
             } else {
                 REGISTRATION_COUNTER.add(1, &[KeyValue::new(PROVIDER, provider.id.to_string())]);
-                
+
                 // Now we can create the user
                 let user = repo.user().add(&mut rng, &clock, username).await?;
-    
+
                 if let Some(terms_url) = &site_config.tos_uri {
                     repo.user_terms()
                         .accept_terms(&mut rng, &clock, &user, terms_url.clone())
@@ -870,14 +867,14 @@ pub(crate) async fn post(
 
                 // And schedule the job to provision it
                 let mut job = ProvisionUserJob::new(&user);
-                
+
                 // If we have a display name, set it during provisioning
                 if let Some(name) = display_name {
                     job = job.set_display_name(name);
                 }
-                
+
                 repo.queue_job().schedule_job(&mut rng, &clock, job).await?;
-                
+
                 user
             };
 
@@ -1124,17 +1121,17 @@ mod tests {
     async fn test_link_existing_account(pool: PgPool) {
         #[allow(clippy::disallowed_methods)]
         let timestamp = chrono::Utc::now().timestamp_millis();
-        
+
         //suffix timestamp to generate unique test data
-        let existing_username  = format!("{}{}", "john",timestamp);
-        let existing_email  = format!("{}@{}", existing_username, "example.com");
-        
+        let existing_username = format!("{}{}", "john", timestamp);
+        let existing_email = format!("{}@{}", existing_username, "example.com");
+
         //existing username matches oidc username
-        let oidc_username = existing_username.clone(); 
+        let oidc_username = existing_username.clone();
 
         //oidc email is different from existing email
-        let oidc_email: String = format!("{}{}@{}", "any_email", timestamp,"example.com");
-        
+        let oidc_email: String = format!("{}{}@{}", "any_email", timestamp, "example.com");
+
         //generate unique subject
         let subject = format!("{}+{}", "subject", timestamp);
 
@@ -1227,13 +1224,7 @@ mod tests {
 
         let link = repo
             .upstream_oauth_link()
-            .add(
-                &mut rng,
-                &state.clock,
-                &provider,
-                subject.clone(),
-                None,
-            )
+            .add(&mut rng, &state.clock, &provider, subject.clone(), None)
             .await
             .unwrap();
 
@@ -1331,17 +1322,17 @@ mod tests {
     async fn test_link_existing_account_when_not_allowed(pool: PgPool) {
         #[allow(clippy::disallowed_methods)]
         let timestamp = chrono::Utc::now().timestamp_millis();
-        
+
         //suffix timestamp to generate unique test data
-        let existing_username  = format!("{}{}", "john",timestamp);
-        let existing_email  = format!("{}@{}", existing_username, "example.com");
-        
+        let existing_username = format!("{}{}", "john", timestamp);
+        let existing_email = format!("{}@{}", existing_username, "example.com");
+
         //existing username matches oidc username
-        let oidc_username = existing_username.clone(); 
+        let oidc_username = existing_username.clone();
 
         //oidc email is different from existing email
-        let oidc_email: String = format!("{}{}@{}", "any_email", timestamp,"example.com");
-        
+        let oidc_email: String = format!("{}{}@{}", "any_email", timestamp, "example.com");
+
         let subject = format!("{}+{}", "subject", timestamp);
 
         setup();
@@ -1433,13 +1424,7 @@ mod tests {
 
         let link = repo
             .upstream_oauth_link()
-            .add(
-                &mut rng,
-                &state.clock,
-                &provider,
-                subject.clone(),
-                None,
-            )
+            .add(&mut rng, &state.clock, &provider, subject.clone(), None)
             .await
             .unwrap();
 
@@ -1485,8 +1470,6 @@ mod tests {
         response.assert_status(StatusCode::OK);
         response.assert_header_value(CONTENT_TYPE, "text/html; charset=utf-8");
 
-        assert!(response
-            .body().contains("Unexpected error"));
-                  
+        assert!(response.body().contains("Unexpected error"));
     }
 }
