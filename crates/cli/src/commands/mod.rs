@@ -13,7 +13,7 @@ use figment::{
     providers::{Env, Format, Yaml},
 };
 
-use crate::CompiledConfig;
+use mas_data_model::CompiledConfig;
 
 mod config;
 mod database;
@@ -70,7 +70,11 @@ pub struct Options {
 }
 
 impl Options {
-    pub async fn run(self, figment: &Figment, compiled_config: Option<CompiledConfig>) -> anyhow::Result<ExitCode> {
+    pub async fn run(
+        self,
+        figment: &Figment,
+        compiled_config: Option<CompiledConfig>,
+    ) -> anyhow::Result<ExitCode> {
         use Subcommand as S;
         // We Box the futures for each subcommand so that we avoid this function being
         // big on the stack all the time

@@ -1,9 +1,9 @@
-use std::{collections::HashMap, io::IsTerminal, process::ExitCode, sync::Arc};
+use std::{io::IsTerminal, process::ExitCode, sync::Arc};
 
 use anyhow::Context;
-use app_state::UserMapper;
 use clap::Parser;
 use mas_config::{ConfigurationSectionExt, TelemetryConfig};
+use mas_data_model::CompiledConfig;
 use sentry_tracing::EventFilter;
 use tracing_subscriber::{
     EnvFilter, Layer, Registry,
@@ -22,7 +22,6 @@ mod util;
 
 /// The application version, as reported by `git describe` at build time
 static VERSION: &str = env!("VERGEN_GIT_DESCRIBE");
-
 
 #[derive(Debug)]
 struct SentryTransportFactory {
@@ -44,11 +43,6 @@ impl sentry::TransportFactory for SentryTransportFactory {
 
         Arc::new(transport)
     }
-}
-
-
-pub struct CompiledConfig {
-    pub user_mappers: HashMap<String, Arc<dyn UserMapper>>,
 }
 
 pub async fn async_main(compiled_config: Option<CompiledConfig>) -> anyhow::Result<ExitCode> {

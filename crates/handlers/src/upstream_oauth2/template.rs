@@ -7,82 +7,50 @@
 use std::{collections::HashMap, sync::Arc};
 
 use base64ct::{Base64, Base64Unpadded, Base64Url, Base64UrlUnpadded, Encoding};
+use mas_data_model::AttributeMappingContext;
 use minijinja::{
     Environment, Error, ErrorKind, Value,
     value::{Enumerator, Object},
 };
 use tchap;
 
-/// Context passed to the attribute mapping template
-///
-/// The variables available in the template are:
-/// - `user`: claims for the user, merged from the ID token and userinfo
-///   endpoint
-/// - `id_token_claims`: claims from the ID token
-/// - `userinfo_claims`: claims from the userinfo endpoint
-/// - `extra_callback_parameters`: extra parameters passed to the callback
 #[derive(Debug, Default)]
-pub(crate) struct AttributeMappingContext {
-    id_token_claims: Option<HashMap<String, serde_json::Value>>,
-    extra_callback_parameters: Option<serde_json::Value>,
-    userinfo_claims: Option<serde_json::Value>,
-}
+pub(crate) struct AttributeMappingContextWrapper(AttributeMappingContext);
 
-impl AttributeMappingContext {
-    pub fn new() -> Self {
-        Self::default()
+impl AttributeMappingContextWrapper {
+    pub(crate) fn new(context: AttributeMappingContext) -> Self {
+        Self(context)
     }
 
-    pub fn with_id_token_claims(
-        mut self,
-        id_token_claims: HashMap<String, serde_json::Value>,
-    ) -> Self {
-        self.id_token_claims = Some(id_token_claims);
-        self
-    }
-
-    pub fn with_extra_callback_parameters(
-        mut self,
-        extra_callback_parameters: serde_json::Value,
-    ) -> Self {
-        self.extra_callback_parameters = Some(extra_callback_parameters);
-        self
-    }
-
-    pub fn with_userinfo_claims(mut self, userinfo_claims: serde_json::Value) -> Self {
-        self.userinfo_claims = Some(userinfo_claims);
-        self
-    }
-
-    pub fn build(self) -> Value {
+    pub(crate) fn build(self) -> Value {
         Value::from_object(self)
     }
 }
 
-impl Object for AttributeMappingContext {
+impl Object for AttributeMappingContextWrapper {
     fn get_value(self: &Arc<Self>, name: &Value) -> Option<Value> {
         match name.as_str()? {
             "user" => {
-                if self.id_token_claims.is_none() && self.userinfo_claims.is_none() {
+                if self.0.id_token_claims.is_none() && self.0.userinfo_claims.is_none() {
                     return None;
                 }
                 let mut merged_user: HashMap<String, serde_json::Value> = HashMap::new();
                 if let serde_json::Value::Object(userinfo) = self
-                    .userinfo_claims
+                    .0.userinfo_claims
                     .clone()
                     .unwrap_or(serde_json::Value::Null)
                 {
                     merged_user.extend(userinfo);
                 }
-                if let Some(id_token) = self.id_token_claims.clone() {
+                if let Some(id_token) = self.0.id_token_claims.clone() {
                     merged_user.extend(id_token);
                 }
                 Some(Value::from_serialize(merged_user))
             }
-            "id_token_claims" => self.id_token_claims.as_ref().map(Value::from_serialize),
-            "userinfo_claims" => self.userinfo_claims.as_ref().map(Value::from_serialize),
+            "id_token_claims" => self.0.id_token_claims.as_ref().map(Value::from_serialize),
+            "userinfo_claims" => self.0.userinfo_claims.as_ref().map(Value::from_serialize),
             "extra_callback_parameters" => self
-                .extra_callback_parameters
+                .0.extra_callback_parameters
                 .as_ref()
                 .map(Value::from_serialize),
             _ => None,
@@ -91,16 +59,16 @@ impl Object for AttributeMappingContext {
 
     fn enumerate(self: &Arc<Self>) -> Enumerator {
         let mut attrs = Vec::new();
-        if self.id_token_claims.is_some() || self.userinfo_claims.is_none() {
+        if self.0.id_token_claims.is_some() || self.0.userinfo_claims.is_none() {
             attrs.push(minijinja::Value::from("user"));
         }
-        if self.id_token_claims.is_some() {
+        if self.0.id_token_claims.is_some() {
             attrs.push(minijinja::Value::from("id_token_claims"));
         }
-        if self.userinfo_claims.is_some() {
+        if self.0.userinfo_claims.is_some() {
             attrs.push(minijinja::Value::from("userinfo_claims"));
         }
-        if self.extra_callback_parameters.is_some() {
+        if self.0.extra_callback_parameters.is_some() {
             attrs.push(minijinja::Value::from("extra_callback_parameters"));
         }
         Enumerator::Values(attrs)

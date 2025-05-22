@@ -4,12 +4,12 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Please see LICENSE in the repository root for full details.
 
-use std::{collections::HashMap, convert::Infallible, net::IpAddr, sync::Arc};
+use std::{convert::Infallible, net::IpAddr, sync::Arc};
 
 use axum::extract::{FromRef, FromRequestParts};
 use ipnetwork::IpNetwork;
 use mas_context::LogContext;
-use mas_data_model::SiteConfig;
+use mas_data_model::{CompiledConfig, SiteConfig};
 use mas_handlers::{
     ActivityTracker, BoundActivityTracker, CookieManager, ErrorWrapper, GraphQLSchema, Limiter,
     MetadataCache, RequesterFingerprint, passwords::PasswordManager,
@@ -31,12 +31,6 @@ use tracing::Instrument;
 
 use crate::telemetry::METER;
 
-#[async_trait::async_trait]
-pub trait UserMapper: Send + Sync {
-    async fn map_user(&self, user_id: &str) -> Option<String>;
-}
-
-
 #[derive(Clone)]
 pub struct AppState {
     pub repository_factory: PgRepositoryFactory,
@@ -55,7 +49,7 @@ pub struct AppState {
     pub activity_tracker: ActivityTracker,
     pub trusted_proxies: Vec<IpNetwork>,
     pub limiter: Limiter,
-    pub user_mappers: HashMap<String, Arc<dyn UserMapper>>,
+    pub compiled_config: CompiledConfig,
 }
 
 impl AppState {

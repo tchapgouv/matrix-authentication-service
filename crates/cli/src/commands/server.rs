@@ -4,7 +4,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Please see LICENSE in the repository root for full details.
 
-use std::{collections::{BTreeSet, HashMap}, process::ExitCode, sync::Arc, time::Duration};
+use std::{collections::BTreeSet, process::ExitCode, sync::Arc, time::Duration};
 
 use anyhow::Context;
 use clap::Parser;
@@ -23,6 +23,7 @@ use sqlx::migrate::Migrate;
 use tracing::{Instrument, info, info_span, warn};
 
 use crate::{
+    CompiledConfig,
     app_state::AppState,
     lifecycle::LifecycleManager,
     util::{
@@ -30,7 +31,7 @@ use crate::{
         load_policy_factory_dynamic_data_continuously, mailer_from_config,
         password_manager_from_config, policy_factory_from_config, site_config_from_config,
         templates_from_config, test_mailer_in_background,
-    }, CompiledConfig,
+    },
 };
 
 #[allow(clippy::struct_excessive_bools)]
@@ -56,7 +57,11 @@ pub(super) struct Options {
 
 impl Options {
     #[allow(clippy::too_many_lines)]
-    pub async fn run(self, figment: &Figment, compiled_config: Option<CompiledConfig>) -> anyhow::Result<ExitCode> {
+    pub async fn run(
+        self,
+        figment: &Figment,
+        compiled_config: Option<CompiledConfig>,
+    ) -> anyhow::Result<ExitCode> {
         let span = info_span!("cli.run.init").entered();
         let mut shutdown = LifecycleManager::new()?;
         let config = AppConfig::extract(figment)?;
@@ -242,7 +247,7 @@ impl Options {
                 activity_tracker,
                 trusted_proxies,
                 limiter,
-                user_mappers: compiled_config.map_or(HashMap::new(), |c| c.user_mappers),
+                compiled_config: compiled_config.unwrap_or_default(),
             };
             s.init_metrics();
             s.init_metadata_cache();

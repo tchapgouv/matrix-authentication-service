@@ -14,7 +14,7 @@ use axum::{
 };
 use hyper::StatusCode;
 use mas_axum_utils::{cookies::CookieJar, record_error};
-use mas_data_model::{UpstreamOAuthProvider, UpstreamOAuthProviderResponseMode};
+use mas_data_model::{AttributeMappingContext, UpstreamOAuthProvider, UpstreamOAuthProviderResponseMode};
 use mas_jose::claims::TokenHash;
 use mas_keystore::{Encrypter, Keystore};
 use mas_oidc_client::requests::jose::JwtVerificationData;
@@ -35,10 +35,7 @@ use thiserror::Error;
 use ulid::Ulid;
 
 use super::{
-    UpstreamSessionsCookie,
-    cache::LazyProviderInfos,
-    client_credentials_for_provider,
-    template::{AttributeMappingContext, environment},
+    cache::LazyProviderInfos, client_credentials_for_provider, template::{environment, AttributeMappingContextWrapper}, UpstreamSessionsCookie
 };
 use crate::{
     METER, PreferredLanguage, impl_from_error_for_route, upstream_oauth2::cache::MetadataCache,
@@ -415,7 +412,7 @@ pub(crate) async fn handler(
         context = context.with_userinfo_claims(userinfo);
     }
 
-    let context = context.build();
+    let context = AttributeMappingContextWrapper::new(context).build();
 
     let env = environment();
 

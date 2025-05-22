@@ -4,17 +4,15 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Please see LICENSE in the repository root for full details.
 
-use std::{collections::HashMap, process::ExitCode, sync::Arc};
+use std::{process::ExitCode, sync::Arc};
 
-use mas_cli::app_state::UserMapper;
-
-struct TchapUserMapper {
-}
+use mas_data_model::{AttributeMappingContext, CompiledConfig, UserMapper};
+struct TchapUserMapper {}
 
 #[async_trait::async_trait]
 impl UserMapper for TchapUserMapper {
-    async fn map_user(&self, user_id: &str) -> Option<String> {
-        Some(user_id.to_string())
+    async fn map_user(&self, context: &AttributeMappingContext) -> Option<String> {
+        Some("".to_string())
     }
 }
 
@@ -31,10 +29,8 @@ fn main() -> anyhow::Result<ExitCode> {
 
     let runtime = builder.build()?;
 
-    let mut user_mappers: HashMap<String, Arc<dyn UserMapper>> = HashMap::new();
-    user_mappers.insert("tchap_user_mapper".to_string(), Arc::new(TchapUserMapper{}));
+    let mut compiled_config = CompiledConfig::new();
+    compiled_config.add_user_mapper("tchap_user_mapper", Arc::new(TchapUserMapper {}));
 
-    runtime.block_on(mas_cli::async_main(Some(mas_cli::CompiledConfig {
-        user_mappers,
-    })))
+    runtime.block_on(mas_cli::async_main(Some(compiled_config)))
 }

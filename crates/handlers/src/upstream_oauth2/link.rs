@@ -19,6 +19,7 @@ use mas_axum_utils::{
     csrf::{CsrfExt, ProtectedForm},
     record_error,
 };
+use mas_data_model::AttributeMappingContext;
 use mas_jose::jwt::Jwt;
 use mas_matrix::HomeserverConnection;
 use mas_policy::Policy;
@@ -44,8 +45,7 @@ use ulid::Ulid;
 
 //:tchap: end
 use super::{
-    UpstreamSessionsCookie,
-    template::{AttributeMappingContext, environment},
+    template::{environment, AttributeMappingContextWrapper}, UpstreamSessionsCookie
 };
 use crate::{
     BoundActivityTracker, METER, PreferredLanguage, SiteConfig, impl_from_error_for_route,
@@ -405,7 +405,7 @@ pub(crate) async fn get(
             if let Some(userinfo) = upstream_session.userinfo() {
                 context = context.with_userinfo_claims(userinfo.clone());
             }
-            let context = context.build();
+            let context = AttributeMappingContextWrapper::new(context).build();
 
             let ctx = if provider.claims_imports.displayname.ignore() {
                 ctx
@@ -712,7 +712,7 @@ pub(crate) async fn post(
             if let Some(userinfo) = upstream_session.userinfo() {
                 context = context.with_userinfo_claims(userinfo.clone());
             }
-            let context = context.build();
+            let context = AttributeMappingContextWrapper::new(context).build();
 
             // Create a template context in case we need to re-render because of an error
             let ctx = UpstreamRegister::new(link.clone(), provider.clone());

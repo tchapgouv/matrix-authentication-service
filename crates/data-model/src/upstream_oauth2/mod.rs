@@ -9,7 +9,7 @@ mod provider;
 mod session;
 
 pub use self::{
-    link::UpstreamOAuthLink,
+    link::{AttributeMappingContext, UserMapper, UpstreamOAuthLink},
     provider::{
         ClaimsImports as UpstreamOAuthProviderClaimsImports,
         DiscoveryMode as UpstreamOAuthProviderDiscoveryMode,
