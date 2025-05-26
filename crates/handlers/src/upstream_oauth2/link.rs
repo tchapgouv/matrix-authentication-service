@@ -920,16 +920,18 @@ pub(crate) async fn post(
 mod tests {
     use hyper::{Request, StatusCode, header::CONTENT_TYPE};
     use mas_data_model::{
-        UpstreamOAuthProviderClaimsImports, UpstreamOAuthProviderImportPreference,
-        UpstreamOAuthProviderTokenAuthMethod,
+        UpstreamOAuthAuthorizationSession, UpstreamOAuthLink, UpstreamOAuthProviderClaimsImports, UpstreamOAuthProviderImportPreference, UpstreamOAuthProviderTokenAuthMethod, User
     };
     use mas_iana::jose::JsonWebSignatureAlg;
     use mas_jose::jwt::{JsonWebSignatureHeader, Jwt};
+    use mas_keystore::Keystore;
     use mas_router::Route;
     use mas_storage::{
-        Pagination, upstream_oauth2::UpstreamOAuthProviderParams, user::UserEmailFilter,
+        upstream_oauth2::UpstreamOAuthProviderParams, user::UserEmailFilter, Pagination, Repository, RepositoryError
     };
     use oauth2_types::scope::{OPENID, Scope};
+    use rand_chacha::ChaChaRng;
+    use serde_json::{Value};
     use sqlx::PgPool;
 
     use super::UpstreamSessionsCookie;
@@ -959,21 +961,11 @@ mod tests {
             "email": "john@example.com",
             "email_verified": true,
         });
-
-        // Grab a key to sign the id_token
-        // We could generate a key on the fly, but because we have one available here,
-        // why not use it?
-        let key = state
-            .key_store
-            .signing_key_for_algorithm(&JsonWebSignatureAlg::Rs256)
+        
+        let id_token = 
+            sign_token(&mut rng, &state.key_store, id_token)
             .unwrap();
 
-        let signer = key
-            .params()
-            .signing_key_for_alg(&JsonWebSignatureAlg::Rs256)
-            .unwrap();
-        let header = JsonWebSignatureHeader::new(JsonWebSignatureAlg::Rs256);
-        let id_token = Jwt::sign_with_rng(&mut rng, header, id_token, &signer).unwrap();
 
         // Provision a provider and a link
         let mut repo = state.repository().await.unwrap();
@@ -1011,44 +1003,11 @@ mod tests {
             .await
             .unwrap();
 
-        let session = repo
-            .upstream_oauth_session()
-            .add(
-                &mut rng,
-                &state.clock,
-                &provider,
-                "state".to_owned(),
-                None,
-                None,
-            )
-            .await
-            .unwrap();
-
-        let link = repo
-            .upstream_oauth_link()
-            .add(
-                &mut rng,
-                &state.clock,
-                &provider,
-                "subject".to_owned(),
-                None,
-            )
-            .await
-            .unwrap();
-
-        let session = repo
-            .upstream_oauth_session()
-            .complete_with_link(
-                &state.clock,
-                session,
-                &link,
-                Some(id_token.into_string()),
-                None,
-                None,
-            )
-            .await
-            .unwrap();
-
+        let (link, session) = 
+            add_linked_upstream_session(&mut rng, &state.clock, &mut repo, &provider, "subject", &id_token.into_string())
+                .await
+                .unwrap();
+        
         repo.save().await.unwrap();
 
         let cookie_jar = state.cookie_jar();
@@ -1157,21 +1116,9 @@ mod tests {
             "email": oidc_email,
             "email_verified": true,
         });
-
-        // Grab a key to sign the id_token
-        // We could generate a key on the fly, but because we have one available here,
-        // why not use it?
-        let key = state
-            .key_store
-            .signing_key_for_algorithm(&JsonWebSignatureAlg::Rs256)
+        
+        let id_token = sign_token(&mut rng,  &state.key_store, id_token)
             .unwrap();
-
-        let signer = key
-            .params()
-            .signing_key_for_alg(&JsonWebSignatureAlg::Rs256)
-            .unwrap();
-        let header = JsonWebSignatureHeader::new(JsonWebSignatureAlg::Rs256);
-        let id_token = Jwt::sign_with_rng(&mut rng, header, id_token, &signer).unwrap();
 
         // Provision a provider and a link
         let mut repo = state.repository().await.unwrap();
@@ -1209,52 +1156,12 @@ mod tests {
             .await
             .unwrap();
 
-        let session = repo
-            .upstream_oauth_session()
-            .add(
-                &mut rng,
-                &state.clock,
-                &provider,
-                "state".to_owned(),
-                None,
-                Some("nonce".to_owned()),
-            )
+        //provision upstream authorization session to setup cookies
+        let (link, session) = 
+            add_linked_upstream_session(&mut rng, &state.clock, &mut repo, &provider, &subject, &id_token.into_string())
             .await
             .unwrap();
-
-        let link = repo
-            .upstream_oauth_link()
-            .add(&mut rng, &state.clock, &provider, subject.clone(), None)
-            .await
-            .unwrap();
-
-        let session = repo
-            .upstream_oauth_session()
-            .complete_with_link(
-                &state.clock,
-                session,
-                &link,
-                Some(id_token.into_string()),
-                None,
-                None,
-            )
-            .await
-            .unwrap();
-
-        //create a user with an email
-        let user = repo
-            .user()
-            .add(&mut rng, &state.clock, existing_username.clone())
-            .await
-            .unwrap();
-
-        let _user_email = repo
-            .user_email()
-            .add(&mut rng, &state.clock, &user, existing_email.clone())
-            .await;
-
-        repo.save().await.unwrap();
-
+        
         let cookie_jar = state.cookie_jar();
         let upstream_sessions = UpstreamSessionsCookie::default()
             .add(session.id, provider.id, "state".to_owned(), None)
@@ -1263,6 +1170,18 @@ mod tests {
         let cookie_jar = upstream_sessions.save(cookie_jar, &state.clock);
         cookies.import(cookie_jar);
 
+        let user = 
+                create_user( 
+                    &mut rng, 
+                    &state.clock, 
+                    &mut repo, 
+                    existing_username.clone(), 
+                    existing_email.clone())
+                .await
+                .unwrap();
+        
+        repo.save().await.unwrap();
+    
         let request = Request::get(&*mas_router::UpstreamOAuth2Link::new(link.id).path()).empty();
         let request = cookies.with_cookies(request);
         let response = state.request(request).await;
@@ -1357,21 +1276,9 @@ mod tests {
             "email": oidc_email,
             "email_verified": true,
         });
-
-        // Grab a key to sign the id_token
-        // We could generate a key on the fly, but because we have one available here,
-        // why not use it?
-        let key = state
-            .key_store
-            .signing_key_for_algorithm(&JsonWebSignatureAlg::Rs256)
+        
+        let id_token = sign_token(&mut rng, &state.key_store, id_token)
             .unwrap();
-
-        let signer = key
-            .params()
-            .signing_key_for_alg(&JsonWebSignatureAlg::Rs256)
-            .unwrap();
-        let header = JsonWebSignatureHeader::new(JsonWebSignatureAlg::Rs256);
-        let id_token = Jwt::sign_with_rng(&mut rng, header, id_token, &signer).unwrap();
 
         // Provision a provider and a link
         let mut repo = state.repository().await.unwrap();
@@ -1409,49 +1316,26 @@ mod tests {
             .await
             .unwrap();
 
-        let session = repo
-            .upstream_oauth_session()
-            .add(
-                &mut rng,
-                &state.clock,
-                &provider,
-                "state".to_owned(),
-                None,
-                Some("nonce".to_owned()),
-            )
+        let (link, session) = 
+            add_linked_upstream_session(
+                &mut rng, 
+                &state.clock, 
+                &mut repo, 
+                &provider, 
+                &subject, 
+                &id_token.into_string())
             .await
             .unwrap();
-
-        let link = repo
-            .upstream_oauth_link()
-            .add(&mut rng, &state.clock, &provider, subject.clone(), None)
-            .await
-            .unwrap();
-
-        let session = repo
-            .upstream_oauth_session()
-            .complete_with_link(
-                &state.clock,
-                session,
-                &link,
-                Some(id_token.into_string()),
-                None,
-                None,
-            )
-            .await
-            .unwrap();
-
-        //create a user with an email
-        let user = repo
-            .user()
-            .add(&mut rng, &state.clock, existing_username.clone())
-            .await
-            .unwrap();
-
-        let _user_email = repo
-            .user_email()
-            .add(&mut rng, &state.clock, &user, existing_email.clone())
-            .await;
+        
+        let _user = 
+                create_user( 
+                    &mut rng, 
+                    &state.clock, 
+                    &mut repo, 
+                    existing_username.clone(), 
+                    existing_email.clone())
+                .await
+                .unwrap();
 
         repo.save().await.unwrap();
 
@@ -1471,5 +1355,88 @@ mod tests {
         response.assert_header_value(CONTENT_TYPE, "text/html; charset=utf-8");
 
         assert!(response.body().contains("Unexpected error"));
+    }
+    
+    fn sign_token(
+        rng: &mut ChaChaRng,
+        keystore: &Keystore,
+        payload: Value,
+    ) -> Result<Jwt<'static, Value>, mas_jose::jwt::JwtSignatureError> {
+        let key = keystore
+            .signing_key_for_algorithm(&JsonWebSignatureAlg::Rs256)
+            .unwrap();
+        
+        let signer = key
+            .params()
+            .signing_key_for_alg(&JsonWebSignatureAlg::Rs256)
+            .unwrap();
+    
+        let header = JsonWebSignatureHeader::new(JsonWebSignatureAlg::Rs256);
+    
+        Jwt::sign_with_rng(rng, header, payload, &signer)
+    }
+
+    async fn create_user(  
+        rng: &mut ChaChaRng,
+        clock: &impl mas_storage::Clock,
+        repo: &mut Box<dyn Repository<RepositoryError> + Send + Sync + 'static>,
+        username:String, 
+        email:String
+    )->Result<User, anyhow::Error>{
+
+        //create a user with an email
+        let user = repo
+            .user()
+            .add(rng, clock, username)
+            .await
+            .unwrap();
+
+        let _user_email = repo
+            .user_email()
+            .add(rng, clock, &user, email)
+            .await;
+
+        Ok(user)
+
+    }
+
+    async fn add_linked_upstream_session(
+        rng: &mut ChaChaRng,
+        clock: &impl mas_storage::Clock,
+        repo: &mut Box<dyn Repository<RepositoryError> + Send + Sync + 'static>,
+        provider: &mas_data_model::UpstreamOAuthProvider,
+        subject: &str,
+        id_token: &str
+    ) -> Result<(UpstreamOAuthLink, UpstreamOAuthAuthorizationSession), anyhow::Error> {
+        let session = repo
+            .upstream_oauth_session()
+            .add(
+                rng,
+                clock,
+                provider,
+                "state".to_owned(),
+                None,
+                Some("nonce".to_owned()),
+            )
+            .await?;
+
+        let link = repo
+            .upstream_oauth_link()
+            .add(rng, clock, provider, subject.to_owned(), None)
+            .await?;
+
+        let session = repo
+            .upstream_oauth_session()
+            .complete_with_link(
+                clock,
+                session,
+                &link,
+                Some(id_token.to_owned()),
+                None,
+                None,
+            )
+            .await?;
+
+        Ok((link, session))
     }
 }
