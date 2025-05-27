@@ -1023,7 +1023,7 @@ mod tests {
     use mas_keystore::Keystore;
     use mas_router::Route;
     use mas_storage::{
-        upstream_oauth2::UpstreamOAuthProviderParams, user::UserEmailFilter, Pagination, Repository, RepositoryError
+        upstream_oauth2::{UpstreamOAuthLinkFilter, UpstreamOAuthProviderParams}, user::UserEmailFilter, Pagination, Repository, RepositoryError
     };
     use oauth2_types::scope::{OPENID, Scope};
     use rand_chacha::ChaChaRng;
@@ -1806,7 +1806,8 @@ mod tests {
             "email_verified": true,
         });
 
-        let id_token = sign_token(&mut rng,  &state.key_store, id_token)
+        let id_token = 
+            sign_token(&mut rng,  &state.key_store, id_token)
             .unwrap();
 
         // Provision a provider and a link
@@ -1845,7 +1846,7 @@ mod tests {
             .await
             .unwrap();
 
-                //provision upstream authorization session to setup cookies
+        //provision upstream authorization session to setup cookies
         let (link, session) = 
             add_linked_upstream_session(&mut rng, &state.clock, &mut repo, &provider, &subject, &id_token.into_string())
             .await
@@ -1912,6 +1913,15 @@ mod tests {
             .expect("link exists");
 
         assert_eq!(link.user_id.unwrap().to_string(), existing_user.id.to_string());
+
+        // Check only one link searching subject by user
+        let link_count = repo
+            .upstream_oauth_link()
+            .count(UpstreamOAuthLinkFilter::default().for_user(&existing_user))
+            .await
+            .unwrap();
+
+        assert_eq!(link_count, 1);
 
         let page = repo
             .user_email()
