@@ -1016,18 +1016,20 @@ async fn search_user_by_email(
 mod tests {
     use hyper::{Request, StatusCode, header::CONTENT_TYPE};
     use mas_data_model::{
-        UpstreamOAuthAuthorizationSession, UpstreamOAuthLink, UpstreamOAuthProviderClaimsImports, UpstreamOAuthProviderImportPreference, UpstreamOAuthProviderTokenAuthMethod, User
+        UpstreamOAuthAuthorizationSession, UpstreamOAuthLink, UpstreamOAuthProviderClaimsImports,
+        UpstreamOAuthProviderImportPreference, UpstreamOAuthProviderTokenAuthMethod, User,
     };
     use mas_iana::jose::JsonWebSignatureAlg;
     use mas_jose::jwt::{JsonWebSignatureHeader, Jwt};
     use mas_keystore::Keystore;
     use mas_router::Route;
     use mas_storage::{
-        upstream_oauth2::{UpstreamOAuthLinkFilter, UpstreamOAuthProviderParams}, user::UserEmailFilter, Pagination, Repository, RepositoryError
+        Pagination, Repository, RepositoryError, upstream_oauth2::{UpstreamOAuthLinkFilter, UpstreamOAuthProviderParams},
+        user::UserEmailFilter,
     };
     use oauth2_types::scope::{OPENID, Scope};
     use rand_chacha::ChaChaRng;
-    use serde_json::{Value};
+    use serde_json::Value;
     use sqlx::PgPool;
 
     use super::UpstreamSessionsCookie;
@@ -1057,11 +1059,8 @@ mod tests {
             "email": "john@example.com",
             "email_verified": true,
         });
-        
-        let id_token = 
-            sign_token(&mut rng, &state.key_store, id_token)
-            .unwrap();
 
+        let id_token = sign_token(&mut rng, &state.key_store, id_token).unwrap();
 
         // Provision a provider and a link
         let mut repo = state.repository().await.unwrap();
@@ -1099,11 +1098,17 @@ mod tests {
             .await
             .unwrap();
 
-        let (link, session) = 
-            add_linked_upstream_session(&mut rng, &state.clock, &mut repo, &provider, "subject", &id_token.into_string())
-                .await
-                .unwrap();
-        
+        let (link, session) = add_linked_upstream_session(
+            &mut rng,
+            &state.clock,
+            &mut repo,
+            &provider,
+            "subject",
+            &id_token.into_string(),
+        )
+        .await
+        .unwrap();
+
         repo.save().await.unwrap();
 
         let cookie_jar = state.cookie_jar();
@@ -1212,9 +1217,8 @@ mod tests {
             "email": oidc_email,
             "email_verified": true,
         });
-        
-        let id_token = sign_token(&mut rng,  &state.key_store, id_token)
-            .unwrap();
+
+        let id_token = sign_token(&mut rng, &state.key_store, id_token).unwrap();
 
         // Provision a provider and a link
         let mut repo = state.repository().await.unwrap();
@@ -1253,11 +1257,17 @@ mod tests {
             .unwrap();
 
         //provision upstream authorization session to setup cookies
-        let (link, session) = 
-            add_linked_upstream_session(&mut rng, &state.clock, &mut repo, &provider, &subject, &id_token.into_string())
-            .await
-            .unwrap();
-        
+        let (link, session) = add_linked_upstream_session(
+            &mut rng,
+            &state.clock,
+            &mut repo,
+            &provider,
+            &subject,
+            &id_token.into_string(),
+        )
+        .await
+        .unwrap();
+
         let cookie_jar = state.cookie_jar();
         let upstream_sessions = UpstreamSessionsCookie::default()
             .add(session.id, provider.id, "state".to_owned(), None)
@@ -1266,18 +1276,18 @@ mod tests {
         let cookie_jar = upstream_sessions.save(cookie_jar, &state.clock);
         cookies.import(cookie_jar);
 
-        let user = 
-                create_user( 
-                    &mut rng, 
-                    &state.clock, 
-                    &mut repo, 
-                    existing_username.clone(), 
-                    existing_email.clone())
-                .await
-                .unwrap();
-        
+        let user = create_user(
+            &mut rng,
+            &state.clock,
+            &mut repo,
+            existing_username.clone(),
+            existing_email.clone(),
+        )
+        .await
+        .unwrap();
+
         repo.save().await.unwrap();
-    
+
         let request = Request::get(&*mas_router::UpstreamOAuth2Link::new(link.id).path()).empty();
         let request = cookies.with_cookies(request);
         let response = state.request(request).await;
@@ -1372,9 +1382,8 @@ mod tests {
             "email": oidc_email,
             "email_verified": true,
         });
-        
-        let id_token = sign_token(&mut rng, &state.key_store, id_token)
-            .unwrap();
+
+        let id_token = sign_token(&mut rng, &state.key_store, id_token).unwrap();
 
         // Provision a provider and a link
         let mut repo = state.repository().await.unwrap();
@@ -1412,26 +1421,26 @@ mod tests {
             .await
             .unwrap();
 
-        let (link, session) = 
-            add_linked_upstream_session(
-                &mut rng, 
-                &state.clock, 
-                &mut repo, 
-                &provider, 
-                &subject, 
-                &id_token.into_string())
-            .await
-            .unwrap();
-        
-        let _user = 
-                create_user( 
-                    &mut rng, 
-                    &state.clock, 
-                    &mut repo, 
-                    existing_username.clone(), 
-                    existing_email.clone())
-                .await
-                .unwrap();
+        let (link, session) = add_linked_upstream_session(
+            &mut rng,
+            &state.clock,
+            &mut repo,
+            &provider,
+            &subject,
+            &id_token.into_string(),
+        )
+        .await
+        .unwrap();
+
+        let _user = create_user(
+            &mut rng,
+            &state.clock,
+            &mut repo,
+            existing_username.clone(),
+            existing_email.clone(),
+        )
+        .await
+        .unwrap();
 
         repo.save().await.unwrap();
 
@@ -1452,7 +1461,7 @@ mod tests {
 
         assert!(response.body().contains("Unexpected error"));
     }
-    
+
     #[sqlx::test(migrator = "mas_storage_pg::MIGRATOR")]
     async fn test_link_when_neither_email_or_username_matches(pool: PgPool) {
         #[allow(clippy::disallowed_methods)]
@@ -1936,7 +1945,6 @@ mod tests {
         assert_eq!(email.email, oidc_email);
     }
 
-
     fn sign_token(
         rng: &mut ChaChaRng,
         keystore: &Keystore,
@@ -1945,39 +1953,30 @@ mod tests {
         let key = keystore
             .signing_key_for_algorithm(&JsonWebSignatureAlg::Rs256)
             .unwrap();
-        
+
         let signer = key
             .params()
             .signing_key_for_alg(&JsonWebSignatureAlg::Rs256)
             .unwrap();
-    
+
         let header = JsonWebSignatureHeader::new(JsonWebSignatureAlg::Rs256);
-    
+
         Jwt::sign_with_rng(rng, header, payload, &signer)
     }
 
-    async fn create_user(  
+    async fn create_user(
         rng: &mut ChaChaRng,
         clock: &impl mas_storage::Clock,
         repo: &mut Box<dyn Repository<RepositoryError> + Send + Sync + 'static>,
-        username:String, 
-        email:String
-    )->Result<User, anyhow::Error>{
-
+        username: String,
+        email: String,
+    ) -> Result<User, anyhow::Error> {
         //create a user with an email
-        let user = repo
-            .user()
-            .add(rng, clock, username)
-            .await
-            .unwrap();
+        let user = repo.user().add(rng, clock, username).await.unwrap();
 
-        let _user_email = repo
-            .user_email()
-            .add(rng, clock, &user, email)
-            .await;
+        let _user_email = repo.user_email().add(rng, clock, &user, email).await;
 
         Ok(user)
-
     }
 
     async fn add_linked_upstream_session(
@@ -1986,7 +1985,7 @@ mod tests {
         repo: &mut Box<dyn Repository<RepositoryError> + Send + Sync + 'static>,
         provider: &mas_data_model::UpstreamOAuthProvider,
         subject: &str,
-        id_token: &str
+        id_token: &str,
     ) -> Result<(UpstreamOAuthLink, UpstreamOAuthAuthorizationSession), anyhow::Error> {
         let session = repo
             .upstream_oauth_session()
@@ -2007,14 +2006,7 @@ mod tests {
 
         let session = repo
             .upstream_oauth_session()
-            .complete_with_link(
-                clock,
-                session,
-                &link,
-                Some(id_token.to_owned()),
-                None,
-                None,
-            )
+            .complete_with_link(clock, session, &link, Some(id_token.to_owned()), None, None)
             .await?;
 
         Ok((link, session))
