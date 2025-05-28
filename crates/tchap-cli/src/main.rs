@@ -4,9 +4,17 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Please see LICENSE in the repository root for full details.
 
-use std::process::ExitCode;
+use std::{process::ExitCode, sync::Arc};
 
-use mas_cli::async_main;
+use mas_data_model::{AttributeMappingContext, CompiledConfig, UserMapper};
+struct TchapUserMapper {}
+
+#[async_trait::async_trait]
+impl UserMapper for TchapUserMapper {
+    async fn map_user(&self, context: &AttributeMappingContext) -> Option<String> {
+        Some("".to_string())
+    }
+}
 
 fn main() -> anyhow::Result<ExitCode> {
     let mut builder = tokio::runtime::Builder::new_multi_thread();
@@ -21,5 +29,8 @@ fn main() -> anyhow::Result<ExitCode> {
 
     let runtime = builder.build()?;
 
-    runtime.block_on(async_main(None))
+    let mut compiled_config = CompiledConfig::new();
+    compiled_config.add_user_mapper("tchap_user_mapper", Arc::new(TchapUserMapper {}));
+
+    runtime.block_on(mas_cli::async_main(Some(compiled_config)))
 }

@@ -23,6 +23,7 @@ use sqlx::migrate::Migrate;
 use tracing::{Instrument, info, info_span, warn};
 
 use crate::{
+    CompiledConfig,
     app_state::AppState,
     lifecycle::LifecycleManager,
     util::{
@@ -56,7 +57,11 @@ pub(super) struct Options {
 
 impl Options {
     #[allow(clippy::too_many_lines)]
-    pub async fn run(self, figment: &Figment) -> anyhow::Result<ExitCode> {
+    pub async fn run(
+        self,
+        figment: &Figment,
+        compiled_config: Option<CompiledConfig>,
+    ) -> anyhow::Result<ExitCode> {
         let span = info_span!("cli.run.init").entered();
         let mut shutdown = LifecycleManager::new()?;
         let config = AppConfig::extract(figment)?;
@@ -242,6 +247,7 @@ impl Options {
                 activity_tracker,
                 trusted_proxies,
                 limiter,
+                compiled_config: compiled_config.unwrap_or_default(),
             };
             s.init_metrics();
             s.init_metadata_cache();

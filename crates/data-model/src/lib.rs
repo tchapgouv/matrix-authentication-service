@@ -9,6 +9,7 @@
 use thiserror::Error;
 
 pub(crate) mod compat;
+pub mod compiled_config;
 pub mod oauth2;
 pub(crate) mod policy_data;
 mod site_config;
@@ -29,6 +30,7 @@ pub use self::{
         CompatAccessToken, CompatRefreshToken, CompatRefreshTokenState, CompatSession,
         CompatSessionState, CompatSsoLogin, CompatSsoLoginState, Device, ToScopeTokenError,
     },
+    compiled_config::{CompiledConfig},
     oauth2::{
         AuthorizationCode, AuthorizationGrant, AuthorizationGrantStage, Client, DeviceCodeGrant,
         DeviceCodeGrantState, InvalidRedirectUriError, JwksOrJwksUri, Pkce, Session, SessionState,
@@ -39,12 +41,12 @@ pub use self::{
         AccessToken, AccessTokenState, RefreshToken, RefreshTokenState, TokenFormatError, TokenType,
     },
     upstream_oauth2::{
-        UpstreamOAuthAuthorizationSession, UpstreamOAuthAuthorizationSessionState,
-        UpstreamOAuthLink, UpstreamOAuthProvider, UpstreamOAuthProviderClaimsImports,
-        UpstreamOAuthProviderDiscoveryMode, UpstreamOAuthProviderImportAction,
-        UpstreamOAuthProviderImportPreference, UpstreamOAuthProviderPkceMode,
-        UpstreamOAuthProviderResponseMode, UpstreamOAuthProviderSubjectPreference,
-        UpstreamOAuthProviderTokenAuthMethod,
+        AttributeMappingContext, UserMapper, UpstreamOAuthAuthorizationSession,
+        UpstreamOAuthAuthorizationSessionState, UpstreamOAuthLink, UpstreamOAuthProvider,
+        UpstreamOAuthProviderClaimsImports, UpstreamOAuthProviderDiscoveryMode,
+        UpstreamOAuthProviderImportAction, UpstreamOAuthProviderImportPreference,
+        UpstreamOAuthProviderPkceMode, UpstreamOAuthProviderResponseMode,
+        UpstreamOAuthProviderSubjectPreference, UpstreamOAuthProviderTokenAuthMethod,
     },
     user_agent::{DeviceType, UserAgent},
     users::{
