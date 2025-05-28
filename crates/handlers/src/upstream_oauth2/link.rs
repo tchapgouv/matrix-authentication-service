@@ -470,10 +470,11 @@ pub(crate) async fn get(
                         // form, but this lead to poor UX. This is why we do
                         // it ahead of time here.
                         //:tchap: add mut
-                        let mut maybe_existing_user = repo.user().find_by_username(&localpart).await?;
+                        let mut maybe_existing_user =
+                            repo.user().find_by_username(&localpart).await?;
 
                         //if not found by username, check by email
-                        if maybe_existing_user.is_none(){
+                        if maybe_existing_user.is_none() {
                             let template = provider
                                 .claims_imports
                                 .email
@@ -482,18 +483,19 @@ pub(crate) async fn get(
                                 .unwrap_or(DEFAULT_EMAIL_TEMPLATE);
 
                             let maybe_email = render_attribute_template(
-                                    &env,
-                                    template,
-                                    &context,
-                                    provider.claims_imports.email.is_required(),
-                                );
+                                &env,
+                                template,
+                                &context,
+                                provider.claims_imports.email.is_required(),
+                            );
 
-                            if let Ok(Some(email)) = maybe_email{
-                                maybe_existing_user =  search_user_by_email(&mut repo, &email).await?;
+                            if let Ok(Some(email)) = maybe_email {
+                                maybe_existing_user =
+                                    search_user_by_email(&mut repo, &email).await?;
                             }
                         }
-                         //:tchap: end
-                        
+                        //:tchap: end
+
                         let is_available = homeserver
                             .is_localpart_available(&localpart)
                             .await
@@ -1051,7 +1053,8 @@ async fn search_user_by_email(
     let maybe_user_email = repo.user_email().find_by_email(email).await?;
 
     if let Some(user_email) = maybe_user_email {
-        let maybe_user_found: Option<mas_data_model::User> = repo.user().lookup(user_email.user_id).await?;
+        let maybe_user_found: Option<mas_data_model::User> =
+            repo.user().lookup(user_email.user_id).await?;
         return Ok(maybe_user_found);
     }
 
@@ -1065,18 +1068,26 @@ async fn search_user_by_email(
         for rule in fallback_array {
             if let (Some(match_pattern), Some(search_value)) = (
                 rule.get("match").and_then(Value::as_str),
-                rule.get("search").and_then(Value::as_str)
+                rule.get("search").and_then(Value::as_str),
             ) {
-                tracing::info!("Checking fallback rules {} : {}", match_pattern, search_value);
+                tracing::info!(
+                    "Checking fallback rules {} : {}",
+                    match_pattern,
+                    search_value
+                );
 
                 // Check if email contains the match pattern
                 if email.contains(match_pattern) {
                     // Replace match pattern with search value
                     let transformed_email = email.replace(match_pattern, search_value);
-                    tracing::debug!("Search by transformed email fallback rules {}", transformed_email);
+                    tracing::debug!(
+                        "Search by transformed email fallback rules {}",
+                        transformed_email
+                    );
 
                     // Look up the transformed email
-                    let maybe_transformed_user_email = repo.user_email().find_by_email(&transformed_email).await?;
+                    let maybe_transformed_user_email =
+                        repo.user_email().find_by_email(&transformed_email).await?;
 
                     if let Some(transformed_user_email) = maybe_transformed_user_email {
                         let user_found: Option<mas_data_model::User> = repo.user().lookup(transformed_user_email.user_id).await?;
@@ -1097,7 +1108,7 @@ async fn search_user_by_email(
 mod tests {
     use hyper::{Request, StatusCode, header::CONTENT_TYPE};
     use mas_data_model::{
-        UpstreamOAuthAuthorizationSession, UpstreamOAuthLink, UpstreamOAuthProviderClaimsImports, UpstreamOAuthProviderImportPreference, UpstreamOAuthProviderOnConflict, UpstreamOAuthProviderTokenAuthMethod, User
+        UpstreamOAuthAuthorizationSession, UpstreamOAuthLink, UpstreamOAuthProviderClaimsImports, UpstreamOAuthProviderImportPreference, UpstreamOAuthProviderTokenAuthMethod, User
     };
     use mas_iana::jose::JsonWebSignatureAlg;
     use mas_jose::jwt::{JsonWebSignatureHeader, Jwt};
@@ -1105,7 +1116,7 @@ mod tests {
     use mas_router::Route;
     use mas_storage::{
         Pagination, Repository, RepositoryError, upstream_oauth2::UpstreamOAuthProviderParams,
-        user::UserEmailFilter,
+        user::UserEmailFilter,upstream_oauth2::UpstreamOAuthLinkFilter
     };
     use oauth2_types::scope::{OPENID, Scope};
     use rand_chacha::ChaChaRng;
@@ -1538,12 +1549,12 @@ mod tests {
         let timestamp = chrono::Utc::now().timestamp_millis();
 
         //usernames don't match
-        let existing_username  = format!("{}{}", "john-",timestamp);
-        let oidc_username = format!("{}{}", "any-",timestamp); 
+        let existing_username = format!("{}{}", "john-", timestamp);
+        let oidc_username = format!("{}{}", "any-", timestamp);
 
         //mails don't match
-        let existing_email  = format!("{}@{}", existing_username, "example.com");
-        let oidc_email  = format!("{}@{}", oidc_username, "example.com");
+        let existing_email = format!("{}@{}", existing_username, "example.com");
+        let oidc_email = format!("{}@{}", oidc_username, "example.com");
 
         //generate unique subject
         let subject = format!("{}+{}", "subject", timestamp);
@@ -1573,9 +1584,8 @@ mod tests {
             "email_verified": true,
         });
 
-        let id_token = sign_token(&mut rng,  &state.key_store, id_token)
-            .unwrap();
-        
+        let id_token = sign_token(&mut rng, &state.key_store, id_token).unwrap();
+
         // Provision a provider and a link
         let mut repo = state.repository().await.unwrap();
         let provider = repo
@@ -1612,20 +1622,26 @@ mod tests {
             .unwrap();
 
         //provision upstream authorization session to setup cookies
-        let (link, session) = 
-            add_linked_upstream_session(&mut rng, &state.clock, &mut repo, &provider, &subject, &id_token.into_string())
-            .await
-            .unwrap();
+        let (link, session) = add_linked_upstream_session(
+            &mut rng,
+            &state.clock,
+            &mut repo,
+            &provider,
+            &subject,
+            &id_token.into_string(),
+        )
+        .await
+        .unwrap();
 
-        let existing_user = 
-                create_user( 
-                    &mut rng, 
-                    &state.clock, 
-                    &mut repo, 
-                    existing_username.clone(), 
-                    existing_email.clone())
-                .await
-                .unwrap();
+        let existing_user = create_user(
+            &mut rng,
+            &state.clock,
+            &mut repo,
+            existing_username.clone(),
+            existing_email.clone(),
+        )
+        .await
+        .unwrap();
 
         repo.save().await.unwrap();
 
@@ -1679,9 +1695,7 @@ mod tests {
 
         // a new user is created
         assert_ne!(link.user_id, Some(existing_user.id));
-
     }
-
 
     #[sqlx::test(migrator = "mas_storage_pg::MIGRATOR")]
     async fn test_link_existing_account_by_email(pool: PgPool) {
@@ -1690,11 +1704,11 @@ mod tests {
         let timestamp = chrono::Utc::now().timestamp_millis();
 
         //usernames don't match
-        let existing_username  = format!("{}{}", "john",timestamp);
-        let oidc_username = format!("{}{}", "any",timestamp); 
+        let existing_username = format!("{}{}", "john", timestamp);
+        let oidc_username = format!("{}{}", "any", timestamp);
 
         //emails match
-        let existing_email  = format!("{}@{}", existing_username, "beta.gouv.fr");
+        let existing_email = format!("{}@{}", existing_username, "beta.gouv.fr");
         let oidc_email: String = existing_email.clone();
 
         //generate unique subject
@@ -1726,8 +1740,7 @@ mod tests {
             "email_verified": true,
         });
 
-        let id_token = sign_token(&mut rng,  &state.key_store, id_token)
-            .unwrap();
+        let id_token = sign_token(&mut rng, &state.key_store, id_token).unwrap();
 
         // Provision a provider and a link
         let mut repo = state.repository().await.unwrap();
@@ -1765,20 +1778,26 @@ mod tests {
             .unwrap();
 
         //provision upstream authorization session to setup cookies
-        let (link, session) = 
-            add_linked_upstream_session(&mut rng, &state.clock, &mut repo, &provider, &subject, &id_token.into_string())
-            .await
-            .unwrap();
+        let (link, session) = add_linked_upstream_session(
+            &mut rng,
+            &state.clock,
+            &mut repo,
+            &provider,
+            &subject,
+            &id_token.into_string(),
+        )
+        .await
+        .unwrap();
 
-        let existing_user = 
-                create_user( 
-                    &mut rng, 
-                    &state.clock, 
-                    &mut repo, 
-                    existing_username.clone(), 
-                    existing_email.clone())
-                .await
-                .unwrap();
+        let existing_user = create_user(
+            &mut rng,
+            &state.clock,
+            &mut repo,
+            existing_username.clone(),
+            existing_email.clone(),
+        )
+        .await
+        .unwrap();
 
         repo.save().await.unwrap();
 
@@ -1821,18 +1840,24 @@ mod tests {
         let mut repo = state.repository().await.unwrap();
 
         let link = repo
-        .upstream_oauth_link()
-        .find_by_subject(&provider, &subject)
-        .await
-        .unwrap()
-        .expect("link exists");
+            .upstream_oauth_link()
+            .find_by_subject(&provider, &subject)
+            .await
+            .unwrap()
+            .expect("link exists");
 
         // Check that the existing user has the oidc link
-        assert_eq!(link.user_id.unwrap().to_string(), existing_user.id.to_string());
+        assert_eq!(
+            link.user_id.unwrap().to_string(),
+            existing_user.id.to_string()
+        );
 
         let page = repo
             .user_email()
-            .list(UserEmailFilter::new().for_user(&existing_user), Pagination::first(1))
+            .list(
+                UserEmailFilter::new().for_user(&existing_user),
+                Pagination::first(1),
+            )
             .await
             .unwrap();
 
@@ -1843,18 +1868,17 @@ mod tests {
         assert_eq!(email.email, oidc_email);
     }
 
-
     #[sqlx::test(migrator = "mas_storage_pg::MIGRATOR")]
     async fn test_link_existing_account_by_email_with_fallback(pool: PgPool) {
         #[allow(clippy::disallowed_methods)]
         let timestamp = chrono::Utc::now().timestamp_millis();
 
         //suffix timestamp to generate unique test data
-        let existing_username  = format!("{}{}", "john",timestamp);
-        let existing_email  = format!("{}@{}", existing_username, "beta.gouv.fr");
+        let existing_username = format!("{}{}", "john", timestamp);
+        let existing_email = format!("{}@{}", existing_username, "beta.gouv.fr");
 
         //usernames don't match
-        let oidc_username = format!("{}{}", "any",timestamp); 
+        let oidc_username = format!("{}{}", "any", timestamp);
 
         //existing emails match a fallback rule
         let oidc_email: String = format!("{}@{}", existing_username, "numerique.gouv.fr");
@@ -1889,9 +1913,7 @@ mod tests {
             "email_verified": true,
         });
 
-        let id_token = 
-            sign_token(&mut rng,  &state.key_store, id_token)
-            .unwrap();
+        let id_token = sign_token(&mut rng, &state.key_store, id_token).unwrap();
 
         // Provision a provider and a link
         let mut repo = state.repository().await.unwrap();
@@ -1929,20 +1951,26 @@ mod tests {
             .unwrap();
 
         //provision upstream authorization session to setup cookies
-        let (link, session) = 
-            add_linked_upstream_session(&mut rng, &state.clock, &mut repo, &provider, &subject, &id_token.into_string())
-            .await
-            .unwrap();
+        let (link, session) = add_linked_upstream_session(
+            &mut rng,
+            &state.clock,
+            &mut repo,
+            &provider,
+            &subject,
+            &id_token.into_string(),
+        )
+        .await
+        .unwrap();
 
-        let existing_user = 
-                create_user( 
-                    &mut rng, 
-                    &state.clock, 
-                    &mut repo, 
-                    existing_username.clone(), 
-                    existing_email.clone())
-                .await
-                .unwrap();
+        let existing_user = create_user(
+            &mut rng,
+            &state.clock,
+            &mut repo,
+            existing_username.clone(),
+            existing_email.clone(),
+        )
+        .await
+        .unwrap();
 
         repo.save().await.unwrap();
 
@@ -1992,7 +2020,10 @@ mod tests {
             .unwrap()
             .expect("link exists");
 
-        assert_eq!(link.user_id.unwrap().to_string(), existing_user.id.to_string());
+        assert_eq!(
+            link.user_id.unwrap().to_string(),
+            existing_user.id.to_string()
+        );
 
         // Check only one link searching subject by user
         let link_count = repo
@@ -2005,7 +2036,10 @@ mod tests {
 
         let page = repo
             .user_email()
-            .list(UserEmailFilter::new().for_user(&existing_user), Pagination::first(1))
+            .list(
+                UserEmailFilter::new().for_user(&existing_user),
+                Pagination::first(1),
+            )
             .await
             .unwrap();
 
@@ -2083,6 +2117,4 @@ mod tests {
 
         Ok((link, session))
     }
-
-    
 }
