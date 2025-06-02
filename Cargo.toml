@@ -98,7 +98,7 @@ version = "1.7.3"
 
 # Packed bitfields
 [workspace.dependencies.bitflags]
-version = "2.9.0"
+version = "2.9.1"
 
 # Bytes
 [workspace.dependencies.bytes]
@@ -124,7 +124,7 @@ features = ["serde", "clock"]
 
 # CLI argument parsing
 [workspace.dependencies.clap]
-version = "4.5.37"
+version = "4.5.38"
 features = ["derive"]
 
 # Cron expressions
@@ -309,7 +309,7 @@ features = ["oid"]
 
 # Query builder
 [workspace.dependencies.sea-query]
-version = "0.32.5"
+version = "0.32.6"
 features = ["derive", "attr", "with-uuid", "with-chrono", "postgres-array"]
 
 # Query builder
@@ -397,7 +397,7 @@ version = "0.3.3"
 
 # Tower HTTP layers
 [workspace.dependencies.tower-http]
-version = "0.6.3"
+version = "0.6.4"
 features = ["cors", "fs", "add-extension", "set-header"]
 
 # Logging and tracing
