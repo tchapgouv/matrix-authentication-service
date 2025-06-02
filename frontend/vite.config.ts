@@ -59,7 +59,9 @@ export default defineConfig((env) => ({
         resolve(__dirname, "src/shared.css"),
         resolve(__dirname, "src/templates.css"),
         resolve(__dirname, "src/swagger.ts"),
+        //:tchap:
         resolve(__dirname, "src/tchap.css"),
+        //:tchap:end
       ],
     },
   },
