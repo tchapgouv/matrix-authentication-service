@@ -9,6 +9,7 @@
     "lint": "graphql-codegen && biome check && tsc && i18next --fail-on-warnings --fail-on-update",
     "format": "biome format --write",
     "build": "rimraf ./dist/ && vite build",
+    "build-tchap": "rimraf ./dist/ && vite build -c ./tchap/vite.tchap.config.js ",
     "preview": "vite preview",
     "test": "vitest",
     "coverage": "vitest run --coverage",
