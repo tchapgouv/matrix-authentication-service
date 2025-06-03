@@ -7,3 +7,7 @@ target/
 
 # OS garbage
 .DS_Store
+
+# Tchap
+tchap/tchap/
+tchap/postgres/
