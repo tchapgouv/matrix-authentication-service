@@ -72,7 +72,14 @@ The authentication service supports linking external provider identities to exis
 
 To enable this behavior, the following option must be explicitly set in the provider configuration:
 
-* `allow_existing_users: true` *(default: false)* : when a user authenticates with the provider for the first time, the system checks whether a local user already exists with a `localpart` matching the attribute mapping `localpart` , _by default `{{ user.preferred_username }}`_. If a match is found, the external identity is linked to the existing local account.
+```yaml
+claims_imports:
+  localpart:
+    on_conflict: add
+```
+`on_conflict` configuration is specific to `localpart` claim_imports, it can be either:
+* `add` : when a user authenticates with the provider for the first time, the system checks whether a local user already exists with a `localpart` matching the attribute mapping `localpart` , _by default `{{ user.preferred_username }}`_. If a match is found, the external identity is linked to the existing local account.
+* `fail` *(default)* : fails the sso login.
 
 To enable this option, the `localpart` mapping must be set to either `force` or `require`.
 

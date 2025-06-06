@@ -754,6 +754,12 @@ upstream_oauth2:
         localpart:
           #action: force
           #template: "{{ user.preferred_username }}"
+          
+          # How to handle when localpart already exists.
+          # Possible values are (default: fail):
+          # - `add` : Adds the oauth identity link to the existing user, regardless of whether there is an existing link or not.
+          # - `fail` : Fails the sso login.
+          #on_conflict: fail
 
         # The display name is the user's display name.
         displayname:
@@ -778,10 +784,6 @@ upstream_oauth2:
         # This helps end user identify what account they are using
         account_name:
           #template: "@{{ user.preferred_username }}"
-      # set to true to allow a user logging in via OIDC to match a pre-existing account instead of failing. 
-      # Account matching is based on the localpart template which needs to be set to require or force.
-      # This could be used if switching from password logins to OIDC. Defaults to false.
-      allow_existing_users: true
 ```
 
 ## `experimental`
