@@ -11,24 +11,7 @@ Please see LICENSE in the repository root for full details.
 {% from "components/idp_brand.html" import logo %}
 
 {% block content %}
-  {% if existing_user %}
-    <header class="page-heading">
-      <div class="icon">
-        {{ icon.download() }}
-      </div>
-
-      <div class="header">
-        <h1 class="title">
-          {# todo translate #} 
-          Link your existing account
-        </h1>
-        <p class="text">
-          {# todo translate #} 
-          We have detected you have an existing account, confirm you want to use this account
-        </p>
-      </div>
-    </header>
-  {% elif force_localpart %}
+  {% if force_localpart %}
     <header class="page-heading">
       <div class="icon">
         {{ icon.download() }}
@@ -205,15 +188,6 @@ Please see LICENSE in the repository root for full details.
       {% endcall %}
     {% endif %}
 
-    {% if existing_user %}
-      {{ button.button(text=_("mas.upstream_oauth2.register.link_existing")) }}
-    {% else %}
-      {{ button.button(text=_("action.create_account")) }}
-    {% endif %}
+    {{ button.button(text=_("action.create_account")) }}
   </form>
-
-  {# Leave this for now as we don't have that fully designed yet
-    {{ field.separator() }}
-    {{ button.link_outline(text=_("mas.upstream_oauth2.register.link_existing"), href=login_link) }}
-  #}
 {% endblock content %}

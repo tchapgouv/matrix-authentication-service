@@ -1332,7 +1332,7 @@ impl TemplateContext for RecoveryFinishContext {
     }
 }
 
-/// Context used by the `pages/upstream_oauth2/{link_mismatch,do_login}.html`
+/// Context used by the `pages/upstream_oauth2/{link_mismatch,login_link}.html`
 /// templates
 #[derive(Serialize)]
 pub struct UpstreamExistingLinkContext {
@@ -1421,7 +1421,6 @@ pub struct UpstreamRegister {
     imported_email: Option<String>,
     force_email: bool,
     form_state: FormState<UpstreamRegisterFormField>,
-    existing_user: Option<User>,
 }
 
 impl UpstreamRegister {
@@ -1442,7 +1441,6 @@ impl UpstreamRegister {
             imported_email: None,
             force_email: false,
             form_state: FormState::default(),
-            existing_user: None,
         }
     }
 
@@ -1504,15 +1502,6 @@ impl UpstreamRegister {
     pub fn with_form_state(self, form_state: FormState<UpstreamRegisterFormField>) -> Self {
         Self { form_state, ..self }
     }
-
-    /// Set the imported email
-    #[must_use]
-    pub fn with_existing_user(self, user: User) -> Self {
-        Self {
-            existing_user: Some(user),
-            ..self
-        }
-    }
 }
 
 impl TemplateContext for UpstreamRegister {
@@ -1550,7 +1539,6 @@ impl TemplateContext for UpstreamRegister {
                 discovery_mode: UpstreamOAuthProviderDiscoveryMode::Oidc,
                 pkce_mode: UpstreamOAuthProviderPkceMode::Auto,
                 response_mode: None,
-                allow_existing_users: false,
                 additional_authorization_parameters: Vec::new(),
                 forward_login_hint: false,
                 created_at: now,
