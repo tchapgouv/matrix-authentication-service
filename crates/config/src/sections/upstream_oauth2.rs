@@ -112,14 +112,14 @@ impl ConfigurationSection for UpstreamOAuth2Config {
             }
 
             if provider.claims_imports.localpart.on_conflict.is_some()
-                && provider.claims_imports.localpart.on_conflict.unwrap().add()
+                && !provider.claims_imports.localpart.on_conflict.unwrap().is_fail()
                 && !matches!(
                     provider.claims_imports.localpart.action,
                     ImportAction::Force | ImportAction::Require
                 )
             {
                 return annotate(figment::Error::custom(
-                    "When `on_conflict` is set to `add`, localpart claim import must be either `force` or `require`",
+                    "When `on_conflict` is used to resolved conflicts, `localpart` claim import must be either `force` or `require`",
                 ));
             }
 
@@ -212,8 +212,8 @@ pub enum OnConflict {
 }
 
 impl OnConflict {
-    const fn add(&self) -> bool {
-        matches!(self, OnConflict::Add)
+    const fn is_fail(&self) -> bool {
+        matches!(self, OnConflict::Fail)
     }
 }
 
