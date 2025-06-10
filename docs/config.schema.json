@@ -2345,7 +2345,7 @@
           "type": "string"
         },
         "on_conflict": {
-          "description": "How to handle existing users (only for localpart)",
+          "description": "How to handle conflicts on the claim, default value is `Fail`",
           "allOf": [
             {
               "$ref": "#/definitions/OnConflict"
@@ -2388,17 +2388,17 @@
       ]
     },
     "OnConflict": {
-      "description": "How to handle when localpart already exists",
+      "description": "How to handle an existing localpart claim",
       "oneOf": [
         {
-          "description": "Fails the sso login on localpart conflict",
+          "description": "Fails the sso login on conflict",
           "type": "string",
           "enum": [
             "fail"
           ]
         },
         {
-          "description": "Adds the oauth identity link to the existing user, regardless of whether there is an existing link or not",
+          "description": "Adds the oauth identity link, regardless of whether there is an existing link or not",
           "type": "string",
           "enum": [
             "add"
