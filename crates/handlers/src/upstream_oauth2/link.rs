@@ -516,7 +516,7 @@ pub(crate) async fn get(
                             let ctx = ErrorContext::new()
                                 .with_code("Localpart not available")
                                 .with_description(format!(
-                                    r"Localpart is not available on this homeserver"
+                                    r"Localpart {localpart:?} is not available on this homeserver"
                                 ))
                                 .with_language(&locale);
 
@@ -652,8 +652,9 @@ pub(crate) async fn post(
         (None, None, FormData::Link) => {
             // User already exists, but it is not linked, neither logged in
             // Proceed by associating the link to the user and log in the user
-            // Upstream_session is used to re-render the username as it is the only source of truth
-            
+            // Upstream_session is used to re-render the username as it is the only source
+            // of truth
+
             let id_token = upstream_session.id_token().map(Jwt::try_from).transpose()?;
 
             let provider = repo
@@ -661,10 +662,10 @@ pub(crate) async fn post(
                 .lookup(link.provider_id)
                 .await?
                 .ok_or(RouteError::ProviderNotFound(link.provider_id))?;
-            
+
             // Let's import the username from the localpart claim
             let env = environment();
-            
+
             let mut context = AttributeMappingContext::new();
             if let Some(id_token) = id_token {
                 let (_, payload) = id_token.into_parts();
@@ -677,8 +678,7 @@ pub(crate) async fn post(
                 context = context.with_userinfo_claims(userinfo.clone());
             }
             let context = context.build();
-            
-            
+
             //Claims import must be `require` or `force` at this stage
             let template = provider
                 .claims_imports
@@ -686,9 +686,9 @@ pub(crate) async fn post(
                 .template
                 .as_deref()
                 .unwrap_or(DEFAULT_LOCALPART_TEMPLATE);
-        
-            let username =  render_attribute_template(&env, template, &context, true)?;
-            
+
+            let username = render_attribute_template(&env, template, &context, true)?;
+
             let maybe_user = repo.user().find_by_username(&username.unwrap()).await?;
 
             if maybe_user.is_some() {
