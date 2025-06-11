@@ -68,7 +68,6 @@ const PROVIDER: Key = Key::from_static_str("provider");
 const DEFAULT_LOCALPART_TEMPLATE: &str = "{{ user.preferred_username }}";
 const DEFAULT_DISPLAYNAME_TEMPLATE: &str = "{{ user.name }}";
 const DEFAULT_EMAIL_TEMPLATE: &str = "{{ user.email }}";
-const DEFAULT_ON_CONFLICT: UpstreamOAuthProviderOnConflict = UpstreamOAuthProviderOnConflict::Fail;
 
 #[derive(Debug, Error)]
 pub(crate) enum RouteError {
@@ -481,34 +480,38 @@ pub(crate) async fn get(
                                 .claims_imports
                                 .localpart
                                 .on_conflict
-                                .unwrap_or(DEFAULT_ON_CONFLICT);
+                                .unwrap_or_default();
 
-                            if on_conflict.is_add() {
-                                // new oauth link is allowed
-                                let ctx = UpstreamExistingLinkContext::new(existing_user)
-                                    .with_csrf(csrf_token.form_value())
-                                    .with_language(locale);
+                            match on_conflict {
+                                UpstreamOAuthProviderOnConflict::Fail => {
+                                    // TODO: translate
+                                    let ctx = ErrorContext::new()
+                                        .with_code("User exists")
+                                        .with_description(format!(
+                                            r"Upstream account provider returned {localpart:?} as username,
+                                            which is not linked to that upstream account. Your homeserver does not allow
+                                            linking an upstream account to an existing account"
+                                        ))
+                                        .with_language(&locale);
 
-                                return Ok((
-                                    cookie_jar,
-                                    Html(templates.render_upstream_oauth2_login_link(&ctx)?)
-                                        .into_response(),
-                                ));
+                                    return Ok((
+                                        cookie_jar,
+                                        Html(templates.render_error(&ctx)?).into_response(),
+                                    ));
+                                }
+                                UpstreamOAuthProviderOnConflict::Add => {
+                                    // new oauth link is allowed
+                                    let ctx = UpstreamExistingLinkContext::new(existing_user)
+                                        .with_csrf(csrf_token.form_value())
+                                        .with_language(locale);
+
+                                    return Ok((
+                                        cookie_jar,
+                                        Html(templates.render_upstream_oauth2_login_link(&ctx)?)
+                                            .into_response(),
+                                    ));
+                                }
                             }
-
-                            // TODO: translate
-                            let ctx = ErrorContext::new()
-                                .with_code("User exists")
-                                .with_description(format!(
-                                    r"Upstream account provider returned {localpart:?} as username,
-                                    which is not linked to that upstream account"
-                                ))
-                                .with_language(&locale);
-
-                            return Ok((
-                                cookie_jar,
-                                Html(templates.render_error(&ctx)?).into_response(),
-                            ));
                         }
 
                         if !is_available {
@@ -651,7 +654,7 @@ pub(crate) async fn post(
 
         (None, None, FormData::Link) => {
             // User already exists, but it is not linked, neither logged in
-            // Proceed by associating the link to the user and log in the user
+            // Proceed by associating the link and log in the user
             // Upstream_session is used to re-render the username as it is the only source
             // of truth
 
@@ -663,7 +666,6 @@ pub(crate) async fn post(
                 .await?
                 .ok_or(RouteError::ProviderNotFound(link.provider_id))?;
 
-            // Let's import the username from the localpart claim
             let env = environment();
 
             let mut context = AttributeMappingContext::new();
@@ -679,7 +681,13 @@ pub(crate) async fn post(
             }
             let context = context.build();
 
-            //Claims import must be `require` or `force` at this stage
+            if !provider.claims_imports.localpart.is_forced()
+                || !provider.claims_imports.localpart.is_required()
+            {
+                //Claims import for `localpart` should be `require` or `force` at this stage
+                return Err(RouteError::InvalidFormAction);
+            }
+
             let template = provider
                 .claims_imports
                 .localpart
@@ -687,22 +695,38 @@ pub(crate) async fn post(
                 .as_deref()
                 .unwrap_or(DEFAULT_LOCALPART_TEMPLATE);
 
-            let username = render_attribute_template(&env, template, &context, true)?;
+            let localpart = render_attribute_template(&env, template, &context, true)?;
 
-            let maybe_user = repo.user().find_by_username(&username.unwrap()).await?;
+            let maybe_user = repo.user().find_by_username(&localpart.unwrap()).await?;
 
-            if maybe_user.is_some() {
-                let user = maybe_user.unwrap();
-
-                repo.upstream_oauth_link()
-                    .associate_to_user(&link, &user)
-                    .await?;
-
-                repo.browser_session()
-                    .add(&mut rng, &clock, &user, user_agent)
-                    .await?
-            } else {
+            if maybe_user.is_none() {
+                //user can not be None at this stage
                 return Err(RouteError::InvalidFormAction);
+            }
+
+            let user = maybe_user.unwrap();
+
+            let on_conflict = provider
+                .claims_imports
+                .localpart
+                .on_conflict
+                .unwrap_or_default();
+
+            match on_conflict {
+                UpstreamOAuthProviderOnConflict::Fail => {
+                    //OnConflict can not be equals to Fail at this stage
+                    return Err(RouteError::InvalidFormAction);
+                }
+                UpstreamOAuthProviderOnConflict::Add => {
+                    //add link to the user
+                    repo.upstream_oauth_link()
+                        .associate_to_user(&link, &user)
+                        .await?;
+
+                    repo.browser_session()
+                        .add(&mut rng, &clock, &user, user_agent)
+                        .await?
+                }
             }
         }
 
