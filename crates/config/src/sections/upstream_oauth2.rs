@@ -111,13 +111,7 @@ impl ConfigurationSection for UpstreamOAuth2Config {
                 }
             }
 
-            if provider.claims_imports.localpart.on_conflict.is_some()
-                && !provider
-                    .claims_imports
-                    .localpart
-                    .on_conflict
-                    .unwrap()
-                    .is_fail()
+            if !provider.claims_imports.localpart.on_conflict.is_default()
                 && !matches!(
                     provider.claims_imports.localpart.action,
                     ImportAction::Force | ImportAction::Require
@@ -217,8 +211,9 @@ pub enum OnConflict {
 }
 
 impl OnConflict {
-    const fn is_fail(self) -> bool {
-        matches!(&self, OnConflict::Fail)
+    #[allow(clippy::trivially_copy_pass_by_ref)]
+    const fn is_default(&self) -> bool {
+        matches!(self, OnConflict::Fail)
     }
 }
 
@@ -252,8 +247,8 @@ pub struct LocalpartImportPreference {
     pub template: Option<String>,
 
     /// How to handle conflicts on the claim, default value is `Fail`
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub on_conflict: Option<OnConflict>,
+    #[serde(default, skip_serializing_if = "OnConflict::is_default")]
+    pub on_conflict: OnConflict,
 }
 
 impl LocalpartImportPreference {

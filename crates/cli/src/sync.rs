@@ -38,15 +38,14 @@ fn map_import_action(
 }
 
 fn map_import_on_conflict(
-    maybe_config: Option<mas_config::UpstreamOAuth2OnConflict>,
-) -> Option<mas_data_model::UpstreamOAuthProviderOnConflict> {
-    match maybe_config {
-        None => None,
-        Some(mas_config::UpstreamOAuth2OnConflict::Add) => {
-            Some(mas_data_model::UpstreamOAuthProviderOnConflict::Add)
+    config: mas_config::UpstreamOAuth2OnConflict,
+) -> mas_data_model::UpstreamOAuthProviderOnConflict {
+    match config {
+        mas_config::UpstreamOAuth2OnConflict::Add => {
+            mas_data_model::UpstreamOAuthProviderOnConflict::Add
         }
-        Some(mas_config::UpstreamOAuth2OnConflict::Fail) => {
-            Some(mas_data_model::UpstreamOAuthProviderOnConflict::Fail)
+        mas_config::UpstreamOAuth2OnConflict::Fail => {
+            mas_data_model::UpstreamOAuthProviderOnConflict::Fail
         }
     }
 }
@@ -66,12 +65,12 @@ fn map_claims_imports(
         displayname: mas_data_model::UpstreamOAuthProviderImportPreference {
             action: map_import_action(config.displayname.action),
             template: config.displayname.template.clone(),
-            on_conflict: None,
+            on_conflict: mas_data_model::UpstreamOAuthProviderOnConflict::default(),
         },
         email: mas_data_model::UpstreamOAuthProviderImportPreference {
             action: map_import_action(config.email.action),
             template: config.email.template.clone(),
-            on_conflict: None,
+            on_conflict: mas_data_model::UpstreamOAuthProviderOnConflict::default(),
         },
         account_name: mas_data_model::UpstreamOAuthProviderSubjectPreference {
             template: config.account_name.template.clone(),

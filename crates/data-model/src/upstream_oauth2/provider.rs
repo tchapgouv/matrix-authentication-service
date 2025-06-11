@@ -298,7 +298,7 @@ pub struct ImportPreference {
     pub template: Option<String>,
 
     #[serde(default)]
-    pub on_conflict: Option<OnConflict>,
+    pub on_conflict: OnConflict,
 }
 
 impl std::ops::Deref for ImportPreference {

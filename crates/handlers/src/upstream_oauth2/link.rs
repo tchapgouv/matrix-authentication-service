@@ -476,11 +476,7 @@ pub(crate) async fn get(
                         if let Some(existing_user) = maybe_existing_user {
                             // The mapper returned a username which already exists, but isn't
                             // linked to this upstream user.
-                            let on_conflict = provider
-                                .claims_imports
-                                .localpart
-                                .on_conflict
-                                .unwrap_or_default();
+                            let on_conflict = provider.claims_imports.localpart.on_conflict;
 
                             match on_conflict {
                                 UpstreamOAuthProviderOnConflict::Fail => {
@@ -706,11 +702,7 @@ pub(crate) async fn post(
 
             let user = maybe_user.unwrap();
 
-            let on_conflict = provider
-                .claims_imports
-                .localpart
-                .on_conflict
-                .unwrap_or_default();
+            let on_conflict = provider.claims_imports.localpart.on_conflict;
 
             match on_conflict {
                 UpstreamOAuthProviderOnConflict::Fail => {
@@ -1043,12 +1035,12 @@ mod tests {
             localpart: UpstreamOAuthProviderImportPreference {
                 action: mas_data_model::UpstreamOAuthProviderImportAction::Force,
                 template: None,
-                on_conflict: None,
+                on_conflict: mas_data_model::UpstreamOAuthProviderOnConflict::default(),
             },
             email: UpstreamOAuthProviderImportPreference {
                 action: mas_data_model::UpstreamOAuthProviderImportAction::Force,
                 template: None,
-                on_conflict: None,
+                on_conflict: mas_data_model::UpstreamOAuthProviderOnConflict::default(),
             },
             ..UpstreamOAuthProviderClaimsImports::default()
         };
@@ -1202,12 +1194,12 @@ mod tests {
             localpart: UpstreamOAuthProviderImportPreference {
                 action: mas_data_model::UpstreamOAuthProviderImportAction::Require,
                 template: None,
-                on_conflict: Some(mas_data_model::UpstreamOAuthProviderOnConflict::Add),
+                on_conflict: mas_data_model::UpstreamOAuthProviderOnConflict::Add,
             },
             email: UpstreamOAuthProviderImportPreference {
                 action: mas_data_model::UpstreamOAuthProviderImportAction::Require,
                 template: None,
-                on_conflict: None,
+                on_conflict: mas_data_model::UpstreamOAuthProviderOnConflict::default(),
             },
             ..UpstreamOAuthProviderClaimsImports::default()
         };
@@ -1354,12 +1346,12 @@ mod tests {
             localpart: UpstreamOAuthProviderImportPreference {
                 action: mas_data_model::UpstreamOAuthProviderImportAction::Require,
                 template: None,
-                on_conflict: Some(mas_data_model::UpstreamOAuthProviderOnConflict::Fail),
+                on_conflict: mas_data_model::UpstreamOAuthProviderOnConflict::Fail,
             },
             email: UpstreamOAuthProviderImportPreference {
                 action: mas_data_model::UpstreamOAuthProviderImportAction::Require,
                 template: None,
-                on_conflict: None,
+                on_conflict: mas_data_model::UpstreamOAuthProviderOnConflict::default(),
             },
             ..UpstreamOAuthProviderClaimsImports::default()
         };
