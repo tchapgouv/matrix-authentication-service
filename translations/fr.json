@@ -258,11 +258,6 @@
       "suggest_link": {
         "action": "Associer",
         "heading": "Associer votre compte existant"
-      },
-      "login_link": {
-        "action": "Continuer",
-        "heading": "Associer votre compte existant",
-        "description": "Un compte existe pour ce nom d'utilisateur: %(username)s, il sera associé à ce fournisseur d'identité"
       }
     },
     "verify_email": {
