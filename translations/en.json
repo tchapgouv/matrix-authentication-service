@@ -696,15 +696,15 @@
       "login_link": {
         "action": "Continue",
         "@action": {
-          "context": "pages/upstream_oauth2/login_link.html:28:28-70"
+          "context": "pages/upstream_oauth2/login_link.html:27:28-70"
         },
         "description": "An account exists for this username (%(username)s), it will be linked to this upstream account.",
         "@description": {
-          "context": "pages/upstream_oauth2/login_link.html:22:7-85"
+          "context": "pages/upstream_oauth2/login_link.html:21:7-85"
         },
         "heading": "Link to your existing account",
         "@heading": {
-          "context": "pages/upstream_oauth2/login_link.html:18:27-70"
+          "context": "pages/upstream_oauth2/login_link.html:17:27-70"
         }
       },
       "register": {
