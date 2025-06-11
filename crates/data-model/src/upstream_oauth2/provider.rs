@@ -355,12 +355,12 @@ impl ImportAction {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 #[serde(rename_all = "lowercase")]
 pub enum OnConflict {
-    /// Fails the sso login on claim conflict
+    /// Fails the upstream OAuth 2.0 login
     #[default]
     Fail,
 
-    /// Adds the oauth identity link, regardless of whether there is an existing
-    /// link or not
+    /// Adds the upstream account link, regardless of whether there is an
+    /// existing link or not
     Add,
 }
 
