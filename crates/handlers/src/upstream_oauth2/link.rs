@@ -678,7 +678,7 @@ pub(crate) async fn post(
             let context = context.build();
 
             if !provider.claims_imports.localpart.is_forced()
-                || !provider.claims_imports.localpart.is_required()
+                && !provider.claims_imports.localpart.is_required()
             {
                 //Claims import for `localpart` should be `require` or `force` at this stage
                 return Err(RouteError::InvalidFormAction);
