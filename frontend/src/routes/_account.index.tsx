@@ -5,12 +5,7 @@
 // Please see LICENSE in the repository root for full details.
 
 import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
-import {
-  createFileRoute,
-  notFound,
-  redirect,
-  useNavigate,
-} from "@tanstack/react-router";
+import { notFound, redirect, useNavigate } from "@tanstack/react-router";
 import IconSignOut from "@vector-im/compound-design-tokens/assets/web/icons/sign-out";
 import { Button, Text } from "@vector-im/compound-web";
 import { useTranslation } from "react-i18next";
@@ -83,6 +78,9 @@ const actionSchema = v.variant("action", [
   v.object({
     action: v.literal("org.matrix.cross_signing_reset"),
   }),
+  v.object({
+    action: v.literal("org.matrix.plan_management"),
+  }),
   v.partial(
     v.looseObject({
       action: v.never(),
@@ -90,7 +88,7 @@ const actionSchema = v.variant("action", [
   ),
 ]);
 
-export const Route = createFileRoute("/_account/")({
+export const Route = createFileRoute({
   validateSearch: actionSchema,
 
   beforeLoad({ search }) {
@@ -126,6 +124,11 @@ export const Route = createFileRoute("/_account/")({
           to: "/reset-cross-signing",
           search: { deepLink: true },
         });
+      case "org.matrix.plan_management": {
+        // We don't both checking if the plan management iframe is actually available and
+        // instead rely on the plan tab handling it.
+        throw redirect({ to: "/plan" });
+      }
     }
   },
 
