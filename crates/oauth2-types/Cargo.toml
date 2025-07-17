@@ -17,6 +17,10 @@ publish.workspace = true
 [lints]
 workspace = true
 
+[features]
+# Feature to bypass HTTPS scheme validation in development mode
+dev-mode = []
+
 [dependencies]
 base64ct.workspace = true
 chrono.workspace = true
