@@ -50,6 +50,20 @@ fn map_import_on_conflict(
     }
 }
 
+fn map_import_email_lookup_fallback_rules(
+    rules: &[mas_config::UpstreamOAuthEmailLookupFallbackRule],
+) -> Vec<mas_data_model::UpstreamOAuthEmailLookupFallbackRule> {
+    rules
+        .iter()
+        .map(
+            |config| mas_data_model::UpstreamOAuthEmailLookupFallbackRule {
+                match_with: config.match_with.clone(),
+                search: config.search.clone(),
+            },
+        )
+        .collect()
+}
+
 fn map_claims_imports(
     config: &mas_config::UpstreamOAuth2ClaimsImports,
 ) -> mas_data_model::UpstreamOAuthProviderClaimsImports {
@@ -61,6 +75,9 @@ fn map_claims_imports(
             action: map_import_action(config.localpart.action),
             template: config.localpart.template.clone(),
             on_conflict: map_import_on_conflict(config.localpart.on_conflict),
+            email_lookup_fallback_rules: map_import_email_lookup_fallback_rules(
+                &config.localpart.email_lookup_fallback_rules,
+            ),
         },
         displayname: mas_data_model::UpstreamOAuthProviderImportPreference {
             action: map_import_action(config.displayname.action),

@@ -342,6 +342,9 @@ pub struct LocalpartPreference {
 
     #[serde(default)]
     pub on_conflict: OnConflict,
+
+    #[serde(default)]
+    pub email_lookup_fallback_rules: Vec<EmailLookupFallbackRule>,
 }
 
 impl std::ops::Deref for LocalpartPreference {
@@ -422,4 +425,11 @@ pub enum OnConflict {
     /// Adds the upstream account link, regardless of whether there is an
     /// existing link or not
     Add,
+}
+
+#[derive(Serialize, Deserialize, PartialEq, Eq, Clone, Debug)]
+#[serde(rename_all = "lowercase")]
+pub struct EmailLookupFallbackRule {
+    pub match_with: String,
+    pub search: String,
 }
