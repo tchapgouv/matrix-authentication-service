@@ -38,7 +38,6 @@ use minijinja::Environment;
 use opentelemetry::{Key, KeyValue, metrics::Counter};
 use serde::{Deserialize, Serialize};
 //:tchap:
-use serde_json::Value;
 use tchap::{self, EmailAllowedResult};
 //:tchap: end
 use thiserror::Error;
@@ -535,7 +534,7 @@ pub(crate) async fn get(
 
                             if let Ok(Some(email)) = maybe_email {
                                 maybe_existing_user =
-                                    search_user_by_email(&mut repo, &email).await?;
+                                    search_user_by_email(&mut repo, &email, &provider).await?;
                             }
                         }
                         //:tchap: end
@@ -778,7 +777,7 @@ pub(crate) async fn post(
 
                 let email = render_attribute_template(&env, template_email, &context, true)?;
                 if let Some(email) = email.clone() {
-                    maybe_user = search_user_by_email(&mut repo, &email).await?;
+                    maybe_user = search_user_by_email(&mut repo, &email, &provider).await?;
                 }
             }
             //:tchap:end
@@ -1113,6 +1112,7 @@ async fn check_email_allowed(_email: &str, _server_name: &str) -> EmailAllowedRe
 async fn search_user_by_email(
     repo: &mut BoxRepository,
     email: &str,
+    provider: &mas_data_model::UpstreamOAuthProvider,
 ) -> Result<Option<mas_data_model::User>, RouteError> {
     tracing::info!("Matching oidc identity by email:{}", email);
     let maybe_user_email = repo.user_email().find_by_email(email).await?;
@@ -1127,49 +1127,48 @@ async fn search_user_by_email(
         "Email not found, Matching oidc identity by email using fallback rules:{}",
         email
     );
-    let fallback_rules: Value =
-        serde_json::from_str(r#"[{"match":"@numerique.gouv.fr", "search":"@beta.gouv.fr"}]"#)
-            .unwrap();
+    let fallback_rules = &provider
+        .claims_imports
+        .localpart
+        .email_lookup_fallback_rules;
+    // let fallback_rules: Value =
+    //     serde_json::from_str(r#"[{"match":"@numerique.gouv.fr",
+    // "search":"@beta.gouv.fr"}]"#)         .unwrap();
 
     // Iterate on fallback_rules, if a rule 'match' matches the email,
     // replace by value of 'search' and lookup again the email
-    if let Some(fallback_array) = fallback_rules.as_array() {
-        for rule in fallback_array {
-            if let (Some(match_pattern), Some(search_value)) = (
-                rule.get("match").and_then(Value::as_str),
-                rule.get("search").and_then(Value::as_str),
-            ) {
+    for rule in fallback_rules {
+        let match_pattern = &rule.match_with;
+        let search_value = &rule.search;
+        tracing::info!(
+            "Checking fallback rules {} : {}",
+            match_pattern,
+            search_value
+        );
+
+        // Check if email contains the match pattern
+        if email.contains(match_pattern) {
+            // Replace match pattern with search value
+            let transformed_email = email.replace(match_pattern, search_value);
+            tracing::debug!(
+                "Search by transformed email fallback rules {}",
+                transformed_email
+            );
+
+            // Look up the transformed email
+            let maybe_transformed_user_email =
+                repo.user_email().find_by_email(&transformed_email).await?;
+
+            if let Some(transformed_user_email) = maybe_transformed_user_email {
+                let user_found: Option<mas_data_model::User> =
+                    repo.user().lookup(transformed_user_email.user_id).await?;
                 tracing::info!(
-                    "Checking fallback rules {} : {}",
+                    "User found with fallback rules {} : {}",
                     match_pattern,
                     search_value
                 );
 
-                // Check if email contains the match pattern
-                if email.contains(match_pattern) {
-                    // Replace match pattern with search value
-                    let transformed_email = email.replace(match_pattern, search_value);
-                    tracing::debug!(
-                        "Search by transformed email fallback rules {}",
-                        transformed_email
-                    );
-
-                    // Look up the transformed email
-                    let maybe_transformed_user_email =
-                        repo.user_email().find_by_email(&transformed_email).await?;
-
-                    if let Some(transformed_user_email) = maybe_transformed_user_email {
-                        let user_found: Option<mas_data_model::User> =
-                            repo.user().lookup(transformed_user_email.user_id).await?;
-                        tracing::info!(
-                            "User found with fallback rules {} : {}",
-                            match_pattern,
-                            search_value
-                        );
-
-                        return Ok(user_found);
-                    }
-                }
+                return Ok(user_found);
             }
         }
     }
@@ -1215,6 +1214,7 @@ mod tests {
                 action: mas_data_model::UpstreamOAuthProviderImportAction::Force,
                 template: None,
                 on_conflict: mas_data_model::UpstreamOAuthProviderOnConflict::default(),
+                email_lookup_fallback_rules: vec![],
             },
             email: UpstreamOAuthProviderImportPreference {
                 action: mas_data_model::UpstreamOAuthProviderImportAction::Force,
@@ -1404,6 +1404,7 @@ mod tests {
                 action: mas_data_model::UpstreamOAuthProviderImportAction::Require,
                 template: None,
                 on_conflict: mas_data_model::UpstreamOAuthProviderOnConflict::Add,
+                email_lookup_fallback_rules: vec![],
             },
             email: UpstreamOAuthProviderImportPreference {
                 action: mas_data_model::UpstreamOAuthProviderImportAction::Require,
@@ -1542,6 +1543,7 @@ mod tests {
                 action: mas_data_model::UpstreamOAuthProviderImportAction::Require,
                 template: None,
                 on_conflict: mas_data_model::UpstreamOAuthProviderOnConflict::default(),
+                email_lookup_fallback_rules: vec![],
             },
             email: UpstreamOAuthProviderImportPreference {
                 action: mas_data_model::UpstreamOAuthProviderImportAction::Require,
@@ -1661,6 +1663,7 @@ mod tests {
                 action: mas_data_model::UpstreamOAuthProviderImportAction::Require,
                 template: None,
                 on_conflict: mas_data_model::UpstreamOAuthProviderOnConflict::Add,
+                email_lookup_fallback_rules: vec![],
             },
             email: UpstreamOAuthProviderImportPreference {
                 action: mas_data_model::UpstreamOAuthProviderImportAction::Require,
@@ -1818,6 +1821,7 @@ mod tests {
                 action: mas_data_model::UpstreamOAuthProviderImportAction::Require,
                 template: Some(String::from("{{ user.preferred_username }}")),
                 on_conflict: mas_data_model::UpstreamOAuthProviderOnConflict::Add,
+                email_lookup_fallback_rules: vec![],
             },
             email: UpstreamOAuthProviderImportPreference {
                 action: mas_data_model::UpstreamOAuthProviderImportAction::Require,
@@ -1991,6 +1995,12 @@ mod tests {
                 action: mas_data_model::UpstreamOAuthProviderImportAction::Require,
                 template: None,
                 on_conflict: mas_data_model::UpstreamOAuthProviderOnConflict::Add,
+                email_lookup_fallback_rules: vec![
+                    mas_data_model::UpstreamOAuthEmailLookupFallbackRule {
+                        match_with: String::from("@numerique.gouv.fr"),
+                        search: String::from("@beta.gouv.fr"),
+                    },
+                ],
             },
             email: UpstreamOAuthProviderImportPreference {
                 action: mas_data_model::UpstreamOAuthProviderImportAction::Require,

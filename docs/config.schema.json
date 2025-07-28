@@ -2383,6 +2383,14 @@
               "$ref": "#/definitions/OnConflict"
             }
           ]
+        },
+        "email_lookup_fallback_rules": {
+          "description": "Fallback Rules to use when linking an upstream account",
+          "default": [],
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/EmailLookupFallbackRule"
+          }
         }
       }
     },
@@ -2437,6 +2445,24 @@
           ]
         }
       ]
+    },
+    "EmailLookupFallbackRule": {
+      "description": "What should be done for the email lookup fallback rule When linking the localpart, the email can be used to find the correct localpart. By using the fallback rule, we can search for a Matrix account with the `search` email pattern for an upstream account matching with the `match_with` pattern",
+      "type": "object",
+      "required": [
+        "match_with",
+        "search"
+      ],
+      "properties": {
+        "match_with": {
+          "description": "The upstream email pattern to match with when linking the localpart by email",
+          "type": "string"
+        },
+        "search": {
+          "description": "The email pattern to use for the search when linking the localpart by email",
+          "type": "string"
+        }
+      }
     },
     "DisplaynameImportPreference": {
       "description": "What should be done for the displayname attribute",

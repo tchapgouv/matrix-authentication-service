@@ -254,12 +254,31 @@ pub struct LocalpartImportPreference {
     /// How to handle conflicts on the claim, default value is `Fail`
     #[serde(default, skip_serializing_if = "OnConflict::is_default")]
     pub on_conflict: OnConflict,
+
+    /// Fallback Rules to use when linking an upstream account
+    #[serde(default)]
+    pub email_lookup_fallback_rules: Vec<EmailLookupFallbackRule>,
 }
 
 impl LocalpartImportPreference {
     const fn is_default(&self) -> bool {
         self.action.is_default() && self.template.is_none()
     }
+}
+
+/// What should be done for the email lookup fallback rule
+/// When linking the localpart, the email can be used to find the correct
+/// localpart. By using the fallback rule, we can search for a Matrix account
+/// with the `search` email pattern for an upstream account matching with the
+/// `match_with` pattern
+#[derive(Serialize, Deserialize, PartialEq, Eq, Clone, Debug, Default, JsonSchema)]
+pub struct EmailLookupFallbackRule {
+    /// The upstream email pattern to match with when linking the localpart by
+    /// email
+    pub match_with: String,
+    /// The email pattern to use for the search when linking the localpart by
+    /// email
+    pub search: String,
 }
 
 /// What should be done for the displayname attribute

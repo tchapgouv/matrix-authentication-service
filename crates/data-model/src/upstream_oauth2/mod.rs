@@ -13,6 +13,7 @@ pub use self::{
     provider::{
         ClaimsImports as UpstreamOAuthProviderClaimsImports,
         DiscoveryMode as UpstreamOAuthProviderDiscoveryMode,
+        EmailLookupFallbackRule as UpstreamOAuthEmailLookupFallbackRule,
         ImportAction as UpstreamOAuthProviderImportAction,
         ImportPreference as UpstreamOAuthProviderImportPreference,
         LocalpartPreference as UpstreamOAuthProviderLocalpartPreference,
