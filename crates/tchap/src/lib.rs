@@ -5,14 +5,11 @@
 
 //! Tchap-specific functionality for Matrix Authentication Service
 
-<<<<<<< HEAD
 extern crate tracing;
 use tracing::info;
 
 mod identity_client;
 
-=======
->>>>>>> 3802ae15 (add filters for legacy email and legacy localpart (#7))
 /// Capitalise parts of a name containing different words, including those
 /// separated by hyphens.
 ///
