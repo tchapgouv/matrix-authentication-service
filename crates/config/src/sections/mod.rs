@@ -52,6 +52,7 @@ pub use self::{
     upstream_oauth2::{
         ClaimsImports as UpstreamOAuth2ClaimsImports, DiscoveryMode as UpstreamOAuth2DiscoveryMode,
         EmailImportPreference as UpstreamOAuth2EmailImportPreference,
+        EmailLookupFallbackRule as UpstreamOAuthEmailLookupFallbackRule,
         ImportAction as UpstreamOAuth2ImportAction,
         OnBackchannelLogout as UpstreamOAuth2OnBackchannelLogout,
         OnConflict as UpstreamOAuth2OnConflict, PkceMethod as UpstreamOAuth2PkceMethod,
