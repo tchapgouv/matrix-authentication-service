@@ -1142,6 +1142,7 @@ fn validate_url(
     url: &Url,
     restrictions: ExtraUrlRestrictions,
 ) -> Result<(), ProviderMetadataVerificationError> {
+    #[cfg(not(feature = "dev-mode"))]
     if url.scheme() != "https" {
         return Err(ProviderMetadataVerificationError::UrlNonHttpsScheme(
             field,
