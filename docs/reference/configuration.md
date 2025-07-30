@@ -785,6 +785,13 @@ upstream_oauth2:
           # - `add` : Adds the upstream account link to the existing user, regardless of whether there is an existing link or not.
           # - `fail` : Fails the upstream OAuth 2.0 login.
           #on_conflict: fail
+          
+          # If no localpart has been found, the email fallback rules will take place.
+          # For any upstream email defined in `match_with` pattern, the search of the localpart will find 
+          # any account with an email that match the `search` pattern
+          # email_lookup_fallback_rules: 
+          #   - match_with : '@upstream.domain.tld'
+          #     search: '@matrix.domain.tld'
 
         # The display name is the user's display name.
         displayname:
