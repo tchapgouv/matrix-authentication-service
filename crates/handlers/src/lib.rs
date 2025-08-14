@@ -36,7 +36,7 @@ use hyper::{
     },
 };
 use mas_axum_utils::{InternalError, cookies::CookieJar};
-use mas_data_model::SiteConfig;
+use mas_data_model::{SiteConfig, TchapConfig};
 use mas_http::CorsLayerExt;
 use mas_keystore::{Encrypter, Keystore};
 use mas_matrix::HomeserverConnection;
@@ -350,6 +350,7 @@ where
     BoxClock: FromRequestParts<S>,
     BoxRng: FromRequestParts<S>,
     Policy: FromRequestParts<S>,
+    TchapConfig: FromRef<S>,
 {
     Router::new()
         // XXX: hard-coded redirect from /account to /account/

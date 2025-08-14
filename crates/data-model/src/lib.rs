@@ -13,6 +13,7 @@ pub(crate) mod compat;
 pub mod oauth2;
 pub(crate) mod policy_data;
 mod site_config;
+pub(crate) mod tchap_config;
 pub(crate) mod tokens;
 pub(crate) mod upstream_oauth2;
 pub(crate) mod user_agent;
@@ -38,6 +39,7 @@ pub use self::{
     },
     policy_data::PolicyData,
     site_config::{CaptchaConfig, CaptchaService, SessionExpirationConfig, SiteConfig},
+    tchap_config::*,
     tokens::{
         AccessToken, AccessTokenState, RefreshToken, RefreshTokenState, TokenFormatError, TokenType,
     },
