@@ -15,7 +15,7 @@ use mas_config::{
     UpstreamOAuth2Config,
 };
 use mas_context::LogContext;
-use mas_data_model::TchapConfig;
+use mas_data_model::{EmailLookupFallbackRule, TchapConfig};
 use mas_handlers::{ActivityTracker, CookieManager, Limiter, MetadataCache};
 use mas_listener::server::Server;
 use mas_router::UrlBuilder;
@@ -345,5 +345,13 @@ impl Options {
 fn tchap_config_from_tchap_app_config(tchap_app_config: &TchapAppConfig) -> TchapConfig {
     TchapConfig {
         identity_server_url: tchap_app_config.identity_server_url.clone(),
+        email_lookup_fallback_rules: tchap_app_config
+            .email_lookup_fallback_rules
+            .iter()
+            .map(|rule| EmailLookupFallbackRule {
+                match_with: rule.match_with.clone(),
+                search: rule.search.clone(),
+            })
+            .collect(),
     }
 }
