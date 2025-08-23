@@ -22,7 +22,9 @@ use mas_config::{
 };
 use mas_context::LogContext;
 use mas_data_model::{
+    //:tchap:
     EmailLookupFallbackRule,
+    //:tchap:end
     SystemClock,
     //:tchap:
     TchapConfig, // :tchap: end
