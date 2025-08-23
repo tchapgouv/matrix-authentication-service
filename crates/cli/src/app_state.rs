@@ -9,7 +9,14 @@ use std::{convert::Infallible, net::IpAddr, sync::Arc};
 use axum::extract::{FromRef, FromRequestParts};
 use ipnetwork::IpNetwork;
 use mas_context::LogContext;
-use mas_data_model::{BoxClock, BoxRng, SiteConfig, SystemClock, TchapConfig};
+use mas_data_model::{
+    BoxClock,
+    BoxRng,
+    SiteConfig,
+    SystemClock,
+    //:tchap:
+    TchapConfig, //:tchap:end
+};
 use mas_handlers::{
     ActivityTracker, BoundActivityTracker, CookieManager, ErrorWrapper, GraphQLSchema, Limiter,
     MetadataCache, RequesterFingerprint, passwords::PasswordManager,
@@ -47,7 +54,9 @@ pub struct AppState {
     pub activity_tracker: ActivityTracker,
     pub trusted_proxies: Vec<IpNetwork>,
     pub limiter: Limiter,
+    //:tchap:
     pub tchap_config: TchapConfig,
+    //:tchap: end
 }
 
 impl AppState {
@@ -215,11 +224,13 @@ impl FromRef<AppState> for Arc<dyn HomeserverConnection> {
     }
 }
 
+//:tchap:
 impl FromRef<AppState> for TchapConfig {
     fn from_ref(input: &AppState) -> Self {
         input.tchap_config.clone()
     }
 }
+//:tchap:end
 
 impl FromRequestParts<AppState> for BoxClock {
     type Rejection = Infallible;

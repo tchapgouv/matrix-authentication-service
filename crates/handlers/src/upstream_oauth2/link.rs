@@ -19,7 +19,14 @@ use mas_axum_utils::{
     csrf::{CsrfExt, ProtectedForm},
     record_error,
 };
-use mas_data_model::{BoxClock, BoxRng, TchapConfig, UpstreamOAuthProviderOnConflict};
+use mas_data_model::{
+    BoxClock,
+    BoxRng,
+    //:tchap:
+    TchapConfig,
+    //:tchap:end
+    UpstreamOAuthProviderOnConflict,
+};
 use mas_jose::jwt::Jwt;
 use mas_matrix::HomeserverConnection;
 use mas_policy::Policy;
@@ -231,7 +238,9 @@ pub(crate) async fn get(
     State(templates): State<Templates>,
     State(url_builder): State<UrlBuilder>,
     State(homeserver): State<Arc<dyn HomeserverConnection>>,
+    //:tchap:
     State(tchap_config): State<TchapConfig>,
+    //:tchap:end
     cookie_jar: CookieJar,
     activity_tracker: BoundActivityTracker,
     user_agent: Option<TypedHeader<headers::UserAgent>>,
