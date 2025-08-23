@@ -28,7 +28,15 @@ use mas_axum_utils::{
     cookies::{CookieJar, CookieManager},
 };
 use mas_config::RateLimitingConfig;
-use mas_data_model::{BoxClock, BoxRng, SiteConfig, TchapConfig, clock::MockClock};
+use mas_data_model::{
+    BoxClock,
+    BoxRng,
+    SiteConfig,
+    //:tchap:
+    TchapConfig,
+    //:tchap:end
+    clock::MockClock,
+};
 use mas_email::{MailTransport, Mailer};
 use mas_i18n::Translator;
 use mas_keystore::{Encrypter, JsonWebKey, JsonWebKeySet, Keystore, PrivateKey};
@@ -112,7 +120,9 @@ pub(crate) struct TestState {
     pub rng: Arc<Mutex<ChaChaRng>>,
     pub http_client: reqwest::Client,
     pub task_tracker: TaskTracker,
+    //:tchap:
     pub tchap_config: TchapConfig,
+    //:tchap:end
     queue_worker: Arc<tokio::sync::Mutex<QueueWorker>>,
 
     #[allow(dead_code)] // It is used, as it will cancel the CancellationToken when dropped
@@ -257,7 +267,9 @@ impl TestState {
 
         let queue_worker = Arc::new(tokio::sync::Mutex::new(queue_worker));
 
+        //:tchap:
         let tchap_config = tchap::test_tchap_config();
+        //:tchap:end
 
         Ok(Self {
             repository_factory: PgRepositoryFactory::new(pool),
@@ -280,7 +292,9 @@ impl TestState {
             task_tracker,
             queue_worker,
             cancellation_drop_guard: Arc::new(shutdown_token.drop_guard()),
+            //:tchap:
             tchap_config,
+            //:tchap:end
         })
     }
 
@@ -579,11 +593,13 @@ impl FromRef<TestState> for reqwest::Client {
     }
 }
 
+//:tchap:
 impl FromRef<TestState> for TchapConfig {
     fn from_ref(input: &TestState) -> Self {
         input.tchap_config.clone()
     }
 }
+//:tchap:end
 
 impl FromRequestParts<TestState> for ActivityTracker {
     type Rejection = Infallible;
