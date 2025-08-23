@@ -19,7 +19,14 @@ use mas_axum_utils::{
     csrf::{CsrfExt, ProtectedForm},
     record_error,
 };
-use mas_data_model::{BoxClock, BoxRng, TchapConfig, UpstreamOAuthProviderOnConflict};
+use mas_data_model::{
+    BoxClock,
+    BoxRng,
+    //:tchap:
+    TchapConfig,
+    //:tchap:end
+    UpstreamOAuthProviderOnConflict,
+};
 use mas_jose::jwt::Jwt;
 use mas_matrix::HomeserverConnection;
 use mas_policy::Policy;
@@ -231,7 +238,9 @@ pub(crate) async fn get(
     State(templates): State<Templates>,
     State(url_builder): State<UrlBuilder>,
     State(homeserver): State<Arc<dyn HomeserverConnection>>,
+    //:tchap:
     State(tchap_config): State<TchapConfig>,
+    //:tchap:end
     cookie_jar: CookieJar,
     activity_tracker: BoundActivityTracker,
     user_agent: Option<TypedHeader<headers::UserAgent>>,
@@ -515,10 +524,10 @@ pub(crate) async fn get(
                         // We could run policy & existing user checks when the user submits the
                         // form, but this lead to poor UX. This is why we do
                         // it ahead of time here.
+                        //:tchap:
                         let mut maybe_existing_user =
                             repo.user().find_by_username(&localpart).await?;
                         //if not found by username, check by email
-                        //:tchap:
                         if maybe_existing_user.is_none() {
                             let template = provider
                                 .claims_imports

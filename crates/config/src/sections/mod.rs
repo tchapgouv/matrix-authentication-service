@@ -21,7 +21,9 @@ mod passwords;
 mod policy;
 mod rate_limiting;
 mod secrets;
+//:tchap:
 mod tchap;
+//:tchap:end
 mod telemetry;
 mod templates;
 mod upstream_oauth2;
@@ -45,7 +47,9 @@ pub use self::{
     policy::PolicyConfig,
     rate_limiting::RateLimitingConfig,
     secrets::SecretsConfig,
+    //:tchap:
     tchap::TchapAppConfig,
+    //:tchap:end
     telemetry::{
         MetricsConfig, MetricsExporterKind, Propagator, TelemetryConfig, TracingConfig,
         TracingExporterKind,
