@@ -783,7 +783,6 @@ pub(crate) async fn post(
             //:tchap:
             let mut maybe_user = repo.user().find_by_username(&localpart).await?;
 
-
             //if not found by username, check by email
             if maybe_user.is_none() {
                 let template = provider
@@ -802,11 +801,9 @@ pub(crate) async fn post(
 
                 if let Ok(Some(email)) = maybe_email {
                     maybe_user =
-                        tchap::search_user_by_email(&mut repo, &email, &tchap_config)
-                            .await?;
+                        tchap::search_user_by_email(&mut repo, &email, &tchap_config).await?;
                 }
             }
-
 
             let Some(user) = maybe_user else {
                 // user cannot be None at this stage
@@ -1148,7 +1145,9 @@ mod tests {
     use mas_keystore::Keystore;
     use mas_router::Route;
     use mas_storage::{
-        upstream_oauth2::{UpstreamOAuthLinkFilter, UpstreamOAuthProviderParams}, user::UserEmailFilter, Pagination, Repository, RepositoryError
+        Pagination, Repository, RepositoryError,
+        upstream_oauth2::{UpstreamOAuthLinkFilter, UpstreamOAuthProviderParams},
+        user::UserEmailFilter,
     };
     use oauth2_types::scope::{OPENID, Scope};
     use rand_chacha::ChaChaRng;
@@ -1592,13 +1591,12 @@ mod tests {
     #[sqlx::test(migrator = "mas_storage_pg::MIGRATOR")]
     async fn test_link_existing_account_by_email(pool: PgPool) {
         let subject = "subject";
-        
+
         let existing_username = "john";
         let oidc_username = "any";
 
         let existing_email = "john@beta.gouv.fr";
         let oidc_email = "john@beta.gouv.fr";
-
 
         setup();
         let state = TestState::from_pool(pool).await.unwrap();
@@ -1677,8 +1675,20 @@ mod tests {
         .unwrap();
 
         //create existing user with email
-        let existing_user = repo.user().add(&mut rng, &state.clock, existing_username.to_string()).await.unwrap();
-        let _user_email = repo.user_email().add(&mut rng, &state.clock, &existing_user, existing_email.to_string()).await;
+        let existing_user = repo
+            .user()
+            .add(&mut rng, &state.clock, existing_username.to_string())
+            .await
+            .unwrap();
+        let _user_email = repo
+            .user_email()
+            .add(
+                &mut rng,
+                &state.clock,
+                &existing_user,
+                existing_email.to_string(),
+            )
+            .await;
 
         repo.save().await.unwrap();
 
@@ -1752,7 +1762,7 @@ mod tests {
     #[sqlx::test(migrator = "mas_storage_pg::MIGRATOR")]
     async fn test_link_existing_account_with_fallback_email(pool: PgPool) {
         let subject = "subject";
-        
+
         let existing_username = "john";
         let oidc_username = "any";
 
@@ -1836,8 +1846,20 @@ mod tests {
         .unwrap();
 
         //Create user with an email
-        let existing_user = repo.user().add(&mut rng, &state.clock, existing_username.to_string()).await.unwrap();
-        let _user_email = repo.user_email().add(&mut rng, &state.clock, &existing_user, existing_email.to_string()).await;
+        let existing_user = repo
+            .user()
+            .add(&mut rng, &state.clock, existing_username.to_string())
+            .await
+            .unwrap();
+        let _user_email = repo
+            .user_email()
+            .add(
+                &mut rng,
+                &state.clock,
+                &existing_user,
+                existing_email.to_string(),
+            )
+            .await;
 
         repo.save().await.unwrap();
 
@@ -1916,7 +1938,6 @@ mod tests {
 
         assert_ne!(email.email, oidc_email);
     }
-
 
     fn sign_token(
         rng: &mut ChaChaRng,
