@@ -1677,7 +1677,7 @@ mod tests {
         //create existing user with email
         let existing_user = repo
             .user()
-            .add(&mut rng, &state.clock, existing_username.to_string())
+            .add(&mut rng, &state.clock, existing_username.to_owned())
             .await
             .unwrap();
         let _user_email = repo
@@ -1686,7 +1686,7 @@ mod tests {
                 &mut rng,
                 &state.clock,
                 &existing_user,
-                existing_email.to_string(),
+                existing_email.to_owned(),
             )
             .await;
 
@@ -1732,7 +1732,7 @@ mod tests {
 
         let link = repo
             .upstream_oauth_link()
-            .find_by_subject(&provider, &subject)
+            .find_by_subject(&provider, subject)
             .await
             .unwrap()
             .expect("link exists");
@@ -1848,7 +1848,7 @@ mod tests {
         //Create user with an email
         let existing_user = repo
             .user()
-            .add(&mut rng, &state.clock, existing_username.to_string())
+            .add(&mut rng, &state.clock, existing_username.to_owned())
             .await
             .unwrap();
         let _user_email = repo
@@ -1904,7 +1904,7 @@ mod tests {
 
         let link = repo
             .upstream_oauth_link()
-            .find_by_subject(&provider, &subject)
+            .find_by_subject(&provider, subject)
             .await
             .unwrap()
             .expect("link exists");
