@@ -1857,7 +1857,7 @@ mod tests {
                 &mut rng,
                 &state.clock,
                 &existing_user,
-                existing_email.to_string(),
+                existing_email.to_owned(),
             )
             .await;
 
