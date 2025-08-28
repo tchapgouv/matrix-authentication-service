@@ -18,6 +18,9 @@
 @import url("./components/Footer/Footer.module.css");
 @import url("./components/PageHeading/PageHeading.module.css");
 
+@import url("../node_modules/@vector-im/compound-web/src/components/Form/Controls/Action/Action.module.css");
+
+
 .cpd-text-body-lg-regular {
   font: var(--cpd-font-body-lg-regular);
   letter-spacing: var(--cpd-font-letter-spacing-body-lg);
@@ -176,37 +179,3 @@
   }
 }
 
-
-/* password field */
-
-.password-field-container {
-  position: relative;
-  display: flex;
-  align-items: center;
-}
-
-.password-field-container input {
-  width: 100%;
-  padding-right: 40px; /* Make room for the toggle button */
-}
-
-.password-toggle {
-  position: absolute;
-  right: 8px;
-  height: 24px;
-  width: 24px;
-  cursor: pointer;
-  color: var(--cpd-color-text-secondary);
-  z-index: 1;
-}
-
-.password-toggle:hover {
-  color: var(--cpd-color-text-primary);
-}
-
-.password-toggle:focus {
-  outline: none;
-  box-shadow: 0 0 0 2px var(--cpd-color-border-focused);
-}
-
-/* end of password field */
