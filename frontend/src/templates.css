@@ -20,7 +20,6 @@
 
 @import url("../node_modules/@vector-im/compound-web/src/components/Form/Controls/Action/Action.module.css");
 
-
 .cpd-text-body-lg-regular {
   font: var(--cpd-font-body-lg-regular);
   letter-spacing: var(--cpd-font-letter-spacing-body-lg);
@@ -178,4 +177,3 @@
     }
   }
 }
-
