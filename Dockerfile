@@ -34,7 +34,7 @@ COPY ./templates/ /app/templates/
 RUN --network=none \
   npm run build
 
-# Move the built filesX 
+# Move the built files
 RUN --network=none \
   mkdir -p /share/assets && \
   cp ./dist/manifest.json /share/manifest.json && \
@@ -140,7 +140,6 @@ COPY --from=frontend /share /share
 COPY --from=policy /app/policies/policy.wasm /share/policy.wasm
 COPY ./templates/ /share/templates
 COPY ./translations/ /share/translations
-
 
 ##################################
 ## Runtime stage, debug variant ##
