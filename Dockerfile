@@ -141,11 +141,6 @@ COPY --from=policy /app/policies/policy.wasm /share/policy.wasm
 COPY ./templates/ /share/templates
 COPY ./translations/ /share/translations
 
-#:tchap:
-COPY ./tchap/resources/templates/ /share/templates/
-COPY ./tchap/resources/translations/ /share/translations/
-#:tchap:
-
 
 ##################################
 ## Runtime stage, debug variant ##
