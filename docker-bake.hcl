@@ -18,6 +18,9 @@ target "docker-metadata-action-debug" {}
 // This sets the platforms and is further extended by GitHub Actions to set the
 // output and the cache locations
 target "base" {
+
+  dockerfile = "Dockerfile_tchap"
+
   args = {
     // This is set so that when we use a git context, the .git directory is
     // present, as we may be infering the version at build time out of it
