@@ -142,8 +142,8 @@ COPY ./templates/ /share/templates
 COPY ./translations/ /share/translations
 
 #:tchap:
-COPY ./tchap/resources/templates/* /share/templates/
-COPY ./tchap/resources/translations/* /share/translations/
+COPY ./tchap/resources/templates/ /share/templates/
+COPY ./tchap/resources/translations/ /share/translations/
 #:tchap:
 
 
