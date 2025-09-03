@@ -27,6 +27,8 @@ For building the Docker image, the [`build` github action](../.github/workflows/
 
 - start your docker engine, on Macos Docker Desktop
 
+- [install rust](https://www.rust-lang.org/tools/install) : curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+
 - on MacOs install `brew install fswatch`
 
 - run `start-local-mas-hot-reload.sh`
