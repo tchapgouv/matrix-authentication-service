@@ -23,6 +23,16 @@ Tchap custom React components are located in a [subdirectory](../frontend/tchap)
 
 For building the Docker image, the [`build` github action](../.github/workflows/build.yaml) packages all MAS resources enhanced with Tchap customizations.
 
+## Web dev
+
+- start your docker engine, on Macos Docker Desktop
+
+- on MacOs install `brew install fswatch`
+
+- run `start-local-mas-hot-reload.sh`
+
+- edit templates in `./tchap/resources/templates`
+
 
 # Important knowledge
 
