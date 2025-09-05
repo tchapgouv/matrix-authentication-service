@@ -5,12 +5,11 @@
 
 set -e
 
-# Source the .env file to load environment variables
-if [ -f .env ]; then
-  source .env
-else
-  echo "Error: .env file not found. Please create a .env file with the required environment variables."
-  exit 1
+# Check if fswatch is installed
+if ! command -v fswatch &> /dev/null; then
+    echo "fswatch is not installed. Please install it first:"
+    echo "brew install fswatch"
+    exit 1
 fi
 
 # Get the directory where this script is located
@@ -18,9 +17,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Set MAS_HOME to the parent directory (project root)
 export MAS_HOME="$(dirname "$SCRIPT_DIR")"
-
+export MAS_TCHAP_HOME=$SCRIPT_DIR
 export TEMPLATE_WATCH="$MAS_HOME/tchap/resources/templates"
-
 echo "Template watching on : " + $TEMPLATE_WATCH
 
 # Function to send SIGHUP to the server process
@@ -47,18 +45,6 @@ watch_templates() {
     done
 }
 
-# Check if fswatch is installed
-if ! command -v fswatch &> /dev/null; then
-    echo "fswatch is not installed. Please install it first:"
-    echo "brew install fswatch"
-    exit 1
-fi
-
-export MAS_TCHAP_HOME=$SCRIPT_DIR
-
-# Build conf from conf.template.yaml
-# $MAS_TCHAP_HOME/tools/build_conf.sh
-
 # Start watching for changes in the background
 watch_templates &
 
@@ -74,5 +60,23 @@ cleanup() {
 
 # Set up trap for cleanup
 trap cleanup EXIT INT TERM
+
+cd "$MAS_HOME/frontend"
+#npm install 
+
+# uncomment if needed : 
+#echo "Building frontend and static resources with yarn build-tchap ..."
+npm run build-tchap 
+
+cd "$MAS_HOME"
+
+echo "Checking templates..."
+
+cargo run -- templates check -c $MAS_TCHAP_HOME/tmp/config.local.dev.yaml 
+
+echo "Install tchap @vector-im/compound-design-tokens ..."
+
+#Start the server
+cd "$MAS_TCHAP_HOME"
 
 ./start-local-mas.sh

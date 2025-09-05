@@ -132,6 +132,9 @@ policy:
     admin_clients:
       # for api admin calls
       - 01J44RKQYM4G3TNVANTMTDYTX6
+    client_registration:
+      allow_insecure_uris: true
+      allow_host_mismatch: true
 
 account:
   # Whether users are allowed to change their email addresses.
