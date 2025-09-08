@@ -53,7 +53,6 @@ pub async fn query_identity_server(
 
     info!("Making request to identity server: {}", url);
 
-    // Create a client with a timeout
     let http_client = mas_http::reqwest_client();
 
     // Make the HTTP request asynchronously
