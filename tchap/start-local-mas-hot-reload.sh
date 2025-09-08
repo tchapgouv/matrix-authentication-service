@@ -62,19 +62,18 @@ cleanup() {
 trap cleanup EXIT INT TERM
 
 cd "$MAS_HOME/frontend"
-#npm install 
 
 # uncomment if needed : 
+#echo "Install tchap @vector-im/compound-design-tokens ..."
+#npm install 
+
 #echo "Building frontend and static resources with yarn build-tchap ..."
 npm run build-tchap 
 
 cd "$MAS_HOME"
 
 echo "Checking templates..."
-
 cargo run -- templates check -c $MAS_TCHAP_HOME/tmp/config.local.dev.yaml 
-
-echo "Install tchap @vector-im/compound-design-tokens ..."
 
 #Start the server
 cd "$MAS_TCHAP_HOME"
