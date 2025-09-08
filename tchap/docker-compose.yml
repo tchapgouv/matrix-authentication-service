@@ -1,3 +1,6 @@
+# only use as a handler for the postgres service
+# use https://github.com/tchapgouv/element-docker-demo for the complete stack
+
 services:
   # mailcatcher:
   #   image: sj26/mailcatcher
