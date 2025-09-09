@@ -2,14 +2,21 @@
 
 set -e 
 
+# Get the directory where this script is located
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+# Set MAS_HOME to the parent directory (project root)
+export MAS_HOME="$(dirname "$SCRIPT_DIR")"
+export MAS_TCHAP_HOME=$SCRIPT_DIR
 
 echo "Building templates..."
 
 # New template directory
 MAS_TCHAP_DATA="$MAS_TCHAP_HOME/tmp"
+
 # Create data directory
 if [ ! -d "$MAS_TCHAP_DATA" ]; then
+  echo "Create MAS tchap temp folder..."
   mkdir -p "$MAS_TCHAP_DATA"
 fi
 
