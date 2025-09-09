@@ -396,12 +396,10 @@ mod tests {
         let server_name = "homeserver1";
         let allowed = true;
 
-        // Lancer un serveur mock
         let mock_server = MockServer::start().await;
 
         let expected_calls = 1;
 
-        // Créer une fausse réponse pour l'endpoint attendu
         let _mock_guard = Mock::given(method("GET"))
             .and(path("/_matrix/identity/api/v1/internal-info"))
             .and(query_param("medium", "email"))
@@ -422,10 +420,8 @@ mod tests {
             email_lookup_fallback_rules: vec![],
         };
 
-        // Appeler ta fonction
         let result = is_email_allowed(email, server_name, &config).await;
 
-        // Vérifier la réponse
         assert_eq!(result, EmailAllowedResult::Allowed);
     }
 
@@ -435,12 +431,10 @@ mod tests {
         let server_name = "homeserver1";
         let allowed = false;
 
-        // Lancer un serveur mock
         let mock_server = MockServer::start().await;
 
         let expected_calls = 1;
 
-        // Créer une fausse réponse pour l'endpoint attendu
         let _mock_guard = Mock::given(method("GET"))
             .and(path("/_matrix/identity/api/v1/internal-info"))
             .and(query_param("medium", "email"))
@@ -461,10 +455,8 @@ mod tests {
             email_lookup_fallback_rules: vec![],
         };
 
-        // Appeler ta fonction
         let result = is_email_allowed(email, server_name, &config).await;
 
-        // Vérifier la réponse
         assert_eq!(result, EmailAllowedResult::InvitationMissing);
     }
 
@@ -474,12 +466,10 @@ mod tests {
         let server_name = "homeserver1";
         let allowed = true;
 
-        // Lancer un serveur mock
         let mock_server = MockServer::start().await;
 
         let expected_calls = 1;
 
-        // Créer une fausse réponse pour l'endpoint attendu
         let _mock_guard = Mock::given(method("GET"))
             .and(path("/_matrix/identity/api/v1/internal-info"))
             .and(query_param("medium", "email"))
@@ -500,10 +490,8 @@ mod tests {
             email_lookup_fallback_rules: vec![],
         };
 
-        // Appeler ta fonction
         let result = is_email_allowed(email, server_name, &config).await;
 
-        // Vérifier la réponse
         assert_eq!(result, EmailAllowedResult::WrongServer);
     }
 
@@ -513,12 +501,10 @@ mod tests {
         let server_name = "homeserver1";
         let allowed = true;
 
-        // Lancer un serveur mock
         let mock_server = MockServer::start().await;
 
         let expected_calls = 1;
 
-        // Créer une fausse réponse pour l'endpoint attendu
         let _mock_guard = Mock::given(method("GET"))
             .and(path("/_matrix/identity/api/v1/internal-info"))
             .and(query_param("medium", "email"))
@@ -538,11 +524,9 @@ mod tests {
             identity_server_url: Url::parse(url.as_str()).unwrap(),
             email_lookup_fallback_rules: vec![],
         };
-
-        // Appeler ta fonction
+        
         let result = is_email_allowed(email, server_name, &config).await;
 
-        // Vérifier la réponse
         assert_eq!(result, EmailAllowedResult::Allowed);
     }
 }
