@@ -11,6 +11,14 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 export MAS_HOME="$(dirname "$SCRIPT_DIR")"
 export MAS_TCHAP_HOME=$SCRIPT_DIR
 
+# Source the .env file to load environment variables
+if [ -f $MAS_TCHAP_HOME/.env ]; then
+  source $MAS_TCHAP_HOME/.env
+else
+  echo "Error: .env file not found. Please create a $MAS_TCHAP_HOME/.env file with the required environment variables."
+  exit 1
+fi
+
 echo "Step 1/7: Loading environment variables..."
 # Source the .env file to load environment variables
 if [ -f $MAS_TCHAP_HOME/.env ]; then
