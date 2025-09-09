@@ -113,7 +113,7 @@ passwords:
   minimum_complexity: 3
 matrix:
   homeserver: tchapgouv.com
-  #TODOD copy this secret from element-docker-demo/data/mas/config.yaml
+  #TODO copy from element-docker-demo/data/mas/config.yaml
   secret: 'UG0y35uoYvWnVtEiRHSJ7dfNulfVX1eo'
   endpoint: https://matrix.tchapgouv.com/
 
