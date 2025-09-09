@@ -8,12 +8,12 @@
 set -e
 
 # Source the .env file to load environment variables
-if [ -f .env ]; then
-  source .env
-else
-  echo "Error: .env file not found. Please create a .env file with the required environment variables."
-  exit 1
-fi
+# if [ -f .env ]; then
+#   source .env
+# else
+#   echo "Error: .env file not found. Please create a .env file with the required environment variables."
+#   exit 1
+# fi
 
 # Get the directory where this script is located
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -41,6 +41,14 @@ else
     echo "PostgreSQL is already running."
 fi
 
+#if policy.wasm does not exists create it 
+if [ -f $MAS_HOME/policies/policy.wasm ]; then
+    echo "policy.wasm found" 
+else
+    cd $MAS_HOME/policies
+    echo "Create policy.wasm"
+    make DOCKER=1
+fi
 
 cd $MAS_HOME
 
@@ -50,4 +58,4 @@ $MAS_TCHAP_HOME/build_conf.sh
 
 echo "Start server..."
 cargo run -- server -c $MAS_TCHAP_HOME/tmp/config.local.dev.yaml 
-
+#cargo run -- server -c /Users/olivier/workspace/beta/Tchap/element-docker-demo/data/mas/config.yaml
