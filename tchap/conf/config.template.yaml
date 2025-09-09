@@ -34,7 +34,7 @@ http:
   public_base: https://auth.tchapgouv.com/
   issuer: https://auth.tchapgouv.com/
 database:
-  uri: postgresql://postgres:postgres@localhost/postgres
+  uri: postgresql://postgres:postgres@localhost:5439/postgres
   max_connections: 10
   min_connections: 0
   connect_timeout: 30
@@ -113,7 +113,8 @@ passwords:
   minimum_complexity: 3
 matrix:
   homeserver: tchapgouv.com
-  secret: '/DjWc4D3yyqgjYN8tum65g'
+  #TODOD copy this secret from element-docker-demo/data/mas/config.yaml
+  secret: 'UG0y35uoYvWnVtEiRHSJ7dfNulfVX1eo'
   endpoint: https://matrix.tchapgouv.com/
 
 clients:
