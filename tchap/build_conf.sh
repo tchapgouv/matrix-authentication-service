@@ -11,7 +11,6 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 export MAS_HOME="$(dirname "$SCRIPT_DIR")"
 export MAS_TCHAP_HOME=$SCRIPT_DIR
 
-
 echo "Step 1/7: Loading environment variables..."
 # Source the .env file to load environment variables
 if [ -f $MAS_TCHAP_HOME/.env ]; then
