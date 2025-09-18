@@ -140,7 +140,6 @@ footer {
 
 /* fix footer dark mode */ 
 .fr-footer {
-  /* background-color: var(--background-default-grey); */
   background: inherit;
   color: inherit;
 }
