@@ -13,8 +13,12 @@ Please see LICENSE in the repository root for full details.
 {% block content %}
   {% set client_name = client.client_name or client.client_id %}
   <header class="page-heading">
+    
     {% if client.logo_uri %}
-    <img class="consent-client-icon image" referrerpolicy="no-referrer" src="{{ client.logo_uri }}" />
+    <!-- <img class="consent-client-icon image" referrerpolicy="no-referrer" src="{{ client.logo_uri }}" /> -->
+    <div class="consent-client-icon generic">
+      {{ icon.web_browser() }}
+    </div>
     {% else %}
     <div class="consent-client-icon generic">
       {{ icon.web_browser() }}
