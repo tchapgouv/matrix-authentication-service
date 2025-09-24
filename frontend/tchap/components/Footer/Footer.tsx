@@ -31,11 +31,11 @@ const Footer: React.FC = () => (
     <div className="fr-container lasuite-container">
       <div className="fr-footer__body">
         <div className="fr-footer__brand">
-            <p className="fr-logo">
-              République
-              <br />
-              Française
-            </p>
+          <p className="fr-logo">
+            République
+            <br />
+            Française
+          </p>
         </div>
       </div>
     </div>
