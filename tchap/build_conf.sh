@@ -52,10 +52,30 @@ echo "Step 7/7: Updating matrix secret..."
 # Replace the placeholder secret value with the environment variable or warning message
 if [ -n "${HOMESERVER_SECRET+x}" ] && [ -n "$HOMESERVER_SECRET" ]; then
   # HOMESERVER_SECRET is defined and not empty
-  sed -i '' -E "s|secret: 'TO BE COPY'|secret: '$HOMESERVER_SECRET'|" "$yaml_file"
+  sed -i '' -E "s|secret: 'value_matrix_secret'|secret: '$HOMESERVER_SECRET'|" "$yaml_file"
 else
-  sed -i '' -E "s|secret: 'TO BE COPY'|secret: 'WARNING NO HOMESERVER SECRET DEFINED'|" "$yaml_file"
+  sed -i '' -E "s|secret: 'value_matrix_secret'|secret: 'WARNING NO HOMESERVER SECRET DEFINED'|" "$yaml_file"
   echo "WARNING: HOMESERVER_SECRET is not defined or empty. Using warning message instead."
+fi
+
+echo "Step 7/7: Updating client secret..."
+# Replace the placeholder client secret value with the environment variable or warning message
+if [ -n "${SYNAPSE_CLIENT_SECRET+x}" ] && [ -n "$SYNAPSE_CLIENT_SECRET" ]; then
+  # SYNAPSE_CLIENT_SECRET is defined and not empty
+  sed -i '' -E "s|client_secret: 'value_synapse_client_secret'|client_secret: '$SYNAPSE_CLIENT_SECRET'|" "$yaml_file"
+else
+  sed -i '' -E "s|client_secret: 'value_synapse_client_secret'|client_secret: 'WARNING NO SYNAPSE CLIENT SECRET DEFINED'|" "$yaml_file"
+  echo "WARNING: SYNAPSE_CLIENT_SECRET is not defined or empty. Using warning message instead."
+fi
+
+echo "Step 7/7: Updating api admin client secret..."
+# Replace the placeholder client secret value with the environment variable or warning message
+if [ -n "${ADMIN_API_CLIENT_SECRET+x}" ] && [ -n "$ADMIN_API_CLIENT_SECRET" ]; then
+  # ADMIN_API_CLIENT_SECRET is defined and not empty
+  sed -i '' -E "s|client_secret: 'value_api_admin_client_secret'|client_secret: '$ADMIN_API_CLIENT_SECRET'|" "$yaml_file"
+else
+  sed -i '' -E "s|client_secret: 'value_api_admin_client_secret'|client_secret: 'WARNING NO SYNAPSE CLIENT SECRET DEFINED'|" "$yaml_file"
+  echo "WARNING: ADMIN_API_CLIENT_SECRET is not defined or empty. Using warning message instead."
 fi
 
 echo "Configuration build completed successfully!"

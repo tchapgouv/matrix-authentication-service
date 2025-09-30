@@ -37,8 +37,10 @@ For building the Docker image, the [`build` github action](../.github/workflows/
 
 If Synapse integration is needed, install the environment from element-docker-demo and run it (see README.md)
 
-Copy synapse secret from `element-docker-demo/data/mas/config.yaml` to .env file : HOMESERVER_SECRET=
-
+Copy synapse secret from `element-docker-demo/data/mas/config.yaml` to .env file : 
+* HOMESERVER_SECRET
+* SYNAPSE_CLIENT_SECRET
+* ADMIN_API_CLIENT_SECRET
 
 # Important knowledge
 

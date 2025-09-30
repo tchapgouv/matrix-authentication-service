@@ -114,18 +114,18 @@ passwords:
 matrix:
   homeserver: tchapgouv.com
   #TODO copy from element-docker-demo/data/mas/config.yaml
-  secret: 'TO BE COPY'
+  secret: 'value_matrix_secret'
   endpoint: https://matrix.tchapgouv.com/
 
 clients:
   - client_id: 0000000000000000000SYNAPSE
     client_auth_method: client_secret_basic
-    client_secret: '/DjWc4D3yyqgjYN8tum65g'
+    client_secret: 'value_synapse_client_secret'
   
   # for api admin calls
   - client_id: 01J44RKQYM4G3TNVANTMTDYTX6
     client_auth_method: client_secret_basic
-    client_secret: phoo8ahneir3ohY2eigh4xuu6Oodaewi
+    client_secret: 'value_api_admin_client_secret'
 
 
 policy:
