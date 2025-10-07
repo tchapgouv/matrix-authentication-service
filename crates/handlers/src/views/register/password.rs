@@ -22,7 +22,7 @@ use mas_data_model::{BoxClock, BoxRng, CaptchaConfig};
 use mas_i18n::DataLocale;
 use mas_matrix::HomeserverConnection;
 use mas_policy::Policy;
-use mas_router::UrlBuilder;
+use mas_router::{PostAuthAction, UrlBuilder};
 use mas_storage::{
     BoxRepository, RepositoryAccess,
     queue::{QueueJobRepositoryExt as _, SendEmailAuthenticationCodeJob},
@@ -41,6 +41,9 @@ use crate::{
     captcha::Form as CaptchaForm, passwords::PasswordManager,
     views::shared::OptionalPostAuthAction,
 };
+
+use tchap::email_to_mxid_localpart;
+
 
 #[derive(Debug, Deserialize, Serialize)]
 pub(crate) struct RegisterForm {
@@ -148,7 +151,8 @@ pub(crate) async fn post(
         return Ok(StatusCode::METHOD_NOT_ALLOWED.into_response());
     }
 
-    let form = cookie_jar.verify_form(&clock, form)?;
+    //:tchap
+    let mut form = cookie_jar.verify_form(&clock, form)?;
 
     let (csrf_token, cookie_jar) = cookie_jar.csrf_token(&clock, &mut rng);
 
@@ -165,6 +169,31 @@ pub(crate) async fn post(
         .await
         .is_ok();
 
+
+    //test login_hint
+    println!("Starting password post process");
+    let maybe_login_hint = if let Some(PostAuthAction::ContinueAuthorizationGrant { id }) = &query.post_auth_action {
+        repo.oauth2_authorization_grant()
+            .lookup(*id)
+            .await?
+            .and_then(|grant| grant.login_hint)
+    } else {
+        None
+    };
+
+    println!("login hint {:?}", maybe_login_hint);
+
+    //create a clone of the form with substitute for the username and email
+    form = RegisterForm {
+        username: maybe_login_hint.clone().map_or(form.username, |hint| email_to_mxid_localpart(&hint)),
+        email: maybe_login_hint.clone().map_or(form.email, |hint| hint),
+        password: form.password,
+        password_confirm: form.password_confirm,
+        accept_terms: form.accept_terms,
+        captcha: form.captcha, // You may need to adjust this based on your captcha implementation
+    };
+
+    
     // Validate the form
     let state = {
         let mut state = form.to_form_state();
