@@ -153,6 +153,7 @@ pub(crate) async fn post(
 
     //:tchap
     let mut form = cookie_jar.verify_form(&clock, form)?;
+    //:tchap
 
     let (csrf_token, cookie_jar) = cookie_jar.csrf_token(&clock, &mut rng);
 
@@ -169,7 +170,7 @@ pub(crate) async fn post(
         .await
         .is_ok();
 
-
+    //:tchap
     //test login_hint
     println!("Starting password post process");
     let maybe_login_hint = if let Some(PostAuthAction::ContinueAuthorizationGrant { id }) = &query.post_auth_action {
@@ -192,6 +193,7 @@ pub(crate) async fn post(
         accept_terms: form.accept_terms,
         captcha: form.captcha, // You may need to adjust this based on your captcha implementation
     };
+    //:tchap
 
     
     // Validate the form

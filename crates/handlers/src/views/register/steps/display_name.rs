@@ -22,6 +22,7 @@ use mas_templates::{
     TemplateContext as _, Templates, ToFormState,
 };
 use serde::{Deserialize, Serialize};
+use tchap::email_to_display_name;
 use ulid::Ulid;
 
 use crate::{PreferredLanguage, views::shared::OptionalPostAuthAction};
@@ -138,7 +139,31 @@ pub(crate) async fn post(
             .into_response());
     }
 
-    let form = cookie_jar.verify_form(&clock, form)?;
+    //:tchap:
+    let post_auth_action: Option<PostAuthAction> = registration
+            .post_auth_action
+            .clone()
+            .map(serde_json::from_value)
+            .transpose()?;
+
+    let mut form: DisplayNameForm = cookie_jar.verify_form(&clock, form)?;
+
+    let maybe_login_hint = 
+        if let Some(PostAuthAction::ContinueAuthorizationGrant { id }) = post_auth_action {
+        repo.oauth2_authorization_grant()
+            .lookup(id)
+            .await?
+            .and_then(|grant| grant.login_hint)
+    } else {
+        None
+    };
+
+    //create a clone of the form with substitute for the displayname
+    form = DisplayNameForm {
+       action : form.action,
+       display_name: maybe_login_hint.clone().map_or(form.display_name, |hint| email_to_display_name(&hint)),
+    };
+    //:tchap:
 
     let (csrf_token, cookie_jar) = cookie_jar.csrf_token(&clock, &mut rng);
 
