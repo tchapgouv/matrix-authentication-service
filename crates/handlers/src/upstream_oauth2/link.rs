@@ -46,6 +46,7 @@ use opentelemetry::{Key, KeyValue, metrics::Counter};
 use serde::{Deserialize, Serialize};
 //:tchap:
 use tchap::{self, EmailAllowedResult};
+//:tchap:
 use thiserror::Error;
 use ulid::Ulid;
 
@@ -815,6 +816,7 @@ pub(crate) async fn post(
                 };
                 maybe_user = repo.user().find_by_username(&localpart).await?;
             }
+            //:tchap: end
 
             let Some(user) = maybe_user else {
                 // user cannot be None at this stage

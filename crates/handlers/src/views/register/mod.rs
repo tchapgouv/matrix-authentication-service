@@ -9,7 +9,7 @@ use axum::{
 };
 use mas_axum_utils::{InternalError, SessionInfoExt, cookies::CookieJar, csrf::CsrfExt as _};
 use mas_data_model::{BoxClock, BoxRng, SiteConfig};
-use mas_router::{PasswordRegister, PostAuthAction, UpstreamOAuth2Authorize, UrlBuilder};
+use mas_router::{PasswordRegister, UpstreamOAuth2Authorize, UrlBuilder};
 use mas_storage::BoxRepository;
 use mas_templates::{RegisterContext, TemplateContext, Templates};
 
@@ -74,27 +74,6 @@ pub(crate) async fn get(
 
         return Ok((cookie_jar, url_builder.redirect(&destination)).into_response());
     }
-
-    //:tchap:
-    //test login_hint
-    println!("Starting registration process");
-    if let Some(PostAuthAction::ContinueAuthorizationGrant { id }) = &query.post_auth_action {
-        println!("Found ContinueAuthorizationGrant action with id: {}", id);
-        if let Some(login_hint) = repo
-            .oauth2_authorization_grant()
-            .lookup(*id)
-            .await?
-            .and_then(|grant| grant.login_hint)
-        {
-            println!("Login hint in register: {}", login_hint);
-        } else {
-            println!("No login hint found for authorization grant");
-        }
-    } else {
-        println!("No ContinueAuthorizationGrant action found in query");
-    }
-    println!("Preparing to render registration template");
-    //:tchap:
 
     let mut ctx = RegisterContext::new(providers);
     let post_action = query
