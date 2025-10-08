@@ -107,6 +107,23 @@ pub(crate) async fn get(
         ctx = ctx.with_form_state(form_state);
     }
 
+    //:tchap:
+    let maybe_login_hint = if let Some(PostAuthAction::ContinueAuthorizationGrant { id }) = &query.action.post_auth_action {
+        repo.oauth2_authorization_grant()
+            .lookup(*id)
+            .await?
+            .and_then(|grant| grant.login_hint)
+    } else {
+        None
+    };
+    let generated_username = email_to_mxid_localpart(&maybe_login_hint.as_ref().unwrap());
+
+    let mut form_state = FormState::default();
+    form_state.set_value(RegisterFormField::Username, Some(generated_username));
+    form_state.set_value(RegisterFormField::Email, maybe_login_hint);
+    ctx = ctx.with_form_state(form_state);
+    //:tchap:
+
     let content = render(
         locale,
         ctx,

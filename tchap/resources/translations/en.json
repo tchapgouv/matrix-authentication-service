@@ -79,7 +79,7 @@
     },
     "email_address": "Email address",
     "@email_address": {
-      "context": "pages/recovery/start.html:34:33-58, pages/register/password.html:41:33-58, pages/upstream_oauth2/do_register.html:120:37-62, register/password.html:41:33-58"
+      "context": "pages/recovery/start.html:34:33-58, pages/register/password.html:43:33-58, pages/upstream_oauth2/do_register.html:120:37-62, register/password.html:41:33-58"
     },
     "hide": "",
     "@hide": {},
@@ -103,7 +103,7 @@
     "@show": {},
     "username": "Username",
     "@username": {
-      "context": "pages/login.html:93:37-57, pages/register/index.html:32:35-55, pages/register/password.html:37:43-63, pages/upstream_oauth2/do_register.html:104:35-55, pages/upstream_oauth2/do_register.html:109:39-59, register/index.html:30:35-55, register/password.html:37:33-53"
+      "context": "pages/login.html:93:37-57, pages/register/index.html:32:35-55, pages/register/password.html:38:45-65, pages/upstream_oauth2/do_register.html:104:35-55, pages/upstream_oauth2/do_register.html:109:39-59, register/index.html:30:35-55, register/password.html:37:33-53"
     }
   },
   "create_account": "",
@@ -185,7 +185,7 @@
       }
     },
     "choose_display_name": {
-      "description": "This is the name other people will see. You can change this at any time.",
+      "description": "This is the name other people will see.",
       "@description": {
         "context": "pages/register/display_name.html:17:25-65, pages/register/steps/display_name.html:17:25-65",
         "description": "During the registration flow, the user is asked to choose a display name. This is the description of that form."

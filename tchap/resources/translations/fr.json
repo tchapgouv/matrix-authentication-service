@@ -69,7 +69,7 @@
       "new": "Nouveau mot de passe"
     },
     "choose_display_name": {
-      "description": "C'est le nom que les autres personnes verront. Vous pouvez le modifier à tout moment.",
+      "description": "C'est le nom que les autres personnes verront.",
       "headline": "Choisissez votre pseudonyme"
     },
     "consent": {

@@ -18,8 +18,7 @@ use mas_data_model::{BoxClock, BoxRng};
 use mas_router::{PostAuthAction, UrlBuilder};
 use mas_storage::BoxRepository;
 use mas_templates::{
-    FieldError, RegisterStepsDisplayNameContext, RegisterStepsDisplayNameFormField,
-    TemplateContext as _, Templates, ToFormState,
+    FieldError, FormState, RegisterStepsDisplayNameContext, RegisterStepsDisplayNameFormField, TemplateContext as _, Templates, ToFormState
 };
 use serde::{Deserialize, Serialize};
 use tchap::email_to_display_name;
@@ -89,10 +88,41 @@ pub(crate) async fn get(
             .into_response());
     }
 
-    let ctx = RegisterStepsDisplayNameContext::new()
+     //:tchap:
+    let post_auth_action: Option<PostAuthAction> = registration
+            .post_auth_action
+            .clone()
+            .map(serde_json::from_value)
+            .transpose()?;
+
+    let maybe_login_hint = 
+        if let Some(PostAuthAction::ContinueAuthorizationGrant { id }) = post_auth_action {
+        repo.oauth2_authorization_grant()
+            .lookup(id)
+            .await?
+            .and_then(|grant| grant.login_hint)
+    } else {
+        None
+    };
+
+    let display_name = email_to_display_name(&maybe_login_hint.unwrap());
+
+    let mut form_ctx = RegisterStepsDisplayNameContext::default();
+    let mut form_state = FormState::default();
+    form_state.set_value(RegisterStepsDisplayNameFormField::DisplayName, Some(display_name));
+    form_ctx = form_ctx.with_form_state(form_state);
+
+    let ctx = form_ctx
         .with_csrf(csrf_token.form_value())
         .with_language(locale);
 
+    /*
+    let ctx = RegisterStepsDisplayNameContext::new()
+        .with_csrf(csrf_token.form_value())
+        .with_language(locale);
+    */
+    //:tchap:
+    
     let content = templates.render_register_steps_display_name(&ctx)?;
 
     Ok((cookie_jar, Html(content)).into_response())
