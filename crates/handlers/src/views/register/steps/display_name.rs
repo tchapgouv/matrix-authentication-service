@@ -24,7 +24,7 @@ use mas_templates::{
 use serde::{Deserialize, Serialize};
 //:tchap:
 use tchap::email_to_display_name;
-//:tchap:
+//:tchap:end
 use ulid::Ulid;
 
 use crate::{PreferredLanguage, views::shared::OptionalPostAuthAction};
@@ -107,6 +107,8 @@ pub(crate) async fn get(
             .await?
             .and_then(|grant| grant.login_hint)
     {
+        tracing::trace!("ContinueAuthorizationGrant:{:?} login_hint:{:?}", id, login_hint);
+
         let display_name = email_to_display_name(&login_hint);
 
         let mut form_state = FormState::default();
@@ -117,7 +119,7 @@ pub(crate) async fn get(
 
         ctx = ctx.with_form_state(form_state);
     } else {
-        println!("Missing login_hint in post_auth_action");
+        tracing::warn!("Missing login_hint in post_auth_action");
     }
 
     let ctx = ctx.with_csrf(csrf_token.form_value()).with_language(locale);
@@ -192,12 +194,14 @@ pub(crate) async fn post(
             .await?
             .and_then(|grant| grant.login_hint)
     {
+        tracing::trace!("ContinueAuthorizationGrant:{:?} login_hint:{:?}", id, login_hint);
+
         form = DisplayNameForm {
             action: form.action,
             display_name: email_to_display_name(&login_hint),
         };
     } else {
-        println!("Missing login_hint in post_auth_action");
+        tracing::warn!("Missing login_hint in post_auth_action");
     }
     //:tchap: end
 

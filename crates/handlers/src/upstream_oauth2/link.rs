@@ -46,7 +46,6 @@ use opentelemetry::{Key, KeyValue, metrics::Counter};
 use serde::{Deserialize, Serialize};
 //:tchap:
 use tchap::{self, EmailAllowedResult};
-//:tchap:
 use thiserror::Error;
 use ulid::Ulid;
 

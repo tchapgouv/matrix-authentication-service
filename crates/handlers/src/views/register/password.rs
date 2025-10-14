@@ -116,13 +116,14 @@ pub(crate) async fn get(
             .await?
             .and_then(|grant| grant.login_hint)
     {
+        tracing::trace!("ContinueAuthorizationGrant:{:?} login_hint:{:?}", id, login_hint);
         let username = email_to_mxid_localpart(&login_hint);
         let mut form_state = FormState::default();
         form_state.set_value(RegisterFormField::Username, Some(username));
         form_state.set_value(RegisterFormField::Email, Some(login_hint));
         ctx = ctx.with_form_state(form_state);
     } else {
-        println!("Missing login_hint in post_auth_action");
+        tracing::warn!("Missing login_hint in query.action.post_auth_action");
     }
     //:tchap: end
 
@@ -199,7 +200,7 @@ pub(crate) async fn post(
             .await?
             .and_then(|grant| grant.login_hint)
     {
-        println!("login hint {:?}", login_hint);
+        tracing::trace!("ContinueAuthorizationGrant:{:?} login_hint:{:?}", id, login_hint);
 
         form = RegisterForm {
             username: email_to_mxid_localpart(&login_hint),
@@ -207,7 +208,7 @@ pub(crate) async fn post(
             ..form
         };
     } else {
-        println!("Missing login_hint in post_auth_action");
+        tracing::warn!("Missing login_hint in query.post_auth_action");
     }
     //:tchap: end
 
