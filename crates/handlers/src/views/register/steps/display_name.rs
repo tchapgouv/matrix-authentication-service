@@ -107,7 +107,11 @@ pub(crate) async fn get(
             .await?
             .and_then(|grant| grant.login_hint)
     {
-        tracing::trace!("ContinueAuthorizationGrant:{:?} login_hint:{:?}", id, login_hint);
+        tracing::trace!(
+            "ContinueAuthorizationGrant:{:?} login_hint:{:?}",
+            id,
+            login_hint
+        );
 
         let display_name = email_to_display_name(&login_hint);
 
@@ -194,7 +198,11 @@ pub(crate) async fn post(
             .await?
             .and_then(|grant| grant.login_hint)
     {
-        tracing::trace!("ContinueAuthorizationGrant:{:?} login_hint:{:?}", id, login_hint);
+        tracing::trace!(
+            "ContinueAuthorizationGrant:{:?} login_hint:{:?}",
+            id,
+            login_hint
+        );
 
         form = DisplayNameForm {
             action: form.action,

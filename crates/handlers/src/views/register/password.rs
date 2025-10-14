@@ -116,7 +116,11 @@ pub(crate) async fn get(
             .await?
             .and_then(|grant| grant.login_hint)
     {
-        tracing::trace!("ContinueAuthorizationGrant:{:?} login_hint:{:?}", id, login_hint);
+        tracing::trace!(
+            "ContinueAuthorizationGrant:{:?} login_hint:{:?}",
+            id,
+            login_hint
+        );
         let username = email_to_mxid_localpart(&login_hint);
         let mut form_state = FormState::default();
         form_state.set_value(RegisterFormField::Username, Some(username));
@@ -200,7 +204,11 @@ pub(crate) async fn post(
             .await?
             .and_then(|grant| grant.login_hint)
     {
-        tracing::trace!("ContinueAuthorizationGrant:{:?} login_hint:{:?}", id, login_hint);
+        tracing::trace!(
+            "ContinueAuthorizationGrant:{:?} login_hint:{:?}",
+            id,
+            login_hint
+        );
 
         form = RegisterForm {
             username: email_to_mxid_localpart(&login_hint),
