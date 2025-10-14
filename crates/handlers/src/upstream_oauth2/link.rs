@@ -815,7 +815,6 @@ pub(crate) async fn post(
                 };
                 maybe_user = repo.user().find_by_username(&localpart).await?;
             }
-            //:tchap: end
 
             let Some(user) = maybe_user else {
                 // user cannot be None at this stage
