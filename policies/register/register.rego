@@ -88,6 +88,13 @@ violation contains {"field": "email", "msg": "email required for password-based 
 	not input.email
 }
 
+#:tchap:
+violation contains {"field": "password", "code": "password-too-short", "msg": "minimum 12 caractères"} if {
+	input.registration_method == "password"
+	count(input.password) < 12
+}	
+#:tchap:end
+
 # Check if the email is valid using the email policy
 # and add the email field to the violation object
 violation contains object.union({"field": "email"}, v) if {

@@ -20,6 +20,9 @@ use serde::{Deserialize, Serialize};
 #[derive(Deserialize, Debug, Clone, Copy, JsonSchema)]
 #[serde(rename_all = "kebab-case")]
 pub enum Code {
+    /// The password is too short.
+    PasswordTooShort,
+
     /// The username is too short.
     UsernameTooShort,
 
@@ -56,6 +59,7 @@ impl Code {
     #[must_use]
     pub fn as_str(&self) -> &'static str {
         match self {
+            Self::PasswordTooShort => "password-too-short",
             Self::UsernameTooShort => "username-too-short",
             Self::UsernameTooLong => "username-too-long",
             Self::UsernameInvalidChars => "username-invalid-chars",
@@ -141,6 +145,9 @@ pub struct RegisterInput<'a> {
     pub email: Option<&'a str>,
 
     pub requester: Requester,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub password: Option<&'a str>
 }
 
 /// Input for the client registration policy.

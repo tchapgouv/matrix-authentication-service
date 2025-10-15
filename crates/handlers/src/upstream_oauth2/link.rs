@@ -624,6 +624,7 @@ pub(crate) async fn get(
                                 registration_method: mas_policy::RegistrationMethod::UpstreamOAuth2,
                                 username: &localpart,
                                 email: None,
+                                password: None,
                                 requester: mas_policy::Requester {
                                     ip_address: activity_tracker.ip(),
                                     user_agent: user_agent.clone(),
@@ -1010,6 +1011,7 @@ pub(crate) async fn post(
                         registration_method: mas_policy::RegistrationMethod::UpstreamOAuth2,
                         username: &username,
                         email: email.as_deref(),
+                        password: None,
                         requester: mas_policy::Requester {
                             ip_address: activity_tracker.ip(),
                             user_agent: user_agent.clone(),

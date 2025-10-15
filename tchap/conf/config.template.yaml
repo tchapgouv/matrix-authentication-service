@@ -305,3 +305,22 @@ rate_limiting:
   registration:
     burst: 500
     per_second: 0.0008
+
+
+
+passwords:
+  # Whether to enable the password database.
+  # If disabled, users will only be able to log in using upstream OIDC providers
+  enabled: true
+
+  # Minimum complexity required for passwords, estimated by the zxcvbn algorithm
+  # Must be between 0 and 4, default is 3
+  # See https://github.com/dropbox/zxcvbn#usage for more information
+  minimum_complexity: 3
+
+  # List of password hashing schemes being used
+  # /!\ Only change this if you know what you're doing
+  # TODO: document this section better
+  schemes:
+    - version: 1
+      algorithm: argon2id

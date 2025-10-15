@@ -12,6 +12,8 @@ mock_registration := {
 	"registration_method": "password",
 	"username": "hello",
 	"email": "hello@staging.element.io",
+	#:tchap:
+	"password":"minimum12characters"
 }
 
 test_allow_all_domains if {
@@ -42,6 +44,15 @@ test_banned_subdomain if {
 test_email_required if {
 	not register.allow with input as {"username": "hello", "registration_method": "password"}
 }
+#:tchap:
+test_password_too_short if {
+	not register.allow with input as {"username": "hello", "registration_method": "password", "email": "hello@staging.element.io", "password": "short"}
+}
+
+test_password_long_enough if {
+	register.allow with input as {"username": "hello", "registration_method": "password", "email": "hello@staging.element.io", "password": "longenoughpassword"}
+}
+#:tchap:end
 
 test_no_email if {
 	register.allow with input as {"username": "hello", "registration_method": "upstream-oauth2"}

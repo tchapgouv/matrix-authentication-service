@@ -143,7 +143,8 @@
       "username_not_allowed": "Ce nom d'utilisateur n'est pas autorisé par la politique du serveur",
       "username_taken": "Ce nom d'utilisateur est déjà utilisé",
       "username_too_long": "Le nom d'utilisateur est trop long",
-      "username_too_short": "Le nom d'utilisateur est trop court"
+      "username_too_short": "Le nom d'utilisateur est trop court",
+      "password_too_short": "Le mot de passe doit contenir 12 caractères minimum"
     },
     "login": {
       "call_to_register": "Vous n’avez pas encore de compte ?",

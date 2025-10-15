@@ -296,6 +296,7 @@ pub(crate) async fn post(
                 registration_method: mas_policy::RegistrationMethod::Password,
                 username: &form.username,
                 email: Some(&form.email),
+                password : Some(&form.password),
                 requester: mas_policy::Requester {
                     ip_address: activity_tracker.ip(),
                     user_agent: user_agent.clone(),

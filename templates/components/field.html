@@ -61,7 +61,9 @@ Please see LICENSE files in the repository root for full details.
             {% elif error.kind == "exists" and field.name == "username" %}
               {{ _("mas.errors.username_taken") }}
             {% elif error.kind == "policy" %}
-              {% if error.code == "username-too-short" %}
+              {% if error.code == "password-too-short" %}
+                {{ _("mas.errors.password_too_short") }}
+              {% elif error.code == "username-too-short" %}
                 {{ _("mas.errors.username_too_short") }}
               {% elif error.code == "username-too-long" %}
                 {{ _("mas.errors.username_too_long") }}
