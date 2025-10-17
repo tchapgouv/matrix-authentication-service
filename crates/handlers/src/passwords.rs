@@ -146,6 +146,9 @@ impl PasswordManager {
     ) -> Result<bool, PasswordManagerDisabledError> {
         let inner = self.get_inner()?;
         let score = zxcvbn(password, &[]);
+        //:tchap:
+        println!("{:?}", score);
+        //:tchap:
         Ok(u8::from(score.score()) >= inner.minimum_complexity)
     }
 
