@@ -94,13 +94,13 @@ footer {
 
 /* proconnect button end */
 
-
 /* Dark mode */
 @media (prefers-color-scheme: dark) {
   .lasuite {
     color: #eaeaea !important;
   }
-  .fr-header, .lasuite.fr-footer {
+  .fr-header,
+  .lasuite.fr-footer {
     background-color: #101317 !important;
   }
   .lasuite.fr-footer {
@@ -132,25 +132,26 @@ footer {
     color: #ffffff !important;
   }
   .fr-enlarge-link:hover {
-        background-color: #353535 !important;
+    background-color: #353535 !important;
   }
   .fr-footer__bottom-item:before {
     box-shadow: inset 0 0 0 1px #353535 !important;
-}
-  button.lasuite-gaufre-btn.lasuite-gaufre-btn--vanilla.js-lasuite-gaufre-btn {
-  color: #3E5DE7 !important;
-  box-shadow: inset 0 0 0 1px #353535 !important;
   }
-  button.cpd-button[data-kind=primary], a.cpd-button[data-kind=primary] {
+  button.lasuite-gaufre-btn.lasuite-gaufre-btn--vanilla.js-lasuite-gaufre-btn {
+    color: #3e5de7 !important;
+    box-shadow: inset 0 0 0 1px #353535 !important;
+  }
+  button.cpd-button[data-kind="primary"],
+  a.cpd-button[data-kind="primary"] {
     color: #ffffff;
     background-color: #000091;
   }
-  button.cpd-button[data-kind=primary]:hover {
+  button.cpd-button[data-kind="primary"]:hover {
     color: #ffffff;
-    background-color: #223E9E;
+    background-color: #223e9e;
   }
   .separator hr {
-      border-top: 1px solid #555;
+    border-top: 1px solid #555;
   }
   .fr-header__service-title.lasuite-header__service-title {
     color: #ffffff;
@@ -161,7 +162,6 @@ footer {
       border-bottom: none !important;
     }
   }
-
 }
 
 /* Mobile query */
