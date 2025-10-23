@@ -612,6 +612,9 @@ impl RegisterContext {
 pub struct PasswordRegisterContext {
     form: FormState<RegisterFormField>,
     next: Option<PostAuthContext>,
+    //:tchap:
+    redirect_uri: Option<String>,
+    //:tchap: end
 }
 
 impl TemplateContext for PasswordRegisterContext {
@@ -627,6 +630,9 @@ impl TemplateContext for PasswordRegisterContext {
         vec![PasswordRegisterContext {
             form: FormState::default(),
             next: None,
+            //:tchap:
+            redirect_uri: None,
+            //:tchap: end
         }]
     }
 }
@@ -646,6 +652,17 @@ impl PasswordRegisterContext {
             ..self
         }
     }
+
+    //:tchap:
+    /// Add the redirect uri to the context
+    #[must_use]
+    pub fn with_redirect_uri(self, redirect_uri: String) -> Self {
+        Self {
+            redirect_uri: Some(redirect_uri),
+            ..self
+        }
+    }
+    //:tchap: end
 }
 
 /// Context used by the `consent.html` template

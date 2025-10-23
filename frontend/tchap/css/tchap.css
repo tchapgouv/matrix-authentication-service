@@ -94,6 +94,29 @@ footer {
 
 /* proconnect button end */
 
+/* Create Account Page - Email field */
+.email-box {
+  display: inline-block;
+  background-color: #cdcff54d;
+  color: #3333ca;
+  font-family: sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  padding: 10px 25px;
+  border-radius: 6px;
+  text-align: center;
+}
+
+.email-box input {
+  color: #000091;
+  text-decoration: none;
+}
+
+.email-box input:hover {
+  text-decoration: underline;
+}
+/* Create Account Page - Email field - end */
+
 /* Dark mode */
 @media (prefers-color-scheme: dark) {
   .lasuite {

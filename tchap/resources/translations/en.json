@@ -10,11 +10,11 @@
     },
     "continue": "Continue",
     "@continue": {
-      "context": "form_post.html:25:28-48, pages/consent.html:64:28-48, pages/device_consent.html:124:13-33, pages/device_link.html:40:26-46, pages/login.html:112:30-50, pages/reauth.html:32:28-48, pages/recovery/start.html:38:26-46, pages/register/password.html:81:26-46, pages/register/steps/display_name.html:45:28-48, pages/register/steps/registration_token.html:41:28-48, pages/register/steps/verify_email.html:51:26-46, pages/sso.html:37:28-48"
+      "context": "form_post.html:25:28-48, pages/consent.html:64:28-48, pages/device_consent.html:124:13-33, pages/device_link.html:40:26-46, pages/login.html:112:30-50, pages/reauth.html:32:28-48, pages/recovery/start.html:38:26-46, pages/register/password.html:86:26-46, pages/register/steps/display_name.html:45:28-48, pages/register/steps/registration_token.html:41:28-48, pages/register/steps/verify_email.html:51:26-46, pages/sso.html:37:28-48"
     },
     "create_account": "Create Account",
     "@create_account": {
-      "context": "pages/login.html:127:33-59, pages/register/index.html:21:29-55, pages/upstream_oauth2/do_register.html:197:26-52"
+      "context": "pages/login.html:127:33-59, pages/register/index.html:20:29-55, pages/upstream_oauth2/do_register.html:197:26-52"
     },
     "sign_in": "Sign in",
     "@sign_in": {
@@ -79,7 +79,7 @@
     },
     "email_address": "Email address",
     "@email_address": {
-      "context": "pages/recovery/start.html:34:33-58, pages/register/password.html:44:33-58, pages/upstream_oauth2/do_register.html:120:37-62"
+      "context": "pages/recovery/start.html:34:33-58, pages/register/password.html:45:38-63, pages/upstream_oauth2/do_register.html:120:37-62"
     },
     "hide": "",
     "@hide": {},
@@ -93,17 +93,17 @@
     },
     "password": "Password",
     "@password": {
-      "context": "pages/login.html:100:37-57, pages/reauth.html:28:35-55, pages/register/password.html:48:33-53"
+      "context": "pages/login.html:100:37-57, pages/reauth.html:28:35-55, pages/register/password.html:53:33-53"
     },
     "password_confirm": "Confirm password",
     "@password_confirm": {
-      "context": "pages/register/password.html:53:33-61"
+      "context": "pages/register/password.html:58:33-61"
     },
     "show": "",
     "@show": {},
     "username": "Username",
     "@username": {
-      "context": "pages/login.html:94:37-57, pages/register/index.html:33:35-55, pages/register/password.html:39:45-65, pages/upstream_oauth2/do_register.html:104:35-55, pages/upstream_oauth2/do_register.html:109:39-59"
+      "context": "pages/login.html:94:37-57, pages/register/index.html:59:35-55, pages/register/password.html:38:45-65, pages/upstream_oauth2/do_register.html:104:35-55, pages/upstream_oauth2/do_register.html:109:39-59"
     }
   },
   "create_account": "",
@@ -429,7 +429,7 @@
       },
       "continue_with_provider": "Continue with %(provider)s",
       "@continue_with_provider": {
-        "context": "pages/login.html:68:11-63, pages/register/index.html:56:15-67",
+        "context": "pages/login.html:68:11-63, pages/register/index.html:82:23-75",
         "description": "Button to log in with an upstream provider"
       },
       "description": "Please sign in to continue:",
@@ -619,26 +619,36 @@
     "register": {
       "call_to_login": "Already have an account?",
       "@call_to_login": {
-        "context": "pages/register/index.html:62:35-66, pages/register/password.html:84:33-64",
+        "context": "pages/register/index.html:89:35-66, pages/register/password.html:89:33-64",
         "description": "Displayed on the registration page to suggest to log in instead"
       },
       "continue_with_email": "Continue with email address",
       "@continue_with_email": {
-        "context": "pages/register/index.html:47:30-67"
+        "context": "pages/register/index.html:73:30-67"
       },
       "create_account": {
         "description": "Choose a username to continue.",
         "@description": {
-          "context": "pages/register/index.html:25:29-73"
+          "context": "pages/register/index.html:24:29-73"
         },
-        "heading": "Choose a password",
+        "heading": "Create an account",
         "@heading": {
           "context": "pages/register/password.html:20:27-67"
         }
       },
+      "email_address": {
+        "description": "You are going to create an account with the email address.",
+        "@description": {
+          "context": "pages/register/password.html:43:8-51"
+        },
+        "wrong_address": "This is not the correct address ?",
+        "@wrong_address": {
+          "context": "pages/register/password.html:49:50-95"
+        }
+      },
       "terms_of_service": "I agree to the <a href=\"%s\" data-kind=\"primary\" class=\"cpd-link\">Terms and Conditions</a>",
       "@terms_of_service": {
-        "context": "pages/register/password.html:58:35-95, pages/upstream_oauth2/do_register.html:185:35-95"
+        "context": "pages/register/password.html:63:35-95, pages/upstream_oauth2/do_register.html:185:35-95"
       }
     },
     "registration_token": {

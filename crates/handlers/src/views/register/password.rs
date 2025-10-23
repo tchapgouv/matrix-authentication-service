@@ -34,7 +34,7 @@ use mas_templates::{
 };
 use serde::{Deserialize, Serialize};
 //:tchap:
-use tchap::email_to_mxid_localpart;
+use tchap::{email_to_display_name, email_to_mxid_localpart};
 //:tchap:
 use zeroize::Zeroizing;
 
@@ -110,22 +110,22 @@ pub(crate) async fn get(
     //:tchap:
     //retrieve and use login_hint
     if let Some(PostAuthAction::ContinueAuthorizationGrant { id }) = &query.action.post_auth_action
-        && let Some(login_hint) = repo
-            .oauth2_authorization_grant()
-            .lookup(*id)
-            .await?
-            .and_then(|grant| grant.login_hint)
+        && let Some(oauth2_authorization_grant) =
+            repo.oauth2_authorization_grant().lookup(*id).await?
     {
-        tracing::trace!(
-            "ContinueAuthorizationGrant:{:?} login_hint:{:?}",
-            id,
-            login_hint
-        );
-        let username = email_to_mxid_localpart(&login_hint);
-        let mut form_state = FormState::default();
-        form_state.set_value(RegisterFormField::Username, Some(username));
-        form_state.set_value(RegisterFormField::Email, Some(login_hint));
-        ctx = ctx.with_form_state(form_state);
+        if let Some(login_hint) = oauth2_authorization_grant.login_hint {
+            tracing::trace!(
+                "ContinueAuthorizationGrant:{:?} login_hint:{:?}",
+                id,
+                login_hint
+            );
+            let username = email_to_mxid_localpart(&login_hint);
+            let mut form_state = FormState::default();
+            form_state.set_value(RegisterFormField::Username, Some(username));
+            form_state.set_value(RegisterFormField::Email, Some(login_hint));
+            ctx = ctx.with_form_state(form_state);
+        }
+        ctx = ctx.with_redirect_uri(oauth2_authorization_grant.redirect_uri.to_string());
     } else {
         tracing::warn!("Missing login_hint in query.action.post_auth_action");
     }
@@ -197,6 +197,7 @@ pub(crate) async fn post(
 
     //:tchap:
     //substitute values in the form
+    let mut maybe_display_name = None;
     if let Some(PostAuthAction::ContinueAuthorizationGrant { id }) = &query.post_auth_action
         && let Some(login_hint) = repo
             .oauth2_authorization_grant()
@@ -211,10 +212,11 @@ pub(crate) async fn post(
         );
 
         form = RegisterForm {
-            username: email_to_mxid_localpart(&login_hint),
-            email: login_hint,
+            username: email_to_mxid_localpart(&login_hint.clone()),
+            email: login_hint.clone(),
             ..form
         };
+        maybe_display_name = Some(email_to_display_name(&login_hint));
     } else {
         tracing::warn!("Missing login_hint in query.post_auth_action");
     }
@@ -397,6 +399,16 @@ pub(crate) async fn post(
     } else {
         registration
     };
+
+    //:tchap: set display name automatically - skip display name page
+    let registration = if let Some(display_name) = maybe_display_name {
+        repo.user_registration()
+            .set_display_name(registration, display_name)
+            .await?
+    } else {
+        registration
+    };
+    //:tchap: end
 
     // Create a new user email authentication session
     let user_email_authentication = repo
