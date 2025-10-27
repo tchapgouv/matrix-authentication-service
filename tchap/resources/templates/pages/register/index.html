@@ -70,7 +70,7 @@ Please see LICENSE files in the repository root for full details.
       {% endfor %}
 
       {% if features.password_registration %}
-        {{ button.button(text=_("mas.register.continue_with_email")) }}
+        {{ button.button(text=_("mas.register.continue_with_email"), kind="secondary") }}
       {% endif %}
         <!-- :tchap: no providers
               {% if providers %}
