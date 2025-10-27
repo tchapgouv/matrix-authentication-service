@@ -97,13 +97,13 @@ footer {
 /* Create Account Page - Email field */
 .email-box {
   display: inline-block;
-  background-color: #cdcff54d;
-  color: #3333ca;
+  background-color: rgba(0, 0, 145, 0.05);
+  color: #000091;
   font-family: sans-serif;
   font-size: 15px;
   font-weight: 600;
-  padding: 10px 25px;
-  border-radius: 6px;
+  padding: 12px 25px;
+  border-radius: 4px;
   text-align: center;
 }
 
@@ -112,8 +112,10 @@ footer {
   text-decoration: none;
 }
 
-.email-box input:hover {
+.email-box:hover, .email-box:focus, .email-box:focus-visible, .email-box:active {
   text-decoration: underline;
+  border: none !important;
+  outline: none !important;
 }
 /* Create Account Page - Email field - end */
 
@@ -178,6 +180,14 @@ footer {
   }
   .fr-header__service-title.lasuite-header__service-title {
     color: #ffffff;
+  }
+  .email-box {
+    background-color:#464865 !important;
+    color: #C4C4F8 !important;
+  }
+  .email-box input {
+    color: #C4C4F8 !important;
+    text-decoration: none !important;
   }
 
   @media screen and (max-width: 1024px) {
