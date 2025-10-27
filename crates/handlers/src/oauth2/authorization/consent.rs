@@ -160,7 +160,12 @@ pub(crate) async fn get(
     }
 
     // :tchap:
-    let email = repo.user_email().all(&session.user).await?.first().map(|user_email| user_email.email.clone());
+    let email = repo
+        .user_email()
+        .all(&session.user)
+        .await?
+        .first()
+        .map(|user_email| user_email.email.clone());
     // :tchap: end
 
     let ctx = ConsentContext::new(grant, client)
