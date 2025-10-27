@@ -105,14 +105,18 @@ footer {
   padding: 12px 25px;
   border-radius: 4px;
   text-align: center;
+  margin-top: 6px;
 }
 
-.email-box input {
+.email-box input span {
   color: #000091;
   text-decoration: none;
 }
 
-.email-box:hover, .email-box:focus, .email-box:focus-visible, .email-box:active {
+.email-box:hover,
+.email-box:focus,
+.email-box:focus-visible,
+.email-box:active {
   text-decoration: underline;
   border: none !important;
   outline: none !important;
@@ -182,11 +186,11 @@ footer {
     color: #ffffff;
   }
   .email-box {
-    background-color:#464865 !important;
-    color: #C4C4F8 !important;
+    background-color: #464865 !important;
+    color: #c4c4f8 !important;
   }
-  .email-box input {
-    color: #C4C4F8 !important;
+  .email-box input span {
+    color: #c4c4f8 !important;
     text-decoration: none !important;
   }
 

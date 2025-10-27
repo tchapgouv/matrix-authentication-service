@@ -6,7 +6,8 @@ SPDX-License-Identifier: AGPL-3.0-only
 Please see LICENSE in the repository root for full details.
 -#}
 
-{% set consent_page = true %}
+<!-- TODO remove this variable if not used anymore -->
+{% set consent_page = false %}
 
 {% extends "base.html" %}
 
@@ -32,9 +33,13 @@ Please see LICENSE in the repository root for full details.
         {{ _("mas.consent.this_will_allow", client_name=client_name) }}
       </p>
       {% if email %}
-      <input class="email-box" type="email" autocomplete="email" required readonly value="{{ email }}"/>
+      <span class="email-box">
+        {{ email }}
+      </span>
       {% else %}
-      <input class="email-box" type="email" autocomplete="email" required readonly value="{{ current_session.user.username }}"/>
+      <span class="email-box">
+        {{ current_session.user.username }}
+      </span>
       {% endif %}
     </div>
   </header>
@@ -69,7 +74,7 @@ Please see LICENSE in the repository root for full details.
       {{ button.button(text=_("action.continue")) }}
     </form>
     <div class="flex flex-col gap-6">
-    {{ logout.button(text=_("action.sign_out"), csrf_token=csrf_token, post_logout_action=action) }}
+    {{ logout.button(text=_("action.sign_out"), csrf_token=csrf_token, post_logout_action=action, as_link=true) }}
     </div>
 <!-- :tchap:
     {{ back_to_client.link(
