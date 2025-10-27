@@ -671,6 +671,9 @@ pub struct ConsentContext {
     grant: AuthorizationGrant,
     client: Client,
     action: PostAuthAction,
+    // :tchap:
+    email: Option<String>
+    // :tchap:end
 }
 
 impl TemplateContext for ConsentContext {
@@ -689,6 +692,9 @@ impl TemplateContext for ConsentContext {
                     grant,
                     client,
                     action,
+                    // :tchap:
+                    email: None
+                    // :tchap: end
                 }
             })
             .collect()
@@ -704,8 +710,22 @@ impl ConsentContext {
             grant,
             client,
             action,
+            // :tchap:
+            email: None,
+            // :tchap: end
         }
     }
+
+    // :tchap:
+    /// Add an email to the context
+    #[must_use]
+    pub fn with_email(self, email: Option<String>) -> Self {
+        Self {
+            email: email,
+            ..self
+        }
+    }
+    // :tchap: end
 }
 
 #[derive(Serialize)]
