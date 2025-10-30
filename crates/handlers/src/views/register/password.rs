@@ -124,10 +124,13 @@ pub(crate) async fn get(
             form_state.set_value(RegisterFormField::Username, Some(username));
             form_state.set_value(RegisterFormField::Email, Some(login_hint));
             ctx = ctx.with_form_state(form_state);
+        } else {
+            tracing::warn!("Missing login_hint in query.action.post_auth_action");
         }
         ctx = ctx.with_redirect_uri(oauth2_authorization_grant.redirect_uri.to_string());
     } else {
-        tracing::warn!("Missing login_hint in query.action.post_auth_action");
+        tracing::warn!("Missing oauth2_authorization_grant");
+        return Err(InternalError::new(std::io::Error::other("Veuillez fermer cette fenêtre et relancer la création de compte depuis votre appareil Tchap").into()));
     }
     //:tchap: end
 
