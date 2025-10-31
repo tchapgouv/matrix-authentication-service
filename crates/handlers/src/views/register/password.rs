@@ -125,15 +125,15 @@ pub(crate) async fn get(
             form_state.set_value(RegisterFormField::Email, Some(login_hint));
             ctx = ctx.with_form_state(form_state);
         } else {
-            // show an error screen to guide the user to start valid creation account flow from
-            // a Tchap device
+            // show an error screen to guide the user to start valid creation account flow
+            // from a Tchap device
             tracing::warn!("Missing login_hint in oauth2_authorization_grant");
             return Err(InternalError::new(std::io::Error::other("Veuillez fermer cette fenêtre et relancer la création de compte depuis votre appareil Tchap").into()));
         }
         ctx = ctx.with_redirect_uri(oauth2_authorization_grant.redirect_uri.to_string());
     } else {
-        //show an error screen to guide the user to start a valid creation account flow from
-        // a Tchap device
+        //show an error screen to guide the user to start a valid creation account flow
+        // from a Tchap device
         tracing::warn!("Missing oauth2_authorization_grant");
         return Err(InternalError::new(std::io::Error::other("Veuillez fermer cette fenêtre et relancer la création de compte depuis votre appareil Tchap").into()));
     }
