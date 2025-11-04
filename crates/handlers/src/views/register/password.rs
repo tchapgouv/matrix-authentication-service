@@ -129,7 +129,6 @@ pub(crate) async fn get(
         } else {
             tracing::trace!("Missing login_hint in oauth2_authorization_grant:{:?}", id);
         }
-        ctx = ctx.with_redirect_uri(oauth2_authorization_grant.redirect_uri.to_string());
     } else {
         tracing::warn!("Missing oauth2_authorization_grant in account creation");
         // deactivate this for the moment, as the unit tests need to be fixed
