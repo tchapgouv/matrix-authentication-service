@@ -82,9 +82,7 @@ export default function PasswordCreationDoubleInput({
   return (
     <>
       <Form.Field name="password">
-        <Form.Label>
-          {t("common.password")}
-        </Form.Label>
+        <Form.Label>{t("common.password")}</Form.Label>
 
         <Form.PasswordControl
           required
@@ -134,9 +132,7 @@ export default function PasswordCreationDoubleInput({
         some caused by Radix-UI upstream bugs.
         https://github.com/matrix-org/matrix-authentication-service/issues/2855
       */}
-        <Form.Label>
-          {t("common.password_confirm")}
-        </Form.Label>
+        <Form.Label>{t("common.password_confirm")}</Form.Label>
 
         <Form.PasswordControl
           required
