@@ -3,7 +3,7 @@ import { Form } from "@vector-im/compound-web";
 import { graphql } from "../../gql";
 import { graphqlRequest } from "../../graphql";
 import "../../shared.css";
-import PasswordCreationDoubleInput from "../../components/PasswordCreationDoubleInput";
+import PasswordCreationDoubleInput from "./PasswordCreationDoubleInput";
 
 const QUERY = graphql(/* GraphQL */ `
   query PasswordChange {

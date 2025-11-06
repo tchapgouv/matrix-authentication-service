@@ -49,8 +49,8 @@ use crate::{
 pub(crate) struct RegisterForm {
     username: String,
     email: String,
-    new_password: String,
-    new_password_again: String,
+    password: String,
+    password_confirm: String,
     #[serde(default)]
     accept_terms: String,
 
@@ -282,15 +282,15 @@ pub(crate) async fn post(
             state.add_error_on_field(RegisterFormField::Email, FieldError::Invalid);
         }
 
-        if form.new_password.is_empty() {
+        if form.password.is_empty() {
             state.add_error_on_field(RegisterFormField::Password, FieldError::Required);
         }
 
-        if form.new_password_again.is_empty() {
+        if form.password_confirm.is_empty() {
             state.add_error_on_field(RegisterFormField::PasswordConfirm, FieldError::Required);
         }
 
-        if form.new_password != form.new_password_again {
+        if form.password != form.password_confirm {
             state.add_error_on_field(RegisterFormField::Password, FieldError::Unspecified);
             state.add_error_on_field(
                 RegisterFormField::PasswordConfirm,
@@ -298,7 +298,7 @@ pub(crate) async fn post(
             );
         }
 
-        if !password_manager.is_password_complex_enough(&form.new_password)? {
+        if !password_manager.is_password_complex_enough(&form.password)? {
             // TODO localise this error
             state.add_error_on_field(
                 RegisterFormField::Password,
@@ -454,7 +454,7 @@ pub(crate) async fn post(
         .await?;
 
     // Hash the password
-    let password = Zeroizing::new(form.new_password);
+    let password = Zeroizing::new(form.password);
     let (version, hashed_password) = password_manager
         .hash(&mut rng, password)
         .await
@@ -574,8 +574,8 @@ mod tests {
                 "csrf": "abc",
                 "username": "john",
                 "email": "john@example.com",
-                "new_password": "hunter2",
-                "new_password_again": "hunter2",
+                "password": "hunter2",
+                "password_confirm": "hunter2",
             }));
         let response = state.request(request).await;
         response.assert_status(StatusCode::METHOD_NOT_ALLOWED);
@@ -682,8 +682,8 @@ mod tests {
             "csrf": csrf_token,
             "username": "--",
             "email": "jacques@example.com",
-            "new_password": "correcthorsebatterystaple",
-            "new_password_again": "correcthorsebatterystaple",
+            "password": "correcthorsebatterystaple",
+            "password_confirm": "correcthorsebatterystaple",
             "accept_terms": "on",
         }));
         let request = cookies.with_cookies(request);
@@ -749,8 +749,8 @@ mod tests {
                 "csrf": csrf_token,
                 "username": "john",
                 "email": "john@example.com",
-                "new_password": "correcthorsebatterystaple",
-                "new_password_again": "correcthorsebatterystaple",
+                "password": "correcthorsebatterystaple",
+                "password_confirm": "correcthorsebatterystaple",
                 "accept_terms": "on",
             }));
         let request = cookies.with_cookies(request);
@@ -819,8 +819,8 @@ mod tests {
                 "csrf": csrf_token,
                 "username": "john",
                 "email": "john@example.com",
-                "new_password": "hunter2",
-                "new_password_again": "mismatch",
+                "password": "hunter2",
+                "password_confirm": "mismatch",
                 "accept_terms": "on",
             }));
         let request = cookies.with_cookies(request);
@@ -861,8 +861,8 @@ mod tests {
                 "csrf": csrf_token,
                 "username": "a".repeat(256),
                 "email": "john@example.com",
-                "new_password": "hunter2",
-                "new_password_again": "hunter2",
+                "password": "hunter2",
+                "password_confirm": "hunter2",
                 "accept_terms": "on",
             }));
         let request = cookies.with_cookies(request);
@@ -923,8 +923,8 @@ mod tests {
                 "username": "--",
                 "email": email,
                 //:tchap:end
-                "new_password": "hunter2",
-                "new_password_again": "hunter2",
+                "password": "hunter2",
+                "password_confirm": "hunter2",
                 "accept_terms": "on",
             }));
         let request = cookies.with_cookies(request);
@@ -976,8 +976,8 @@ mod tests {
                 "csrf": csrf_token,
                 "username": "--",//:tchap:
                 "email": "john@example.com",
-                "new_password": "hunter2",
-                "new_password_again": "hunter2",
+                "password": "hunter2",
+                "password_confirm": "hunter2",
                 "accept_terms": "on",
             }));
         let request = cookies.with_cookies(request);
