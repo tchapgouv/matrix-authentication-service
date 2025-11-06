@@ -17,7 +17,6 @@ export default defineConfig((env) =>
               __dirname,
               "../node_modules/@gouvfr-lasuite/integration/dist/css/homepage-full.css",
             ),
-            resolve(__dirname, "../src/external/View.tsx"),
           ],
         },
       },

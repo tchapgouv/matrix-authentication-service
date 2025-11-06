@@ -52,6 +52,9 @@ const usePasswordComplexity = (password: string): PasswordComplexity => {
   return result;
 };
 
+
+//:tchap: this compoenent has been duplicated from src/frontend/components/PasswordCreationDoubleInput
+//:tchap: it should be reusing this component with possibilities to customize names and labels
 export default function PasswordCreationDoubleInput({
   siteConfig,
   forceShowNewPasswordInvalid,

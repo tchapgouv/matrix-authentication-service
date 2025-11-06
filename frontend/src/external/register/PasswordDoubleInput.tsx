@@ -2,8 +2,11 @@ import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
 import { Form } from "@vector-im/compound-web";
 import { graphql } from "../../gql";
 import { graphqlRequest } from "../../graphql";
+import { mountWithProviders } from "../mount";
 import "../../shared.css";
 import PasswordCreationDoubleInput from "./PasswordCreationDoubleInput";
+
+const HTML_ID = "#password-double-input";
 
 const QUERY = graphql(/* GraphQL */ `
   query PasswordChange {
@@ -25,18 +28,15 @@ const query = queryOptions({
   queryFn: ({ signal }) => graphqlRequest({ query: QUERY, signal }),
 });
 
-export default function PasswordFormLoader({
-  forceShowNewPasswordInvalid,
-}: {
-  forceShowNewPasswordInvalid: boolean;
-}): React.ReactElement {
+type PasswordDoubleInputProps = { forceShowNewPasswordInvalid: boolean };
+
+function PasswordDoubleInput({ forceShowNewPasswordInvalid }: PasswordDoubleInputProps) {
   const {
     data: { siteConfig },
   } = useSuspenseQuery(query);
-
   return (
-    //Form.Root is needed because Form.Field requires to be included into a Form
-    //asChild allows to replace Form.Root component by the child, the <form> used is in the password.html
+    // Form.Root is needed because Form.Field requires to be included into a Form
+    // asChild allows to replace Form.Root component by the child, the <form> used is in the password.html
     <Form.Root asChild>
       <div>
         <PasswordCreationDoubleInput
@@ -47,3 +47,6 @@ export default function PasswordFormLoader({
     </Form.Root>
   );
 }
+
+// Allow mounting under either the new specific id or the legacy #view
+mountWithProviders(HTML_ID, PasswordDoubleInput);
