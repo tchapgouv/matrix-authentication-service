@@ -7,12 +7,13 @@ import type { KnipConfig } from "knip";
 
 export default {
   entry: ["src/main.tsx", "src/swagger.ts", "src/routes/*"],
-  //:tchap: add tchap vite
   ignore: [
     "src/gql/*",
     "src/routeTree.gen.ts",
     ".storybook/locales.ts",
-    "tchap/vite.tchap.config.ts",
+    //:tchap: add tchap vite
+    "tchap/*",
+    "src/external/**",
   ],
   //:tchap: end
   ignoreDependencies: [
