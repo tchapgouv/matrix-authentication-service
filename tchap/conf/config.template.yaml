@@ -269,7 +269,7 @@ rate_limiting:
     # Controls how many account recovery attempts are permitted
     # based on source IP address.
     per_ip:
-      burst: 3
+      burst: 30
       per_second: 0.0008
 
     # Controls how many account recovery attempts are permitted
