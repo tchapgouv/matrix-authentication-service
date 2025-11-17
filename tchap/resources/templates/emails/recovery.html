@@ -1,0 +1,42 @@
+{#
+Copyright 2024, 2025 New Vector Ltd.
+Copyright 2024 The Matrix.org Foundation C.I.C.
+
+SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+Please see LICENSE files in the repository root for full details.
+-#}
+{% extends "emails/_mail-base.html" %}
+
+{%- set _ = translator(lang) -%}
+
+<!-- MESSAGE PRINCIPAL -->
+{% block primaryMessage %}
+    {{ _("mas.emails.recovery.headline", server_name=branding.server_name) }}<br />
+    <br />
+    {{ _("mas.emails.recovery.click_button") }}<br />
+    <br />
+
+    <a id="button" href="{{ recovery_link }}" target="_blank" style="
+        display: inline-block;
+        transition: background-color 0.1s ease;
+        font-size: 18px;
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: #FFF;
+        background-color: #3E5DE7;
+        padding: 16px 32px;
+        padding: 1rem 2rem;
+        border-radius: 32px;
+        border-radius: 2rem;
+        text-decoration: none;
+    ">{{ _("mas.emails.recovery.create_new_password") }}</a><br />
+      <p style="font-size: 14px; font-size: 0.875rem;">
+      {{ _("mas.emails.recovery.fallback") }} {{ _("mas.emails.recovery.copy_link") }}
+    </p>
+    <p style="font-size: 14px; font-size: 0.875rem;">
+      <a href="{{ recovery_link }}" target="_blank">{{ recovery_link }}</a>
+    </p>
+    <br />
+      {{ _("mas.emails.recovery.you_can_ignore") }}
+
+{% endblock %}
