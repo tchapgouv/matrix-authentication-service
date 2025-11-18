@@ -39,7 +39,26 @@
 				</tr>
 				<!-- fin deuxième ligne du tableau-->
 
-			<!-- ligne grise -->
+				<!-- troisième ligne du tableau -->	
+				<!-- Bouton d'action : affiché uniquement si l'URL est définie -->
+				{% if url is defined and url %}
+				<tr>
+					<td style="text-align: center;" class="container-padding">
+						<a href="{{ url }}" target="_blank" title="{{ button_title }} - nouvelle fenêtre" style="text-decoration:none;display: inline-block;background-color: #000091;color: #ffffff;font-size: 16px;line-height: 1.15;padding: 15px 20px;border-radius: 4px; text-align: center; font-style: normal; font-weight: 600; word-break: break-word;-webkit-text-size-adjust: none; mso-padding-alt: 0;">
+						 {{ button_title }} 
+						</a>
+
+						<div style="width: 100%; padding:10px 0; margin: 0; mso-line-height-rule: exactly; -webkit-text-size-adjust: none; -ms-text-size-adjust: none;">
+						  <span style="font-size: 10px; line-height: 1.2; color: #737373; word-break: break-word;">
+						     {{ url }}
+						  </span>
+						</div>
+					</td>
+				</tr>
+				{% endif %} 
+				<!-- fin troisième ligne-->
+
+				<!-- ligne grise -->
 				<tr>
 					<td class="container-padding">
 						<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="border-top: 1px solid #eeeeee; margin: 15px 0;">
@@ -49,8 +68,10 @@
 						</table>
 					</td>
 				</tr>
+				<!-- fin ligne grise -->
 
-			<!-- quatrième ligne-->
+
+				<!-- quatrième ligne-->
 				<tr>
 					<td class="container-padding">
 						<!-- logos-->

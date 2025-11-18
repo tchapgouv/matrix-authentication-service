@@ -1,42 +1,31 @@
-{#
-Copyright 2024, 2025 New Vector Ltd.
-Copyright 2024 The Matrix.org Foundation C.I.C.
-
-SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
-Please see LICENSE files in the repository root for full details.
--#}
 {% extends "emails/_mail-base.html" %}
 
-{%- set _ = translator(lang) -%}
+{% set url = recovery_link %}
+
+{% block title %}Réinitialiser mon mot de passe{% endblock %}
 
 <!-- MESSAGE PRINCIPAL -->
 {% block primaryMessage %}
-    {{ _("mas.emails.recovery.headline", server_name=branding.server_name) }}<br />
-    <br />
-    {{ _("mas.emails.recovery.click_button") }}<br />
-    <br />
+    <h2>Bonjour,</h2>
+    <p>
+    <p>Une demande de réinitialisation de mot de passe a été reçue pour votre compte Tchap.</p>
+    <p>Si vous n'êtes pas à l'origine de cette demande, vous pouvez ignorer cet email et contacter immédiatement le support <a href="mailto:support@tchap.beta.gouv.fr">support@tchap.beta.gouv.fr</a></p>
+    <p>Pour continuer la réinitialisation, veuillez cliquer sur le lien suivant (ou le copier-coller dans un navigateur).</p>
+{% endblock %}
 
-    <a id="button" href="{{ recovery_link }}" target="_blank" style="
-        display: inline-block;
-        transition: background-color 0.1s ease;
-        font-size: 18px;
-        font-size: 1.125rem;
-        font-weight: 600;
-        color: #FFF;
-        background-color: #3E5DE7;
-        padding: 16px 32px;
-        padding: 1rem 2rem;
-        border-radius: 32px;
-        border-radius: 2rem;
-        text-decoration: none;
-    ">{{ _("mas.emails.recovery.create_new_password") }}</a><br />
-      <p style="font-size: 14px; font-size: 0.875rem;">
-      {{ _("mas.emails.recovery.fallback") }} {{ _("mas.emails.recovery.copy_link") }}
-    </p>
-    <p style="font-size: 14px; font-size: 0.875rem;">
-      <a href="{{ recovery_link }}" target="_blank">{{ recovery_link }}</a>
-    </p>
-    <br />
-      {{ _("mas.emails.recovery.you_can_ignore") }}
+<!-- BOUTON -->
+{% set button_title = 'Réinitialiser mon mot de passe' %}
 
+<!-- NOTE APRÈS LE BOUTON (OPTIONNEL) -->
+{% block note %}
+{% endblock %}
+
+<!-- MESSAGE APRÈS LE BOUTON -->
+{% block secondaryMessage %}
+   <p>
+    Merci de votre collaboration,
+    <br>
+    <br>
+    L’équipe Tchap
+    </p>
 {% endblock %}
