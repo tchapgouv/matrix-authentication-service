@@ -329,7 +329,7 @@
       "verify": {
         "body_html": "Your verification code to confirm this email address is: <strong>%(code)s</strong>",
         "@body_html": {
-          "context": "emails/verification.html:22:3-66",
+          "context": "emails/verification.html:22:3-44",
           "description": "The body of the email sent to verify an email address (HTML)"
         },
         "body_text": "Your verification code to confirm this email address is: %(code)s",
