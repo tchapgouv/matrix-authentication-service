@@ -561,18 +561,22 @@ pub(crate) async fn get(
                                 return Err(RouteError::InvalidFormAction);
                             };
                             //:tchap:
-                            if let Some(existing_user) =
-                                repo.user().find_by_username(&localpart).await?
-                            {
-                                //if we didnt find user by email we should not find it by localpart
-                                // (derived from email)
-                                // if we do, there is a problem of email binding, raise an error
-                                let existing_user_id = existing_user.id;
+                            let maybe_existing_user = repo.user().find_by_username(&localpart).await?;
+
+                            if let Some(existing_user) = maybe_existing_user {
+                                let email = &repo
+                                    .user_email()
+                                    .all(&existing_user)
+                                    .await?
+                                    .first()
+                                    .map(|user_email| user_email.email.clone());
+
                                 let ctx = ErrorContext::new()
                                     .with_code("Invalid Data")
                                     .with_description(format!(
-                                        r"Upstream account provider returned {localpart:?} as username which is binded to a tchap account 
-                                        but the upstream account email is not matching user's email {existing_user_id}"
+                                        r"Un compte Tchap existe mais l'email associé diffère de votre email Proconnect. 
+                                        Veuillez contacter le support Tchap: support@tchap.beta.gouv.fr. 
+                                        email_tchap:{email:?}, proconnect_username:{localpart}"
                                     ))
                                     .with_language(&locale);
 
