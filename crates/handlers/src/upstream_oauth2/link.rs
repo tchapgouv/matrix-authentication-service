@@ -564,7 +564,8 @@ pub(crate) async fn get(
                             if let Some(existing_user) =
                                 repo.user().find_by_username(&localpart).await?
                             {
-                                //if we didnt find user by email we should not find it by localpart (derived from email)
+                                //if we didnt find user by email we should not find it by localpart
+                                // (derived from email)
                                 // if we do, there is a problem of email binding, raise an error
                                 let existing_user_id = existing_user.id;
                                 let ctx = ErrorContext::new()
@@ -836,8 +837,9 @@ pub(crate) async fn post(
                 //:tchap:
                 if let Some(_existing_user) = repo.user().find_by_username(&localpart).await? {
                     //this should never be the case at this point
-                    //if we didnt find user by email we should not find it by localpart (derived from email)
-                    // if we do, there is a problem of email binding, raise an error
+                    //if we didnt find user by email we should not find it by localpart (derived
+                    // from email) if we do, there is a problem of email
+                    // binding, raise an error
                     return Err(RouteError::InvalidFormAction);
                 }
             }
