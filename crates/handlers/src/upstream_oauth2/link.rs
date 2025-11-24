@@ -525,7 +525,7 @@ pub(crate) async fn get(
                         // form, but this lead to poor UX. This is why we do
                         // it ahead of time here.
                         //:tchap:
-                        //the only ustream account matching is based on the email
+                        //the only upstream account matching is based on the email
                         let template = provider
                             .claims_imports
                             .email
@@ -561,7 +561,8 @@ pub(crate) async fn get(
                                 return Err(RouteError::InvalidFormAction);
                             };
                             //:tchap:
-                            let maybe_existing_user = repo.user().find_by_username(&localpart).await?;
+                            let maybe_existing_user =
+                                repo.user().find_by_username(&localpart).await?;
 
                             if let Some(existing_user) = maybe_existing_user {
                                 let email = &repo
@@ -820,7 +821,7 @@ pub(crate) async fn post(
                 provider.claims_imports.email.is_required(),
             );
 
-            let mut maybe_user = if let Ok(Some(email)) = maybe_email {
+            let maybe_user = if let Ok(Some(email)) = maybe_email {
                 tchap::search_user_by_email(&mut repo, &email, &tchap_config).await?
             } else {
                 None
