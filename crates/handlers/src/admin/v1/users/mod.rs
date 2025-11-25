@@ -8,7 +8,9 @@ mod add;
 mod by_username;
 mod deactivate;
 mod get;
+//:tchap:
 mod kill_sessions;
+//:tchap:end
 mod list;
 mod lock;
 mod reactivate;
@@ -21,7 +23,9 @@ pub use self::{
     by_username::{doc as by_username_doc, handler as by_username},
     deactivate::{doc as deactivate_doc, handler as deactivate},
     get::{doc as get_doc, handler as get},
+    //:tchap:
     kill_sessions::{doc as kill_sessions_doc, handler as kill_sessions},
+    //:tchap:end
     list::{doc as list_doc, handler as list},
     lock::{doc as lock_doc, handler as lock},
     reactivate::{doc as reactivate_doc, handler as reactivate},

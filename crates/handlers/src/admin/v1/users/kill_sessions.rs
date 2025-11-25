@@ -1,3 +1,4 @@
+//:tchap:
 // Copyright 2025 New Vector Ltd.
 //
 // SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
@@ -227,3 +228,4 @@ mod tests {
         response.assert_status(StatusCode::NOT_FOUND);
     }
 }
+//:tchap: end
