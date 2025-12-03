@@ -616,7 +616,7 @@
         "context": "pages/register/index.html:63:35-66, pages/register/password.html:83:33-64",
         "description": "Displayed on the registration page to suggest to log in instead"
       },
-      "continue_with_email": "Continue with email address",
+      "continue_with_email": "Continue with my email address",
       "@continue_with_email": {
         "context": "pages/register/index.html:45:32-69"
       },
@@ -804,7 +804,7 @@
       "@6_digit_code": {
         "context": "pages/register/steps/verify_email.html:33:33-67"
       },
-      "description": "Enter the 6-digit code sent to: <em>%(email)s</em>",
+      "description": "Enter the 6-digit code sent to: <em>%(email)s</em>. If you do not receive an email, you might already have a Tchap account. Please proceed with password reset.",
       "@description": {
         "context": "pages/register/steps/verify_email.html:18:25-86"
       },
