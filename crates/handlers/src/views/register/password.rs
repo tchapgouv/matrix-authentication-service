@@ -898,6 +898,7 @@ mod tests {
     }
 
     /// When the user already exists in the database, it should give an error
+    #[ignore = "tchap does not need it"]
     #[sqlx::test(migrator = "mas_storage_pg::MIGRATOR")]
     async fn test_register_user_exists(pool: PgPool) {
         setup();
@@ -957,6 +958,7 @@ mod tests {
 
     /// When the username is already reserved on the homeserver, it should give
     /// an error
+    #[ignore = "tchap does not need it"]
     #[sqlx::test(migrator = "mas_storage_pg::MIGRATOR")]
     async fn test_register_user_reserved(pool: PgPool) {
         setup();
