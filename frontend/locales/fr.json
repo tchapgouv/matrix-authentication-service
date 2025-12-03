@@ -211,11 +211,11 @@
     "password_strength": {
       "placeholder": "Complexité du mot de passe",
       "score": {
-        "0": "Mot de passe extrêmement faible",
-        "1": "Mot de passe très faible",
-        "2": "Mot de passe faible",
-        "3": "Mot de passe fort",
-        "4": "Mot de passe très fort"
+        "0": "Mot de passe trop faible (note de robustesse : 0)",
+        "1": "Mot de passe trop faible (note de robustesse : 1)",
+        "2": "Mot de passe trop faible (note de robustesse : 2)",
+        "3": "Mot de passe suffisamment (note de robustesse : 3)",
+        "4": "Mot de passe suffisamment (note de robustesse : 4)"
       },
       "suggestion": {
         "all_uppercase": "Mettez certaines lettres en majuscule, mais pas toutes.",
