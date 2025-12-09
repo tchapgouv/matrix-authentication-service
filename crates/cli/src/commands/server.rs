@@ -382,6 +382,7 @@ fn tchap_config_from_tchap_app_config(tchap_app_config: &TchapAppConfig) -> Tcha
                 search: rule.search.clone(),
             })
             .collect(),
+        tchap_web_url: tchap_app_config.tchap_web_url.clone(),
     }
 }
 //:tchap: end
