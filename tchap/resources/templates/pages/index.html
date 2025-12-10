@@ -29,14 +29,12 @@ Please see LICENSE files in the repository root for full details.
         {{ _("mas.navbar.signed_in_as", username=current_session.user.username) }}
       </p>
       <!--
-      {{ button.link(text=_("mas.navbar.my_account"), href="/account/") }}
-      -->
-      {{ button.link(text="Continuer dans Tchap", href="tchap_web_url") }}
-      <!-- 
-      {{ logout.button(text=_("action.sign_out"), csrf_token=csrf_token) }} 
-      -->
+        {{ button.link(text=_("mas.navbar.my_account"), href="/account/") }}
+        -->
+        {{ button.link(text="Continuer dans Tchap", href=tchap_web_url) }}
+        {{ logout.button(text=_("action.sign_out"), csrf_token=csrf_token) }} 
     {% else %}
-      {{ button.link(text="Continuer dans Tchap", href="tchap_web_url") }}
+      {{ button.link(text="Continuer dans Tchap", href=tchap_web_url) }}
     {% endif %}
   </main>
 {% endblock content %}

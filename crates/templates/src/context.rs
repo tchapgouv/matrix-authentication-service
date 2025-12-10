@@ -361,14 +361,27 @@ impl TemplateContext for EmptyContext {
 #[derive(Serialize)]
 pub struct IndexContext {
     discovery_url: Url,
+
+    //:tchap:
+    tchap_web_url: Url,
+    //:tchap:
 }
 
 impl IndexContext {
     /// Constructs the context for the index page from the OIDC discovery
     /// document URL
     #[must_use]
-    pub fn new(discovery_url: Url) -> Self {
-        Self { discovery_url }
+    pub fn new(
+            discovery_url: Url, 
+            //:tchap:
+            tchap_web_url: Url) -> Self {
+            //:tchap:
+        Self { 
+            discovery_url, 
+            //:tchap:
+            tchap_web_url 
+            //:tchap:
+        }
     }
 }
 
@@ -385,6 +398,11 @@ impl TemplateContext for IndexContext {
             discovery_url: "https://example.com/.well-known/openid-configuration"
                 .parse()
                 .unwrap(),
+            //:tchap:
+            tchap_web_url: "https://app.tchapgouv.com/"
+                .parse()
+                .unwrap(),
+            //:tchap:
         }])
     }
 }
