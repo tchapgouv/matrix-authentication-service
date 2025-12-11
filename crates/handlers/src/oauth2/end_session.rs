@@ -138,16 +138,6 @@ pub(crate) async fn get(
         return Ok((cookie_jar, Redirect::to(&params.post_logout_redirect_uri)).into_response());
     }
 
-    // Check that the client ending the session is the same as the client that
-    // created it.
-    if client.id != oauth_session.client_id {
-        info!(
-            "Invalid client id [browser session id={}, oauth2 session id: {}, client id: {}]",
-            browser_session_id, oauth_session.id, client.id
-        );
-        return Ok((cookie_jar, Redirect::to(&params.post_logout_redirect_uri)).into_response());
-    }
-
     activity_tracker
         .record_oauth2_session(&clock, &oauth_session)
         .await;
@@ -235,7 +225,7 @@ mod tests {
 
         let ClientRegistrationResponse { client_id, .. } = response.json();
 
-        // Provision a provider and a link
+        // Create a user and its browser session
         let mut repo = state.repository().await.unwrap();
         let user = repo
             .user()
@@ -248,7 +238,7 @@ mod tests {
             .await
             .unwrap();
 
-        // Lookup the client in the database.
+        // Lookup the client in the database and add oauth2 session
         let client = repo
             .oauth2_client()
             .find_by_client_id(&client_id)
@@ -268,14 +258,11 @@ mod tests {
             .unwrap();
         repo.save().await.unwrap();
 
-        // Grab a key to sign the id_token
-        // We could generate a key on the fly, but because we have one available here,
-        // why not use it?
+        // Generate id_token
         let exp = state.clock.now() + Duration::minutes(10);
         let iat = state.clock.now() - Duration::minutes(10);
         let id_token_hint_claims = serde_json::json!({
             "sub": user.id,
-            // "sid": sid,
             "aud": client_id,
             "exp": exp.timestamp(),
             "iat": iat.timestamp(),
@@ -337,7 +324,7 @@ mod tests {
     }
 
     #[sqlx::test(migrator = "mas_storage_pg::MIGRATOR")]
-    async fn test_end_sessions_with_no_browser_session(pool: PgPool) {
+    async fn test_end_sessions_with_no_existing_oauth2_session(pool: PgPool) {
         setup();
         let state = TestState::from_pool(pool).await.unwrap();
         let mut rng = state.rng();
@@ -358,7 +345,178 @@ mod tests {
 
         let ClientRegistrationResponse { client_id, .. } = response.json();
 
-        // Provision a provider and a link
+        // Create a user and its browser session
+        let mut repo = state.repository().await.unwrap();
+        let user = repo
+            .user()
+            .add(&mut rng, &state.clock, "alice".to_owned())
+            .await
+            .unwrap();
+        let browser_session = repo
+            .browser_session()
+            .add(&mut rng, &state.clock, &user, Some("Chrome".to_owned()))
+            .await
+            .unwrap();
+
+        // We do not add any oauth2 session...
+
+        repo.save().await.unwrap();
+
+        // Generate id_token
+        let exp = state.clock.now() + Duration::minutes(10);
+        let iat = state.clock.now() - Duration::minutes(10);
+        let id_token_hint_claims = serde_json::json!({
+            "sub": user.id,
+            "aud": client_id,
+            "exp": exp.timestamp(),
+            "iat": iat.timestamp(),
+            "iss": "https://example.com/",
+        });
+
+        let key = state
+            .key_store
+            .signing_key_for_algorithm(&JsonWebSignatureAlg::Rs256)
+            .unwrap();
+
+        let signer = key
+            .params()
+            .signing_key_for_alg(&JsonWebSignatureAlg::Rs256)
+            .unwrap();
+        let header: JsonWebSignatureHeader =
+            JsonWebSignatureHeader::new(JsonWebSignatureAlg::Rs256);
+        let id_token_hint =
+            Jwt::sign_with_rng(&mut rng, header, id_token_hint_claims.clone(), &signer).unwrap();
+
+        let mut cookie_jar = state.cookie_jar();
+        let info = SessionInfo::from_session(&browser_session);
+        cookie_jar = cookie_jar.update_session_info(&info);
+        let cookies = CookieHelper::new();
+        cookies.import(cookie_jar);
+
+        let q = Query {
+            id_token_hint: id_token_hint.into_string(),
+            post_logout_redirect_uri: "https://example.com/".to_owned(),
+        };
+
+        let query = serde_urlencoded::to_string(q).unwrap();
+        let url = format!("{}?{}", mas_router::OAuth2EndSession::PATH, query);
+        let request = Request::get(url).empty();
+        let request = cookies.with_cookies(request);
+        let response = state.request(request).await;
+        response.assert_status(StatusCode::SEE_OTHER);
+    }
+
+    #[sqlx::test(migrator = "mas_storage_pg::MIGRATOR")]
+    async fn test_end_sessions_with_client_with_no_response_algorithm(pool: PgPool) {
+        setup();
+        let state = TestState::from_pool(pool).await.unwrap();
+        let mut rng = state.rng();
+
+        // Provision a client
+        let request =
+            Request::post(mas_router::OAuth2RegistrationEndpoint::PATH).json(serde_json::json!({
+                "client_uri": "https://example.com/",
+                "redirect_uris": ["https://example.com/callback"],
+                "token_endpoint_auth_method": "none",
+                "response_types": ["code"],
+                "grant_types": ["authorization_code", "refresh_token"],
+                // We do not define any response algorithm
+            }));
+
+        let response = state.request(request).await;
+        response.assert_status(StatusCode::CREATED);
+
+        let ClientRegistrationResponse { client_id, .. } = response.json();
+
+        // Create a user and its browser session
+        let mut repo = state.repository().await.unwrap();
+        let user = repo
+            .user()
+            .add(&mut rng, &state.clock, "alice".to_owned())
+            .await
+            .unwrap();
+
+        let browser_session = repo
+            .browser_session()
+            .add(&mut rng, &state.clock, &user, Some("Chrome".to_owned()))
+            .await
+            .unwrap();
+
+        // Lookup the client in the database and add oauth2 session
+        repo.oauth2_client()
+            .find_by_client_id(&client_id)
+            .await
+            .unwrap()
+            .unwrap();
+        repo.save().await.unwrap();
+
+        // Generate id_token
+        let exp = state.clock.now() + Duration::minutes(10);
+        let iat = state.clock.now() - Duration::minutes(10);
+        let id_token_hint_claims = serde_json::json!({
+            "sub": user.id,
+            "aud": client_id,
+            "exp": exp.timestamp(),
+            "iat": iat.timestamp(),
+            "iss": "https://example.com/",
+        });
+
+        let key = state
+            .key_store
+            .signing_key_for_algorithm(&JsonWebSignatureAlg::Rs256)
+            .unwrap();
+
+        let signer = key
+            .params()
+            .signing_key_for_alg(&JsonWebSignatureAlg::Rs256)
+            .unwrap();
+        let header: JsonWebSignatureHeader =
+            JsonWebSignatureHeader::new(JsonWebSignatureAlg::Rs256);
+        let id_token_hint =
+            Jwt::sign_with_rng(&mut rng, header, id_token_hint_claims.clone(), &signer).unwrap();
+
+        let mut cookie_jar = state.cookie_jar();
+        let info = SessionInfo::from_session(&browser_session);
+        cookie_jar = cookie_jar.update_session_info(&info);
+        let cookies = CookieHelper::new();
+        cookies.import(cookie_jar);
+
+        let q = Query {
+            id_token_hint: id_token_hint.into_string(),
+            post_logout_redirect_uri: "https://example.com/".to_owned(),
+        };
+
+        let query = serde_urlencoded::to_string(q).unwrap();
+        let url = format!("{}?{}", mas_router::OAuth2EndSession::PATH, query);
+        let request = Request::get(url).empty();
+        let request = cookies.with_cookies(request);
+        let response = state.request(request).await;
+        response.assert_status(StatusCode::SEE_OTHER);
+    }
+
+    #[sqlx::test(migrator = "mas_storage_pg::MIGRATOR")]
+    async fn test_end_sessions_with_no_browser_session_in_cookie(pool: PgPool) {
+        setup();
+        let state = TestState::from_pool(pool).await.unwrap();
+        let mut rng = state.rng();
+
+        // Provision a client
+        let request =
+            Request::post(mas_router::OAuth2RegistrationEndpoint::PATH).json(serde_json::json!({
+                "client_uri": "https://example.com/",
+                "redirect_uris": ["https://example.com/callback"],
+                "token_endpoint_auth_method": "none",
+                "response_types": ["code"],
+                "grant_types": ["authorization_code", "refresh_token"],
+                "id_token_signed_response_alg": "RS256",
+            }));
+
+        let response = state.request(request).await;
+        response.assert_status(StatusCode::CREATED);
+
+        let ClientRegistrationResponse { client_id, .. } = response.json();
+
+        // Create a user
         let mut repo = state.repository().await.unwrap();
         let user = repo
             .user()
@@ -367,11 +525,11 @@ mod tests {
             .unwrap();
         repo.save().await.unwrap();
 
+        // Generate id_token
         let exp = state.clock.now() + Duration::minutes(10);
         let iat = state.clock.now() - Duration::minutes(10);
         let id_token_hint_claims = serde_json::json!({
             "sub": user.id,
-            // "sid": sid,
             "aud": client_id,
             "exp": exp.timestamp(),
             "iat": iat.timestamp(),
@@ -407,7 +565,204 @@ mod tests {
         let request = Request::get(url).empty();
         let request = cookies.with_cookies(request);
         let response = state.request(request).await;
-        cookies.save_cookies(&response);
+        response.assert_status(StatusCode::SEE_OTHER);
+    }
+
+    #[sqlx::test(migrator = "mas_storage_pg::MIGRATOR")]
+    async fn test_end_sessions_with_wrong_issuer_in_id_token(pool: PgPool) {
+        setup();
+        let state = TestState::from_pool(pool).await.unwrap();
+        let mut rng = state.rng();
+
+        // Provision a client
+        let request =
+            Request::post(mas_router::OAuth2RegistrationEndpoint::PATH).json(serde_json::json!({
+                "client_uri": "https://example.com/",
+                "redirect_uris": ["https://example.com/callback"],
+                "token_endpoint_auth_method": "none",
+                "response_types": ["code"],
+                "grant_types": ["authorization_code", "refresh_token"],
+                "id_token_signed_response_alg": "RS256",
+            }));
+
+        let response = state.request(request).await;
+        response.assert_status(StatusCode::CREATED);
+
+        let ClientRegistrationResponse { client_id, .. } = response.json();
+
+        // Create a user and its browser session
+        let mut repo = state.repository().await.unwrap();
+        let user = repo
+            .user()
+            .add(&mut rng, &state.clock, "alice".to_owned())
+            .await
+            .unwrap();
+        let browser_session = repo
+            .browser_session()
+            .add(&mut rng, &state.clock, &user, Some("Chrome".to_owned()))
+            .await
+            .unwrap();
+
+        // Lookup the client in the database and add oauth2 session
+        let client = repo
+            .oauth2_client()
+            .find_by_client_id(&client_id)
+            .await
+            .unwrap()
+            .unwrap();
+        repo.oauth2_session()
+            .add_from_browser_session(
+                &mut state.rng(),
+                &state.clock,
+                &client,
+                &browser_session,
+                Scope::from_iter([OPENID]),
+            )
+            .await
+            .unwrap();
+        repo.save().await.unwrap();
+
+        // Generate id token
+        let exp = state.clock.now() + Duration::minutes(10);
+        let iat = state.clock.now() - Duration::minutes(10);
+        let id_token_hint_claims = serde_json::json!({
+            "sub": user.id,
+            "aud": client_id,
+            "exp": exp.timestamp(),
+            "iat": iat.timestamp(),
+            // Set wrong issuer
+            "iss": "https://wrongissuer.com/",
+        });
+
+        let key = state
+            .key_store
+            .signing_key_for_algorithm(&JsonWebSignatureAlg::Rs256)
+            .unwrap();
+
+        let signer = key
+            .params()
+            .signing_key_for_alg(&JsonWebSignatureAlg::Rs256)
+            .unwrap();
+        let header: JsonWebSignatureHeader =
+            JsonWebSignatureHeader::new(JsonWebSignatureAlg::Rs256);
+        let id_token_hint =
+            Jwt::sign_with_rng(&mut rng, header, id_token_hint_claims.clone(), &signer).unwrap();
+
+        let mut cookie_jar = state.cookie_jar();
+        let info = SessionInfo::from_session(&browser_session);
+        cookie_jar = cookie_jar.update_session_info(&info);
+        let cookies = CookieHelper::new();
+        cookies.import(cookie_jar);
+
+        let q = Query {
+            id_token_hint: id_token_hint.into_string(),
+            post_logout_redirect_uri: "https://example.com/".to_owned(),
+        };
+
+        let query = serde_urlencoded::to_string(q).unwrap();
+        let url = format!("{}?{}", mas_router::OAuth2EndSession::PATH, query);
+        let request = Request::get(url).empty();
+        let request = cookies.with_cookies(request);
+        let response = state.request(request).await;
+        response.assert_status(StatusCode::SEE_OTHER);
+    }
+
+    #[sqlx::test(migrator = "mas_storage_pg::MIGRATOR")]
+    async fn test_end_sessions_with_wrong_client_id_in_id_token(pool: PgPool) {
+        setup();
+        let state = TestState::from_pool(pool).await.unwrap();
+        let mut rng = state.rng();
+
+        // Provision a client
+        let request =
+            Request::post(mas_router::OAuth2RegistrationEndpoint::PATH).json(serde_json::json!({
+                "client_uri": "https://example.com/",
+                "redirect_uris": ["https://example.com/callback"],
+                "token_endpoint_auth_method": "none",
+                "response_types": ["code"],
+                "grant_types": ["authorization_code", "refresh_token"],
+                "id_token_signed_response_alg": "RS256",
+            }));
+
+        let response = state.request(request).await;
+        response.assert_status(StatusCode::CREATED);
+
+        let ClientRegistrationResponse { client_id, .. } = response.json();
+
+        // Create a user and its browser session
+        let mut repo = state.repository().await.unwrap();
+        let user = repo
+            .user()
+            .add(&mut rng, &state.clock, "alice".to_owned())
+            .await
+            .unwrap();
+        let browser_session = repo
+            .browser_session()
+            .add(&mut rng, &state.clock, &user, Some("Chrome".to_owned()))
+            .await
+            .unwrap();
+
+        // Lookup the client in the database and add oauth2 session
+        let client = repo
+            .oauth2_client()
+            .find_by_client_id(&client_id)
+            .await
+            .unwrap()
+            .unwrap();
+        repo.oauth2_session()
+            .add_from_browser_session(
+                &mut state.rng(),
+                &state.clock,
+                &client,
+                &browser_session,
+                Scope::from_iter([OPENID]),
+            )
+            .await
+            .unwrap();
+        repo.save().await.unwrap();
+
+        // Generate id_token
+        let exp = state.clock.now() + Duration::minutes(10);
+        let iat = state.clock.now() - Duration::minutes(10);
+        let id_token_hint_claims = serde_json::json!({
+            "sub": user.id,
+            // Set wrong client id
+            "aud": "wrong_client_id",
+            "exp": exp.timestamp(),
+            "iat": iat.timestamp(),
+            "iss": "https://example.com/",
+        });
+
+        let key = state
+            .key_store
+            .signing_key_for_algorithm(&JsonWebSignatureAlg::Rs256)
+            .unwrap();
+
+        let signer = key
+            .params()
+            .signing_key_for_alg(&JsonWebSignatureAlg::Rs256)
+            .unwrap();
+        let header: JsonWebSignatureHeader =
+            JsonWebSignatureHeader::new(JsonWebSignatureAlg::Rs256);
+        let id_token_hint =
+            Jwt::sign_with_rng(&mut rng, header, id_token_hint_claims.clone(), &signer).unwrap();
+
+        let mut cookie_jar = state.cookie_jar();
+        let info = SessionInfo::from_session(&browser_session);
+        cookie_jar = cookie_jar.update_session_info(&info);
+        let cookies = CookieHelper::new();
+        cookies.import(cookie_jar);
+
+        let q = Query {
+            id_token_hint: id_token_hint.into_string(),
+            post_logout_redirect_uri: "https://example.com/".to_owned(),
+        };
+
+        let query = serde_urlencoded::to_string(q).unwrap();
+        let url = format!("{}?{}", mas_router::OAuth2EndSession::PATH, query);
+        let request = Request::get(url).empty();
+        let request = cookies.with_cookies(request);
+        let response = state.request(request).await;
         response.assert_status(StatusCode::SEE_OTHER);
     }
 }
