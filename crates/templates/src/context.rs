@@ -372,15 +372,15 @@ impl IndexContext {
     /// document URL
     #[must_use]
     pub fn new(
-            discovery_url: Url, 
+        discovery_url: Url,
+        //:tchap:
+        tchap_app_link: Url,
+    ) -> Self {
+        //:tchap:
+        Self {
+            discovery_url,
             //:tchap:
-            tchap_app_link: Url) -> Self {
-            //:tchap:
-        Self { 
-            discovery_url, 
-            //:tchap:
-            tchap_app_link 
-            //:tchap:
+            tchap_app_link, //:tchap:
         }
     }
 }
@@ -399,9 +399,7 @@ impl TemplateContext for IndexContext {
                 .parse()
                 .unwrap(),
             //:tchap:
-            tchap_app_link: "https://app.tchapgouv.com/"
-                .parse()
-                .unwrap(),
+            tchap_app_link: "https://app.tchapgouv.com/".parse().unwrap(),
             //:tchap:
         }])
     }

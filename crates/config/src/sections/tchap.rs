@@ -117,7 +117,7 @@ mod tests {
                 }]
             );
 
-             assert_eq!(
+            assert_eq!(
                 &config.tchap_app_link.as_str().to_owned(),
                 "http://localhost:8089"
             );

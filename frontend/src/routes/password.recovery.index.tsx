@@ -227,8 +227,8 @@ const EmailRecovery: React.FC<{
         // as the backend isn't involved there.
         //:tchap:
         //await navigate({ to: "/", reloadDocument: true });
-        // instead of navigating to the root of the app, naviage to the root of the domain, 
-        // ie the MAS welcome page
+        // instead of navigating to the root of the app, naviage to the root of the domain
+        // ie: the MAS welcome page
         window.location.href = "/";
         //:tchap: end
       }

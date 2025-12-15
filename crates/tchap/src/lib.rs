@@ -418,7 +418,7 @@ mod tests {
         let config = TchapConfig {
             identity_server_url: Url::parse(url.as_str()).unwrap(),
             email_lookup_fallback_rules: vec![],
-            tchap_app_link: Url::parse("https://test").unwrap()
+            tchap_app_link: Url::parse("https://test").unwrap(),
         };
 
         let result = is_email_allowed(email, server_name, &config).await;
@@ -454,7 +454,7 @@ mod tests {
         let config = TchapConfig {
             identity_server_url: Url::parse(url.as_str()).unwrap(),
             email_lookup_fallback_rules: vec![],
-            tchap_app_link: Url::parse("https://test").unwrap()
+            tchap_app_link: Url::parse("https://test").unwrap(),
         };
 
         let result = is_email_allowed(email, server_name, &config).await;
@@ -490,7 +490,7 @@ mod tests {
         let config = TchapConfig {
             identity_server_url: Url::parse(url.as_str()).unwrap(),
             email_lookup_fallback_rules: vec![],
-            tchap_app_link: Url::parse("https://test").unwrap()
+            tchap_app_link: Url::parse("https://test").unwrap(),
         };
 
         let result = is_email_allowed(email, server_name, &config).await;
@@ -526,7 +526,7 @@ mod tests {
         let config = TchapConfig {
             identity_server_url: Url::parse(url.as_str()).unwrap(),
             email_lookup_fallback_rules: vec![],
-            tchap_app_link: Url::parse("https://test").unwrap()
+            tchap_app_link: Url::parse("https://test").unwrap(),
         };
 
         let result = is_email_allowed(email, server_name, &config).await;

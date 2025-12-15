@@ -33,6 +33,6 @@ pub fn test_tchap_config() -> TchapConfig {
             match_with: "@numerique.gouv.fr".to_string(),
             search: "@beta.gouv.fr".to_string(),
         }],
-        tchap_app_link: Url::parse("https://test").unwrap()
+        tchap_app_link: Url::parse("https://test").unwrap(),
     }
 }
