@@ -181,7 +181,6 @@ pub(crate) async fn get(
 
 #[cfg(test)]
 mod tests {
-    use chrono::Duration;
     use hyper::{Request, StatusCode};
     use mas_axum_utils::{SessionInfo, SessionInfoExt};
     use mas_data_model::{Clock as _, Session};
@@ -259,13 +258,8 @@ mod tests {
         repo.save().await.unwrap();
 
         // Generate id_token
-        let exp = state.clock.now() + Duration::minutes(10);
-        let iat = state.clock.now() - Duration::minutes(10);
         let id_token_hint_claims = serde_json::json!({
-            "sub": user.id,
             "aud": client_id,
-            "exp": exp.timestamp(),
-            "iat": iat.timestamp(),
             "iss": "https://example.com/",
         });
 
@@ -363,13 +357,8 @@ mod tests {
         repo.save().await.unwrap();
 
         // Generate id_token
-        let exp = state.clock.now() + Duration::minutes(10);
-        let iat = state.clock.now() - Duration::minutes(10);
         let id_token_hint_claims = serde_json::json!({
-            "sub": user.id,
             "aud": client_id,
-            "exp": exp.timestamp(),
-            "iat": iat.timestamp(),
             "iss": "https://example.com/",
         });
 
@@ -451,13 +440,8 @@ mod tests {
         repo.save().await.unwrap();
 
         // Generate id_token
-        let exp = state.clock.now() + Duration::minutes(10);
-        let iat = state.clock.now() - Duration::minutes(10);
         let id_token_hint_claims = serde_json::json!({
-            "sub": user.id,
             "aud": client_id,
-            "exp": exp.timestamp(),
-            "iat": iat.timestamp(),
             "iss": "https://example.com/",
         });
 
@@ -516,23 +500,9 @@ mod tests {
 
         let ClientRegistrationResponse { client_id, .. } = response.json();
 
-        // Create a user
-        let mut repo = state.repository().await.unwrap();
-        let user = repo
-            .user()
-            .add(&mut rng, &state.clock, "alice".to_owned())
-            .await
-            .unwrap();
-        repo.save().await.unwrap();
-
         // Generate id_token
-        let exp = state.clock.now() + Duration::minutes(10);
-        let iat = state.clock.now() - Duration::minutes(10);
         let id_token_hint_claims = serde_json::json!({
-            "sub": user.id,
             "aud": client_id,
-            "exp": exp.timestamp(),
-            "iat": iat.timestamp(),
             "iss": "https://example.com/",
         });
 
@@ -623,13 +593,8 @@ mod tests {
         repo.save().await.unwrap();
 
         // Generate id token
-        let exp = state.clock.now() + Duration::minutes(10);
-        let iat = state.clock.now() - Duration::minutes(10);
         let id_token_hint_claims = serde_json::json!({
-            "sub": user.id,
             "aud": client_id,
-            "exp": exp.timestamp(),
-            "iat": iat.timestamp(),
             // Set wrong issuer
             "iss": "https://wrongissuer.com/",
         });
@@ -722,14 +687,9 @@ mod tests {
         repo.save().await.unwrap();
 
         // Generate id_token
-        let exp = state.clock.now() + Duration::minutes(10);
-        let iat = state.clock.now() - Duration::minutes(10);
         let id_token_hint_claims = serde_json::json!({
-            "sub": user.id,
             // Set wrong client id
             "aud": "wrong_client_id",
-            "exp": exp.timestamp(),
-            "iat": iat.timestamp(),
             "iss": "https://example.com/",
         });
 
