@@ -363,7 +363,7 @@ pub struct IndexContext {
     discovery_url: Url,
 
     //:tchap:
-    tchap_web_url: Url,
+    tchap_app_link: Url,
     //:tchap:
 }
 
@@ -374,12 +374,12 @@ impl IndexContext {
     pub fn new(
             discovery_url: Url, 
             //:tchap:
-            tchap_web_url: Url) -> Self {
+            tchap_app_link: Url) -> Self {
             //:tchap:
         Self { 
             discovery_url, 
             //:tchap:
-            tchap_web_url 
+            tchap_app_link 
             //:tchap:
         }
     }
@@ -399,7 +399,7 @@ impl TemplateContext for IndexContext {
                 .parse()
                 .unwrap(),
             //:tchap:
-            tchap_web_url: "https://app.tchapgouv.com/"
+            tchap_app_link: "https://app.tchapgouv.com/"
                 .parse()
                 .unwrap(),
             //:tchap:

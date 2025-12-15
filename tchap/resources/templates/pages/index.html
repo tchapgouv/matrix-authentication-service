@@ -31,11 +31,11 @@ Please see LICENSE files in the repository root for full details.
       <!--
         {{ button.link(text=_("mas.navbar.my_account"), href="/account/") }}
         -->
-        {{ button.link(text="Continuer dans Tchap", href=tchap_web_url) }}
+        {{ button.link(text="Continuer dans Tchap", href=tchap_app_link) }}
         {{ button.link(text="Continuer dans Tchap Windows", href="tchap://connect") }}
         {{ logout.button(text=_("action.sign_out"), csrf_token=csrf_token) }} 
     {% else %}
-      {{ button.link(text="Continuer dans Tchap", href=tchap_web_url) }}
+      {{ button.link(text="Continuer dans Tchap", href=tchap_app_link) }}
       {{ button.link(text="Continuer dans Tchap Windows", href="tchap://connect") }}
     {% endif %}
   </main>

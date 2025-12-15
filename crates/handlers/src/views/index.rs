@@ -56,7 +56,7 @@ pub async fn get(
     }
 
     //:tchap:
-    let ctx = IndexContext::new(url_builder.oidc_discovery(), tchap_config.tchap_web_url)
+    let ctx = IndexContext::new(url_builder.oidc_discovery(), tchap_config.tchap_app_link)
         .maybe_with_session(maybe_session)
         .with_csrf(csrf_token.form_value())
         .with_language(locale);

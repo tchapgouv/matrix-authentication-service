@@ -36,7 +36,7 @@ pub struct TchapConfig {
     pub email_lookup_fallback_rules: Vec<EmailLookupFallbackRule>,
 
     /// Tchap Web URL
-    pub tchap_web_url: Url,
+    pub tchap_app_link: Url,
 }
 
 #[derive(PartialEq, Eq, Clone, Debug)]
