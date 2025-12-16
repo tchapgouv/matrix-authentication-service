@@ -142,10 +142,8 @@ pub(crate) async fn get(
         .record_oauth2_session(&clock, &oauth_session)
         .await;
 
-    // If the session is associated with a user, make sure we schedule a device
-    // deletion job for all the devices associated with the session.
+    // schedule a job which syncs the list of devices of a user with the homeserver
     if let Some(user_id) = oauth_session.user_id {
-        // Fetch the user
         let Some(user) = repo.user().lookup(user_id).await? else {
             info!(
                 "Cannot find user [browser session id={}, oauth2 session id: {}, user id: {}]",
@@ -154,7 +152,6 @@ pub(crate) async fn get(
             return Ok((cookie_jar, Redirect::to(&params.post_logout_redirect_uri)).into_response());
         };
 
-        // Schedule a job to sync the devices of the user with the homeserver
         repo.queue_job()
             .schedule_job(&mut rng, &clock, SyncDevicesJob::new(&user))
             .await?;
@@ -181,25 +178,23 @@ pub(crate) async fn get(
 
 #[cfg(test)]
 mod tests {
-    use mas_keystore::Keystore;
-
     use hyper::{Request, StatusCode};
     use mas_axum_utils::{SessionInfo, SessionInfoExt};
     use mas_data_model::{Clock as _, Session};
     use mas_iana::jose::JsonWebSignatureAlg;
     use mas_jose::jwt::{JsonWebSignatureHeader, Jwt};
+    use mas_keystore::Keystore;
     use mas_router::SimpleRoute;
-    use serde_json::Value;
-
     use oauth2_types::{
         registration::ClientRegistrationResponse,
         scope::{OPENID, Scope},
     };
+    use rand_chacha::ChaChaRng;
     use serde::Serialize;
+    use serde_json::Value;
     use sqlx::PgPool;
 
     use crate::test_utils::{CookieHelper, RequestBuilderExt, ResponseExt, TestState, setup};
-    use rand_chacha::ChaChaRng;
 
     #[derive(Serialize)]
     struct Query {
@@ -269,7 +264,8 @@ mod tests {
             "iss": "https://example.com/",
         });
 
-        let id_token_hint: Jwt<'_, Value> = sign_token(&mut rng, &state.key_store, id_token_hint_claims.clone()).unwrap();
+        let id_token_hint: Jwt<'_, Value> =
+            sign_token(&mut rng, &state.key_store, id_token_hint_claims.clone()).unwrap();
 
         let mut cookie_jar = state.cookie_jar();
         let info = SessionInfo::from_session(&browser_session);
@@ -356,7 +352,8 @@ mod tests {
             "iss": "https://example.com/",
         });
 
-        let id_token_hint: Jwt<'_, Value> = sign_token(&mut rng, &state.key_store, id_token_hint_claims.clone()).unwrap();
+        let id_token_hint: Jwt<'_, Value> =
+            sign_token(&mut rng, &state.key_store, id_token_hint_claims.clone()).unwrap();
 
         let mut cookie_jar = state.cookie_jar();
         let info = SessionInfo::from_session(&browser_session);
@@ -427,7 +424,8 @@ mod tests {
             "iss": "https://example.com/",
         });
 
-        let id_token_hint: Jwt<'_, Value> = sign_token(&mut rng, &state.key_store, id_token_hint_claims.clone()).unwrap();
+        let id_token_hint: Jwt<'_, Value> =
+            sign_token(&mut rng, &state.key_store, id_token_hint_claims.clone()).unwrap();
 
         let mut cookie_jar = state.cookie_jar();
         let info = SessionInfo::from_session(&browser_session);
@@ -476,8 +474,8 @@ mod tests {
             "iss": "https://example.com/",
         });
 
-        let id_token_hint: Jwt<'_, Value> = sign_token(&mut rng, &state.key_store, id_token_hint_claims.clone()).unwrap();
-
+        let id_token_hint: Jwt<'_, Value> =
+            sign_token(&mut rng, &state.key_store, id_token_hint_claims.clone()).unwrap();
 
         // We will send the cookie with no session id
         let cookie_jar = state.cookie_jar();
@@ -558,7 +556,8 @@ mod tests {
             "iss": "https://wrongissuer.com/",
         });
 
-        let id_token_hint: Jwt<'_, Value> = sign_token(&mut rng, &state.key_store, id_token_hint_claims.clone()).unwrap();
+        let id_token_hint: Jwt<'_, Value> =
+            sign_token(&mut rng, &state.key_store, id_token_hint_claims.clone()).unwrap();
 
         let mut cookie_jar = state.cookie_jar();
         let info = SessionInfo::from_session(&browser_session);
@@ -640,8 +639,8 @@ mod tests {
             "iss": "https://example.com/",
         });
 
-        let id_token_hint: Jwt<'_, Value> = sign_token(&mut rng, &state.key_store, id_token_hint_claims.clone()).unwrap();
-
+        let id_token_hint: Jwt<'_, Value> =
+            sign_token(&mut rng, &state.key_store, id_token_hint_claims.clone()).unwrap();
 
         let mut cookie_jar = state.cookie_jar();
         let info = SessionInfo::from_session(&browser_session);
@@ -662,7 +661,8 @@ mod tests {
         response.assert_status(StatusCode::SEE_OTHER);
     }
 
-    // same util function is defined in link.rs, might be good to define it in test_utils.rs
+    // same util function is defined in link.rs, might be good to define it in
+    // test_utils.rs
     pub fn sign_token(
         rng: &mut ChaChaRng,
         keystore: &Keystore,
