@@ -96,7 +96,7 @@ mod tests {
                       email_lookup_fallback_rules:
                         - match_with : '@upstream.domain.tld'
                           search: '@matrix.domain.tld'
-                      tchap_app_link: http://localhost:8089
+                      tchap_app_link: http://localhost:9999
                 ",
             )?;
 
@@ -119,7 +119,7 @@ mod tests {
 
             assert_eq!(
                 &config.tchap_app_link.as_str().to_owned(),
-                "http://localhost:8089"
+                "http://localhost:9999/"
             );
 
             Ok(())
