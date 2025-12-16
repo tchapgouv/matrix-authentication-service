@@ -181,12 +181,16 @@ pub(crate) async fn get(
 
 #[cfg(test)]
 mod tests {
+    use mas_keystore::Keystore;
+
     use hyper::{Request, StatusCode};
     use mas_axum_utils::{SessionInfo, SessionInfoExt};
     use mas_data_model::{Clock as _, Session};
     use mas_iana::jose::JsonWebSignatureAlg;
     use mas_jose::jwt::{JsonWebSignatureHeader, Jwt};
     use mas_router::SimpleRoute;
+    use serde_json::Value;
+
     use oauth2_types::{
         registration::ClientRegistrationResponse,
         scope::{OPENID, Scope},
@@ -195,6 +199,7 @@ mod tests {
     use sqlx::PgPool;
 
     use crate::test_utils::{CookieHelper, RequestBuilderExt, ResponseExt, TestState, setup};
+    use rand_chacha::ChaChaRng;
 
     #[derive(Serialize)]
     struct Query {
@@ -231,6 +236,7 @@ mod tests {
             .add(&mut rng, &state.clock, "alice".to_owned())
             .await
             .unwrap();
+
         let browser_session = repo
             .browser_session()
             .add(&mut rng, &state.clock, &user, Some("Chrome".to_owned()))
@@ -263,19 +269,7 @@ mod tests {
             "iss": "https://example.com/",
         });
 
-        let key = state
-            .key_store
-            .signing_key_for_algorithm(&JsonWebSignatureAlg::Rs256)
-            .unwrap();
-
-        let signer = key
-            .params()
-            .signing_key_for_alg(&JsonWebSignatureAlg::Rs256)
-            .unwrap();
-        let header: JsonWebSignatureHeader =
-            JsonWebSignatureHeader::new(JsonWebSignatureAlg::Rs256);
-        let id_token_hint =
-            Jwt::sign_with_rng(&mut rng, header, id_token_hint_claims.clone(), &signer).unwrap();
+        let id_token_hint: Jwt<'_, Value> = sign_token(&mut rng, &state.key_store, id_token_hint_claims.clone()).unwrap();
 
         let mut cookie_jar = state.cookie_jar();
         let info = SessionInfo::from_session(&browser_session);
@@ -362,19 +356,7 @@ mod tests {
             "iss": "https://example.com/",
         });
 
-        let key = state
-            .key_store
-            .signing_key_for_algorithm(&JsonWebSignatureAlg::Rs256)
-            .unwrap();
-
-        let signer = key
-            .params()
-            .signing_key_for_alg(&JsonWebSignatureAlg::Rs256)
-            .unwrap();
-        let header: JsonWebSignatureHeader =
-            JsonWebSignatureHeader::new(JsonWebSignatureAlg::Rs256);
-        let id_token_hint =
-            Jwt::sign_with_rng(&mut rng, header, id_token_hint_claims.clone(), &signer).unwrap();
+        let id_token_hint: Jwt<'_, Value> = sign_token(&mut rng, &state.key_store, id_token_hint_claims.clone()).unwrap();
 
         let mut cookie_jar = state.cookie_jar();
         let info = SessionInfo::from_session(&browser_session);
@@ -445,19 +427,7 @@ mod tests {
             "iss": "https://example.com/",
         });
 
-        let key = state
-            .key_store
-            .signing_key_for_algorithm(&JsonWebSignatureAlg::Rs256)
-            .unwrap();
-
-        let signer = key
-            .params()
-            .signing_key_for_alg(&JsonWebSignatureAlg::Rs256)
-            .unwrap();
-        let header: JsonWebSignatureHeader =
-            JsonWebSignatureHeader::new(JsonWebSignatureAlg::Rs256);
-        let id_token_hint =
-            Jwt::sign_with_rng(&mut rng, header, id_token_hint_claims.clone(), &signer).unwrap();
+        let id_token_hint: Jwt<'_, Value> = sign_token(&mut rng, &state.key_store, id_token_hint_claims.clone()).unwrap();
 
         let mut cookie_jar = state.cookie_jar();
         let info = SessionInfo::from_session(&browser_session);
@@ -506,19 +476,8 @@ mod tests {
             "iss": "https://example.com/",
         });
 
-        let key = state
-            .key_store
-            .signing_key_for_algorithm(&JsonWebSignatureAlg::Rs256)
-            .unwrap();
+        let id_token_hint: Jwt<'_, Value> = sign_token(&mut rng, &state.key_store, id_token_hint_claims.clone()).unwrap();
 
-        let signer = key
-            .params()
-            .signing_key_for_alg(&JsonWebSignatureAlg::Rs256)
-            .unwrap();
-        let header: JsonWebSignatureHeader =
-            JsonWebSignatureHeader::new(JsonWebSignatureAlg::Rs256);
-        let id_token_hint =
-            Jwt::sign_with_rng(&mut rng, header, id_token_hint_claims.clone(), &signer).unwrap();
 
         // We will send the cookie with no session id
         let cookie_jar = state.cookie_jar();
@@ -599,19 +558,7 @@ mod tests {
             "iss": "https://wrongissuer.com/",
         });
 
-        let key = state
-            .key_store
-            .signing_key_for_algorithm(&JsonWebSignatureAlg::Rs256)
-            .unwrap();
-
-        let signer = key
-            .params()
-            .signing_key_for_alg(&JsonWebSignatureAlg::Rs256)
-            .unwrap();
-        let header: JsonWebSignatureHeader =
-            JsonWebSignatureHeader::new(JsonWebSignatureAlg::Rs256);
-        let id_token_hint =
-            Jwt::sign_with_rng(&mut rng, header, id_token_hint_claims.clone(), &signer).unwrap();
+        let id_token_hint: Jwt<'_, Value> = sign_token(&mut rng, &state.key_store, id_token_hint_claims.clone()).unwrap();
 
         let mut cookie_jar = state.cookie_jar();
         let info = SessionInfo::from_session(&browser_session);
@@ -693,19 +640,8 @@ mod tests {
             "iss": "https://example.com/",
         });
 
-        let key = state
-            .key_store
-            .signing_key_for_algorithm(&JsonWebSignatureAlg::Rs256)
-            .unwrap();
+        let id_token_hint: Jwt<'_, Value> = sign_token(&mut rng, &state.key_store, id_token_hint_claims.clone()).unwrap();
 
-        let signer = key
-            .params()
-            .signing_key_for_alg(&JsonWebSignatureAlg::Rs256)
-            .unwrap();
-        let header: JsonWebSignatureHeader =
-            JsonWebSignatureHeader::new(JsonWebSignatureAlg::Rs256);
-        let id_token_hint =
-            Jwt::sign_with_rng(&mut rng, header, id_token_hint_claims.clone(), &signer).unwrap();
 
         let mut cookie_jar = state.cookie_jar();
         let info = SessionInfo::from_session(&browser_session);
@@ -724,5 +660,25 @@ mod tests {
         let request = cookies.with_cookies(request);
         let response = state.request(request).await;
         response.assert_status(StatusCode::SEE_OTHER);
+    }
+
+    // same util function is defined in link.rs, might be good to define it in test_utils.rs
+    pub fn sign_token(
+        rng: &mut ChaChaRng,
+        keystore: &Keystore,
+        payload: Value,
+    ) -> Result<Jwt<'static, Value>, mas_jose::jwt::JwtSignatureError> {
+        let key = keystore
+            .signing_key_for_algorithm(&JsonWebSignatureAlg::Rs256)
+            .unwrap();
+
+        let signer = key
+            .params()
+            .signing_key_for_alg(&JsonWebSignatureAlg::Rs256)
+            .unwrap();
+
+        let header = JsonWebSignatureHeader::new(JsonWebSignatureAlg::Rs256);
+
+        Jwt::sign_with_rng(rng, header, payload, &signer)
     }
 }
