@@ -98,6 +98,8 @@ pub(crate) async fn get(
         )));
     }
 
+    //:tchap: skip username checks
+    /*
     // Let's perform last minute checks on the registration, especially to avoid
     // race conditions where multiple users register with the same username or email
     // address
@@ -119,6 +121,8 @@ pub(crate) async fn get(
             "Username is not available"
         )));
     }
+    */
+    //:tchap:end
 
     // Check if the registration token is required and was provided
     let registration_token = if site_config.registration_token_required {
