@@ -238,10 +238,6 @@ pub(crate) async fn post(
                 state.add_error_on_field(RegisterFormField::Email, FieldError::Invalid);
             }
 
-            // TODO
-            // check if email is already taken, in this case, send an email to notify the user
-            // that he/she already has an account
-
             //verify that email address is allowed in this homeserver
             let server_name = homeserver.homeserver();
             let email_result = check_email_allowed(email, server_name, &tchap_config).await;
