@@ -227,6 +227,7 @@ pub(crate) async fn post(
             state.add_error_on_form(FormError::Captcha);
         }
 
+        //:tchap:
         if let Some(email) = &email {
             // Note that we don't check here if the email is already taken here, as
             // we don't want to leak the information about other users. Instead, we will
@@ -236,6 +237,10 @@ pub(crate) async fn post(
             } else if Address::from_str(email).is_err() {
                 state.add_error_on_field(RegisterFormField::Email, FieldError::Invalid);
             }
+
+            // TODO
+            // check if email is already taken, in this case, send an email to notify the user
+            // that he/she already has an account
 
             //verify that email address is allowed in this homeserver
             let server_name = homeserver.homeserver();
@@ -270,6 +275,7 @@ pub(crate) async fn post(
             //mutate the username in the form based on the email
             form.username = email_to_mxid_localpart(email);
         }
+        //:tchap: end
 
         let mut homeserver_denied_username = false;
 
@@ -851,7 +857,7 @@ mod tests {
         assert!(response.body().contains("Password fields don't match"));
     }
 
-    #[ignore = "tchap does not need it"]
+    #[ignore = "tchap does not need it because username is generated automatically"]
     #[sqlx::test(migrator = "mas_storage_pg::MIGRATOR")]
     async fn test_register_username_too_long(pool: PgPool) {
         setup();
@@ -898,25 +904,20 @@ mod tests {
     }
 
     /// When the user already exists in the database, it should give an error
-    #[ignore = "tchap does not need it"]
+    #[ignore = "tchap does not need it because username is not a unique identifier in Tchap"]
     #[sqlx::test(migrator = "mas_storage_pg::MIGRATOR")]
     async fn test_register_user_exists(pool: PgPool) {
         setup();
         let state = TestState::from_pool(pool).await.unwrap();
         let mut rng = state.rng();
         let cookies = CookieHelper::new();
-        //:tchap:
-        let email = "john@example.com";
-        let expected_username = "john-example.com";
 
         // Insert a user in the database first
         let mut repo = state.repository().await.unwrap();
         repo.user()
-            //          .add(&mut rng, &state.clock, "john".to_owned())
-            .add(&mut rng, &state.clock, expected_username.to_owned())
+            .add(&mut rng, &state.clock, "john".to_owned())
             .await
             .unwrap();
-        //:tchap:end
         repo.save().await.unwrap();
 
         // Render the registration page and get the CSRF token
@@ -941,10 +942,8 @@ mod tests {
         let request = Request::post(&*mas_router::PasswordRegister::default().path_and_query())
             .form(serde_json::json!({
                 "csrf": csrf_token,
-                //:tchap:
-                "username": "--",
-                "email": email,
-                //:tchap:end
+                "username": "john",
+                "email": "john@example.com",
                 "password": "hunter2",
                 "password_confirm": "hunter2",
                 "accept_terms": "on",
@@ -958,7 +957,7 @@ mod tests {
 
     /// When the username is already reserved on the homeserver, it should give
     /// an error
-    #[ignore = "tchap does not need it"]
+    #[ignore = "tchap does not need it because username is not a unique identifier in Tchap"]
     #[sqlx::test(migrator = "mas_storage_pg::MIGRATOR")]
     async fn test_register_user_reserved(pool: PgPool) {
         setup();
@@ -983,21 +982,14 @@ mod tests {
             .next()
             .unwrap();
 
-        //:tchap:
         // Reserve "john" on the homeserver
-        //state.homeserver_connection.reserve_localpart("john").await;
-        let expected_username = "john-example.com";
-        state
-            .homeserver_connection
-            .reserve_localpart(expected_username)
-            .await;
-        //:tchap:end
+        state.homeserver_connection.reserve_localpart("john").await;
 
         // Submit the registration form
         let request = Request::post(&*mas_router::PasswordRegister::default().path_and_query())
             .form(serde_json::json!({
                 "csrf": csrf_token,
-                "username": "--",//:tchap:
+                "username": "john",
                 "email": "john@example.com",
                 "password": "hunter2",
                 "password_confirm": "hunter2",
@@ -1011,8 +1003,6 @@ mod tests {
     }
 
     /// Test registration without email when email is not required
-    /// /// :tchap: ignore test
-    #[ignore = "tchap does not need it"]
     #[sqlx::test(migrator = "mas_storage_pg::MIGRATOR")]
     async fn test_register_without_email_when_not_required(pool: PgPool) {
         setup();
@@ -1082,8 +1072,6 @@ mod tests {
 
     /// Test registration with valid email when email is not required
     /// (email input is ignored completely when not required)
-    /// :tchap: ignore test
-    #[ignore = "tchap does not need it"]
     #[sqlx::test(migrator = "mas_storage_pg::MIGRATOR")]
     async fn test_register_with_email_when_not_required(pool: PgPool) {
         setup();
