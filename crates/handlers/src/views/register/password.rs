@@ -283,7 +283,7 @@ pub(crate) async fn post(
         } else if repo.user().exists(&form.username).await? {
             // The user already exists in the database
             state.add_error_on_field(RegisterFormField::Username, FieldError::Exists);
-        } else  
+        } else
         */
         //:tchap:end
         if !homeserver
@@ -607,8 +607,8 @@ mod tests {
 
     /// :tchap:
     /// Test the registration happy path with `oauth2_authorization_grant` and
-    /// `login_hint``. this test is specific to Tchap beacause in the upstream register there is
-    /// no oauth2_authorization_grant in the fixture
+    /// `login_hint``. this test is specific to Tchap beacause in the upstream
+    /// register there is no oauth2_authorization_grant in the fixture
     #[sqlx::test(migrator = "mas_storage_pg::MIGRATOR")]
     async fn test_register_with_login_hint(pool: PgPool) {
         setup();
@@ -985,7 +985,7 @@ mod tests {
                 "username": "john",
                 //:tchap:
                 //"email": "john@example.com",
-                "email": "john", 
+                "email": "john",
                 "password": "hunter2",
                 "password_confirm": "hunter2",
                 "accept_terms": "on",

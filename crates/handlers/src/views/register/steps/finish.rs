@@ -98,8 +98,9 @@ pub(crate) async fn get(
         )));
     }
 
-    //:tchap: deactivate this username checks because it raises a 500 error which is caught by our WAF
-    //:tchap: furthermore user existance is covered by email checks below
+    //:tchap: deactivate this username checks because it raises a 500 error which is
+    //:tchap: caught by our WAF furthermore user existance is covered by email
+    //:tchap: checks below
     if false {
         //:tchap:end
         // Let's perform last minute checks on the registration, especially to avoid
@@ -114,8 +115,8 @@ pub(crate) async fn get(
             )));
         }
         //:tchap:
-        }
-        //:tchap:end
+    }
+    //:tchap:end
 
     if !homeserver
         .is_localpart_available(&registration.username)
