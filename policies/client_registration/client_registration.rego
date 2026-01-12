@@ -39,9 +39,7 @@ secure_url(x) if {
 }
 
 # :TCHAP: Accept http://tauri.localhost for Tchap Desktop
-secure_url(url) if {
-	url == "http://tauri.localhost"
-}
+secure_url("http://tauri.localhost")
 
 # :TCHAP: End
 
