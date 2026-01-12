@@ -38,6 +38,13 @@ secure_url(x) if {
 	url.host != "[::1]"
 }
 
+# :TCHAP: Accept http://tauri.localhost for Tchap Desktop
+secure_url(url) if {
+	url == "http://tauri.localhost"
+}
+
+# :TCHAP: End
+
 host_matches_client_uri(_) if {
 	# Do not check we allow host mismatch
 	data.client_registration.allow_host_mismatch
@@ -146,6 +153,14 @@ valid_redirect_uri(uri) if {
 	secure_url(uri)
 	host_matches_client_uri(uri)
 }
+
+# :TCHAP: valid redirect for Tchap Desktop
+valid_redirect_uri(uri) if {
+	input.client_metadata.application_type == "web"
+	uri == "tchap:/tauri.localhost/"
+}
+
+# :TCHAP: End
 
 # METADATA
 # entrypoint: true
