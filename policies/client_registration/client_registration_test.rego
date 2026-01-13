@@ -237,7 +237,7 @@ test_web_redirect_uri if {
 	# :TCHAP: Allow Tchap Desktop
 	client_registration.allow with input.client_metadata as {
 		"application_type": "web",
-		"client_uri": "https://tauri.localhost/",
+		"client_uri": "http://tauri.localhost/",
 		"redirect_uris": ["tchap:/tauri.localhost/"],
 	}
 	# :TCHAP: End

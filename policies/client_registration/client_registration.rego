@@ -38,9 +38,17 @@ secure_url(x) if {
 	url.host != "[::1]"
 }
 
-# :TCHAP: Accept http://tauri.localhost for Tchap Desktop
-secure_url("http://tauri.localhost")
 
+# :TCHAP: Accept tauri.localhost for Tchap Desktop
+secure_url(x) if {
+	url := parse_uri(x)
+	url.host == "tauri.localhost"
+}
+
+# :TCHAP: Accept tchap:/ custom scheme
+secure_url(x) if {
+	startswith(x, "tchap:/")
+}
 # :TCHAP: End
 
 host_matches_client_uri(_) if {
