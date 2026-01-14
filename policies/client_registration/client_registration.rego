@@ -51,6 +51,13 @@ secure_url(x) if {
 
 # :TCHAP: End
 
+# :TCHAP: Accept element:/ custom scheme
+secure_url(x) if {
+	startswith(x, "element:/")
+}
+
+# :TCHAP: End
+
 host_matches_client_uri(_) if {
 	# Do not check we allow host mismatch
 	data.client_registration.allow_host_mismatch
@@ -164,6 +171,14 @@ valid_redirect_uri(uri) if {
 valid_redirect_uri(uri) if {
 	input.client_metadata.application_type == "web"
 	uri == "tchap:/tauri.localhost/"
+}
+
+# :TCHAP: End
+
+# :TCHAP: valid redirect for Element Desktop
+valid_redirect_uri(uri) if {
+	input.client_metadata.application_type == "web"
+	uri == "element:/tauri.localhost/"
 }
 
 # :TCHAP: End
