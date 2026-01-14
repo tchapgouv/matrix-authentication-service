@@ -236,18 +236,10 @@ test_web_redirect_uri if {
 
 	# :TCHAP: Allow Tchap Desktop
 	client_registration.allow with input.client_metadata as {
-		"application_type": "web",
-		"client_uri": "http://tauri.localhost/",
+		"application_type": "native",
+		"client_uri": "https://tauri.localhost/",
 		"redirect_uris": ["tchap:/tauri.localhost/"],
 	}
-
-	# :TCHAP: test how Element Desktop is allowed
-	client_registration.allow with input.client_metadata as {
-		"application_type": "native",
-		"client_uri": "https://element.io/",
-		"redirect_uris": ["io.element.desktop:/vector/webapp/"],
-	}
-	# :TCHAP: End
 }
 
 test_web_redirect_uri_insecure if {
