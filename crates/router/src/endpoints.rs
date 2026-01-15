@@ -621,14 +621,19 @@ impl SimpleRoute for CompatLoginSsoRedirectIdp {
 #[derive(Debug, Serialize, Deserialize, Clone, Copy)]
 #[serde(rename_all = "lowercase")]
 pub enum CompatLoginSsoAction {
+    #[serde(alias = "LOGIN")]
     Login,
+    #[serde(alias = "REGISTER")]
     Register,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Copy)]
 pub struct CompatLoginSsoActionParams {
-    #[serde(rename = "org.matrix.msc3824.action")]
     action: CompatLoginSsoAction,
+    /// DEPRECATED: Use `action` instead. We will remove this once enough
+    /// clients support the stable name.
+    #[serde(rename = "org.matrix.msc3824.action")]
+    unstable_action: CompatLoginSsoAction,
 }
 
 /// `GET|POST /complete-compat-sso/{id}`
@@ -642,7 +647,10 @@ impl CompatLoginSsoComplete {
     pub fn new(id: Ulid, action: Option<CompatLoginSsoAction>) -> Self {
         Self {
             id,
-            query: action.map(|action| CompatLoginSsoActionParams { action }),
+            query: action.map(|action| CompatLoginSsoActionParams {
+                action,
+                unstable_action: action,
+            }),
         }
     }
 }
