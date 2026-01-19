@@ -22,6 +22,9 @@ use crate::impl_from_error_for_route;
 pub struct Params {
     #[serde(rename = "redirectUrl")]
     redirect_url: Option<String>,
+    //:tchap: add params renaming for mobile legacy tchap devices
+    #[serde(rename = "org.matrix.msc3824.action")]
+    //:tchap: end
     action: Option<CompatLoginSsoAction>,
 }
 
