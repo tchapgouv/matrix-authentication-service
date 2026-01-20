@@ -284,8 +284,7 @@ pub(crate) async fn post(
             // The user already exists in the database
             state.add_error_on_field(RegisterFormField::Username, FieldError::Exists);
         } else
-        */
-        //:tchap:end
+        
         if !homeserver
             .is_localpart_available(&form.username)
             .await
@@ -296,11 +295,13 @@ pub(crate) async fn post(
                 username = &form.username,
                 "Homeserver denied username provided by user"
             );
-
             // We defer adding the error on the field, until we know whether we had another
             // error from the policy, to avoid showing both
             homeserver_denied_username = true;
         }
+        */
+        //:tchap:end
+
         if form.password.is_empty() {
             state.add_error_on_field(RegisterFormField::Password, FieldError::Required);
         }

@@ -102,7 +102,6 @@ pub(crate) async fn get(
     //:tchap: caught by our WAF furthermore user existance is covered by email
     //:tchap: checks below
     if false {
-        //:tchap:end
         // Let's perform last minute checks on the registration, especially to avoid
         // race conditions where multiple users register with the same username or email
         // address
@@ -114,19 +113,19 @@ pub(crate) async fn get(
                 "Username is already taken"
             )));
         }
-        //:tchap:
-    }
-    //:tchap:end
 
-    if !homeserver
-        .is_localpart_available(&registration.username)
-        .await
-        .map_err(InternalError::from_anyhow)?
-    {
-        return Err(InternalError::from_anyhow(anyhow::anyhow!(
-            "Username is not available"
-        )));
+        if !homeserver
+            .is_localpart_available(&registration.username)
+            .await
+            .map_err(InternalError::from_anyhow)?
+        {
+            return Err(InternalError::from_anyhow(anyhow::anyhow!(
+                "Username is not available"
+            )));
+        }
     }
+    //this block is deactivated
+    //:tchap:end
 
     // Check if the registration token is required and was provided
     let registration_token = if site_config.registration_token_required {
