@@ -277,6 +277,7 @@ pub(crate) async fn post(
 
         //:tchap:
         //we skip username error checks because Tchap account allowance relies on email
+        //we do not want to leak information on email existance at this stage
         /*
         if form.username.is_empty() {
             state.add_error_on_field(RegisterFormField::Username, FieldError::Required);
@@ -284,7 +285,6 @@ pub(crate) async fn post(
             // The user already exists in the database
             state.add_error_on_field(RegisterFormField::Username, FieldError::Exists);
         } else
-        
         if !homeserver
             .is_localpart_available(&form.username)
             .await
@@ -952,6 +952,7 @@ mod tests {
 
     /// When the username is already reserved on the homeserver, it should give
     /// an error
+    #[ignore = "Tchap does not check user existance by username in Synapse"]
     #[sqlx::test(migrator = "mas_storage_pg::MIGRATOR")]
     async fn test_register_user_reserved(pool: PgPool) {
         setup();
