@@ -304,5 +304,5 @@ rate_limiting:
   # based on source IP address.
   # This limit can protect against e-mail spam and against people registering too many accounts.
   registration:
-    burst: 500
-    per_second: 0.05
+    burst: 50000 #insanely high limit for E2E tests
+    per_second: 1000 #insanely high limit for E2E tests
