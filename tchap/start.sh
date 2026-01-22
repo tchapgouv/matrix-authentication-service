@@ -12,20 +12,22 @@ export MAS_HOME="$(dirname "$SCRIPT_DIR")"
 export MAS_TCHAP_HOME=$SCRIPT_DIR
 export RUST_LOG=info
 
+DOCKER_COMPOSE_FILE="$MAS_TCHAP_HOME/docker-compose.yml"
+
 # start the postgres service if not running already
 echo "Step 1/7: Checking PostgreSQL service status..."
 
 # Check if postgres container is running
 if ! docker compose ps postgres | grep -q "Up"; then
     echo "PostgreSQL is not running. Starting docker-compose services..."
-    docker compose up -d postgres
+    docker compose -f $DOCKER_COMPOSE_FILE up -d postgres 
     
     # Wait for PostgreSQL to be ready
     echo "Waiting for PostgreSQL to be ready..."
-    docker compose exec postgres pg_isready -U postgres
+    docker compose -f $DOCKER_COMPOSE_FILE exec postgres pg_isready -U postgres 
     while [ $? -ne 0 ]; do
         sleep 10
-        docker compose exec postgres pg_isready -U postgres
+        docker compose -f $DOCKER_COMPOSE_FILE exec postgres pg_isready -U postgres
     done
     echo "PostgreSQL is ready!"
 else
