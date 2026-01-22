@@ -41,52 +41,53 @@ template_yaml_file="$MAS_TCHAP_HOME/conf/config.template.yaml"
 yaml_file="$MAS_TCHAP_DATA/config.local.dev.yaml"
 cp $template_yaml_file $yaml_file
 MAS_TCHAP_TEMPLATES="$MAS_TCHAP_DATA/templates"
-sed -i '' -E "/^templates:/,/^[^[:space:]]/ s|^[[:space:]]*path:.*|  path: \"$MAS_TCHAP_TEMPLATES\"|" "$yaml_file"
+ls -l "$yaml_file"
+sed -i -E "/^templates:/,/^[^[:space:]]/ s|^[[:space:]]*path:.*|  path: \"$MAS_TCHAP_TEMPLATES\"|" "$yaml_file"
 
 echo "Step 6/7: Updating translations..."
 MAS_TCHAP_TRANSLATIONS="$MAS_HOME/tchap/resources/translations"
 cargo run -p mas-i18n-scan  -- --update "${MAS_TCHAP_TEMPLATES}" "${MAS_TCHAP_TRANSLATIONS}/en.json"
-sed -i '' -E "/^templates:/,/^[^[:space:]]/ s|^[[:space:]]*translations_path:.*|  translations_path: \"$MAS_TCHAP_TRANSLATIONS\"|" "$yaml_file"
+sed -i -E "/^templates:/,/^[^[:space:]]/ s|^[[:space:]]*translations_path:.*|  translations_path: \"$MAS_TCHAP_TRANSLATIONS\"|" -- "$yaml_file"
 
 echo "Step 7/7: Updating matrix secret..."
 # Replace the placeholder secret value with the environment variable or warning message
 if [ -n "${HOMESERVER_SECRET+x}" ] && [ -n "$HOMESERVER_SECRET" ]; then
   # HOMESERVER_SECRET is defined and not empty
-  sed -i '' -E "s|secret: 'TO BE COPY'|secret: '$HOMESERVER_SECRET'|" "$yaml_file"
+  sed -i -E "s|secret: 'TO BE COPY'|secret: '$HOMESERVER_SECRET'|" "$yaml_file"
 else
-  sed -i '' -E "s|secret: 'TO BE COPY'|secret: 'WARNING NO HOMESERVER_SECRET DEFINED'|" "$yaml_file"
+  sed -i -E "s|secret: 'TO BE COPY'|secret: 'WARNING NO HOMESERVER_SECRET DEFINED'|" "$yaml_file"
   echo "WARNING: HOMESERVER_SECRET is not defined or empty. Using warning message instead."
 fi
 
 if [ -n "${SYNAPSE_CLIENT_ID+x}" ] && [ -n "$SYNAPSE_CLIENT_ID" ]; then
   # SYNAPSE_CLIENT_ID is defined and not empty
-  sed -i '' -E "s|client_id: 'SYNAPSE_CLIENT_ID'|client_id: '$SYNAPSE_CLIENT_ID'|" "$yaml_file"
+  sed -i -E "s|client_id: 'SYNAPSE_CLIENT_ID'|client_id: '$SYNAPSE_CLIENT_ID'|" "$yaml_file"
 else
-  sed -i '' -E "s|client_id: 'SYNAPSE_CLIENT_ID'|client_id: 'WARNING NO SYNAPSE_CLIENT_ID DEFINED'|" "$yaml_file"
+  sed -i -E "s|client_id: 'SYNAPSE_CLIENT_ID'|client_id: 'WARNING NO SYNAPSE_CLIENT_ID DEFINED'|" "$yaml_file"
   echo "WARNING: SYNAPSE_CLIENT_ID is not defined or empty. Using warning message instead."
 fi
 
 if [ -n "${SYNAPSE_CLIENT_SECRET+x}" ] && [ -n "$SYNAPSE_CLIENT_SECRET" ]; then
   # SYNAPSE_CLIENT_SECRET is defined and not empty
-  sed -i '' -E "s|client_secret: 'SYNAPSE_CLIENT_SECRET'|client_secret: '$SYNAPSE_CLIENT_SECRET'|" "$yaml_file"
+  sed -i -E "s|client_secret: 'SYNAPSE_CLIENT_SECRET'|client_secret: '$SYNAPSE_CLIENT_SECRET'|" "$yaml_file"
 else
-  sed -i '' -E "s|client_secret: 'SYNAPSE_CLIENT_SECRET'|client_secret: 'WARNING NO SYNAPSE_CLIENT_SECRET DEFINED'|" "$yaml_file"
+  sed -i -E "s|client_secret: 'SYNAPSE_CLIENT_SECRET'|client_secret: 'WARNING NO SYNAPSE_CLIENT_SECRET DEFINED'|" "$yaml_file"
   echo "WARNING: SYNAPSE_CLIENT_SECRET is not defined or empty. Using warning message instead."
 fi
 
 if [ -n "${ADMIN_CLIENT_ID+x}" ] && [ -n "$ADMIN_CLIENT_ID" ]; then
   # ADMIN_CLIENT_ID is defined and not empty
-  sed -i '' -E "s|client_id: 'ADMIN_CLIENT_ID'|client_id: '$ADMIN_CLIENT_ID'|" "$yaml_file"
+  sed -i -E "s|client_id: 'ADMIN_CLIENT_ID'|client_id: '$ADMIN_CLIENT_ID'|" "$yaml_file"
 else
-  sed -i '' -E "s|client_id: 'ADMIN_CLIENT_ID'|client_id: 'WARNING NO ADMIN_CLIENT_ID DEFINED'|" "$yaml_file"
+  sed -i -E "s|client_id: 'ADMIN_CLIENT_ID'|client_id: 'WARNING NO ADMIN_CLIENT_ID DEFINED'|" "$yaml_file"
   echo "WARNING: ADMIN_CLIENT_ID is not defined or empty. Using warning message instead."
 fi
 
 if [ -n "${ADMIN_CLIENT_SECRET+x}" ] && [ -n "$ADMIN_CLIENT_SECRET" ]; then
   # ADMIN_CLIENT_SECRET is defined and not empty
-  sed -i '' -E "s|client_secret: 'ADMIN_CLIENT_SECRET'|client_secret: '$ADMIN_CLIENT_SECRET'|" "$yaml_file"
+  sed -i -E "s|client_secret: 'ADMIN_CLIENT_SECRET'|client_secret: '$ADMIN_CLIENT_SECRET'|" "$yaml_file"
 else
-  sed -i '' -E "s|client_secret: 'ADMIN_CLIENT_SECRET'|client_secret: 'WARNING NO ADMIN_CLIENT_SECRET DEFINED'|" "$yaml_file"
+  sed -i -E "s|client_secret: 'ADMIN_CLIENT_SECRET'|client_secret: 'WARNING NO ADMIN_CLIENT_SECRET DEFINED'|" "$yaml_file"
   echo "WARNING: ADMIN_CLIENT_SECRET is not defined or empty. Using warning message instead."
 fi
 
