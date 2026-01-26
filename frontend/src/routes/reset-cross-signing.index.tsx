@@ -94,7 +94,7 @@ function ResetCrossSigning(): React.ReactNode {
     onSuccess: () => {
       setTimeout(() => {
         // :tchap:
-        // we use a param here instead if user agent since it is an internal redirection and we lose the correct useragents 
+        // we use a param here instead if user agent since it is an internal redirection and we lose the correct useragents
         if (desktop) {
           window.location.href = "tchap:/reset-cross-signing.success";
           navigate({ to: "/reset-cross-signing/success", replace: true });
