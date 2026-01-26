@@ -47,7 +47,7 @@ sed -i -E "/^templates:/,/^[^[:space:]]/ s|^[[:space:]]*path:.*|  path: \"$MAS_T
 echo "Step 6/7: Updating translations..."
 MAS_TCHAP_TRANSLATIONS="$MAS_HOME/tchap/resources/translations"
 cargo run -p mas-i18n-scan  -- --update "${MAS_TCHAP_TEMPLATES}" "${MAS_TCHAP_TRANSLATIONS}/en.json"
-sed -i -E "/^templates:/,/^[^[:space:]]/ s|^[[:space:]]*translations_path:.*|  translations_path: \"$MAS_TCHAP_TRANSLATIONS\"|" -- "$yaml_file"
+sed -i -E "/^templates:/,/^[^[:space:]]/ s|^[[:space:]]*translations_path:.*|  translations_path: \"$MAS_TCHAP_TRANSLATIONS\"|" "$yaml_file"
 
 echo "Step 7/7: Updating matrix secret..."
 # Replace the placeholder secret value with the environment variable or warning message
