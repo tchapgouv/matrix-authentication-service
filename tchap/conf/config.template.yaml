@@ -306,3 +306,11 @@ rate_limiting:
   registration:
     burst: 50000 #insanely high limit for E2E tests
     per_second: 1000 #insanely high limit for E2E tests
+
+  # Limits how many email verification attempts are allowed,
+  email_authentication:
+
+    # based on source IP address.
+    per_ip:
+      burst: 50000 #insanely high limit for E2E tests
+      per_second: 1000 #insanely high limit for E2E tests
