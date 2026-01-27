@@ -21,7 +21,9 @@ use mas_storage::{
     queue::{ProvisionUserJob, QueueJobRepositoryExt as _},
     user::UserEmailFilter,
 };
-use mas_templates::{RegisterStepsEmailInUseContext, TemplateContext as _, Templates};
+use mas_templates::{
+    ErrorContext, RegisterStepsEmailInUseContext, TemplateContext as _, Templates,
+};
 use opentelemetry::metrics::Counter;
 use ulid::Ulid;
 
@@ -49,6 +51,9 @@ pub(crate) async fn get(
     mut repo: BoxRepository,
     activity_tracker: BoundActivityTracker,
     user_agent: Option<TypedHeader<headers::UserAgent>>,
+    //:tchap:
+    PreferredLanguage(locale): PreferredLanguage,
+    //:tchap:
     State(url_builder): State<UrlBuilder>,
     State(homeserver): State<Arc<dyn HomeserverConnection>>,
     State(templates): State<Templates>,
@@ -105,7 +110,6 @@ pub(crate) async fn get(
         // Let's perform last minute checks on the registration, especially to avoid
         // race conditions where multiple users register with the same username or email
         // address
-
         if repo.user().exists(&registration.username).await? {
             // XXX: this could have a better error message, but as this is unlikely to
             // happen, we're fine with a vague message for now
@@ -125,6 +129,26 @@ pub(crate) async fn get(
         }
     }
     //this block is deactivated
+    //:tchap:end
+
+    //:tchap:
+    //if account exists but is deactivated, show an error screen so that users
+    // contact support
+    if let Some(found_user) = repo.user().find_by_username(&registration.username).await?
+        && found_user.deactivated_at.is_some()
+    {
+        let ctx = ErrorContext::new()
+            .with_code("Compte desactivé")
+            .with_description(format!(
+                r"Votre compte existe déjà mais il a été desactivé. 
+                Veuillez contacter le support Tchap: support@tchap.beta.gouv.fr.
+                username:{}",
+                found_user.username
+            ))
+            .with_language(&locale);
+
+        return Ok(Html(templates.render_error(&ctx)?).into_response());
+    }
     //:tchap:end
 
     // Check if the registration token is required and was provided
