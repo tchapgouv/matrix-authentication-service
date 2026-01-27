@@ -77,6 +77,7 @@ const actionSchema = v.variant("action", [
   }),
   v.object({
     action: v.literal("org.matrix.cross_signing_reset"),
+    desktop: v.optional(v.boolean()), // :tchap:
   }),
   v.object({
     action: v.literal("org.matrix.plan_management"),
@@ -122,7 +123,7 @@ export const Route = createFileRoute({
       case "org.matrix.cross_signing_reset": // This is from unstable MSC4191
         throw redirect({
           to: "/reset-cross-signing",
-          search: { deepLink: true },
+          search: { deepLink: true, desktop: search.desktop }, // :tchap: add desktop params
         });
       case "org.matrix.plan_management": {
         // This is an unspecced experimental value

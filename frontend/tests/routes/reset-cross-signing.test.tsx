@@ -32,6 +32,46 @@ describe("Reset cross signing", () => {
     expect(asFragment()).toMatchSnapshot();
   });
 
+  //:tchap:
+  it("trigger desktop deeplink when param desktop is present", async () => {
+    let advance: () => void = () => {};
+    const wait = new Promise((resolve) => {
+      advance = () => resolve(void 0);
+    });
+
+    server.use(
+      mockAllowCrossSigningResetMutation(async () => {
+        await wait;
+        return HttpResponse.json({
+          data: {
+            allowUserCrossSigningReset: {
+              user: {
+                id: "user-id",
+              },
+            },
+          },
+        });
+      }),
+    );
+
+    const user = userEvent.setup();
+    const { getByRole } = await renderPage(
+      "/reset-cross-signing?deepLink=true&desktop=true",
+    );
+
+    const finishButton = getByRole("button", { name: "Finish reset" });
+    expect(finishButton).not.toHaveAttribute("aria-disabled", "true");
+    await user.click(finishButton);
+    // The button is in a loading state
+    await waitFor(() =>
+      expect(finishButton).toHaveAttribute("aria-disabled", "true"),
+    );
+
+    advance();
+    await waitFor(() => expect(finishButton).not.toBeInTheDocument());
+    expect(window.location.href).toBe("tchap:/reset-cross-signing.success");
+  });
+  //:tchap: end
   it("calls the callback on success", async () => {
     // TODO: a better way to wait on delays
     let advance: () => void = () => {};

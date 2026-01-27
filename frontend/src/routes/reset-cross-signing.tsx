@@ -13,6 +13,7 @@ import PageHeading from "../components/PageHeading";
 
 const searchSchema = v.object({
   deepLink: v.optional(v.boolean()),
+  desktop: v.optional(v.boolean()), // :tchap:
 });
 
 export const Route = createFileRoute({

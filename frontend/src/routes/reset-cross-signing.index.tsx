@@ -73,7 +73,7 @@ const ALLOW_CROSS_SIGING_RESET_MUTATION = graphql(/* GraphQL */ `
 `);
 
 function ResetCrossSigning(): React.ReactNode {
-  const { deepLink } = Route.useSearch();
+  const { desktop, deepLink } = Route.useSearch();
   const navigate = Route.useNavigate();
   const { t } = useTranslation();
   const {
@@ -93,6 +93,15 @@ function ResetCrossSigning(): React.ReactNode {
 
     onSuccess: () => {
       setTimeout(() => {
+        // :tchap:
+        // we use a param here instead if user agent since it is an internal redirection and we lose the correct useragents
+        if (desktop) {
+          window.location.href = "tchap:/reset-cross-signing.success";
+          navigate({ to: "/reset-cross-signing/success", replace: true });
+          return;
+        }
+        // end :tchap:
+
         // Synapse may fling the user here via UIA fallback,
         // this is part of the API to signal completion to the calling client
         // https://spec.matrix.org/v1.11/client-server-api/#fallback
