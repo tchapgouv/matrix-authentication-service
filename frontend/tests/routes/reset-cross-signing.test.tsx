@@ -32,7 +32,7 @@ describe("Reset cross signing", () => {
     expect(asFragment()).toMatchSnapshot();
   });
 
-//:tchap:
+  //:tchap:
   it("trigger desktop deeplink when param desktop is present", async () => {
     let advance: () => void = () => {};
     const wait = new Promise((resolve) => {
@@ -71,7 +71,7 @@ describe("Reset cross signing", () => {
     await waitFor(() => expect(finishButton).not.toBeInTheDocument());
     expect(window.location.href).toBe("tchap:/reset-cross-signing.success");
   });
-
+  //:tchap: end
   it("calls the callback on success", async () => {
     // TODO: a better way to wait on delays
     let advance: () => void = () => {};
