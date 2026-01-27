@@ -32,6 +32,7 @@ describe("Reset cross signing", () => {
     expect(asFragment()).toMatchSnapshot();
   });
 
+//:tchap:
   it("trigger desktop deeplink when param desktop is present", async () => {
     let advance: () => void = () => {};
     const wait = new Promise((resolve) => {
