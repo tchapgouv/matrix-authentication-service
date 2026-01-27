@@ -35,7 +35,7 @@
     "username": "Nom d’utilisateur"
   },
   "error": {
-    "unexpected": "Erreur inattendue"
+    "unexpected": "Une erreur est survenue"
   },
   "mas": {
     "account": {
