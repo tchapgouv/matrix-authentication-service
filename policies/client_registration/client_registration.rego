@@ -38,10 +38,11 @@ secure_url(x) if {
 	url.host != "[::1]"
 }
 
-# :TCHAP: Accept tauri.localhost for Tchap Desktop
+# :TCHAP: Accept redirect url for Tchap Desktop Macos
 secure_url(x) if {
 	url := parse_uri(x)
-	url.host == "tauri.localhost"
+	url.scheme == "tauri"
+	url.host == "localhost"
 }
 
 # :TCHAP: end
