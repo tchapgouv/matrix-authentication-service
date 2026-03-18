@@ -12,12 +12,13 @@ use axum::{
 };
 use axum_extra::{extract::Query, typed_header::TypedHeader};
 use hyper::StatusCode;
+use lettre::Address;
 use mas_axum_utils::{
     InternalError, SessionInfoExt,
     cookies::CookieJar,
     csrf::{CsrfExt, ProtectedForm},
 };
-use mas_data_model::{BoxClock, BoxRng, Clock, oauth2::LoginHint};
+use mas_data_model::{BoxClock, BoxRng, Clock, TchapConfig, oauth2::LoginHint};
 use mas_i18n::DataLocale;
 use mas_matrix::HomeserverConnection;
 use mas_router::{UpstreamOAuth2Authorize, UrlBuilder};
@@ -33,6 +34,9 @@ use mas_templates::{
 use opentelemetry::{Key, KeyValue, metrics::Counter};
 use rand::Rng;
 use serde::{Deserialize, Serialize};
+//:tchap:
+use tchap::EmailAllowedResult;
+//:tchap:end
 use zeroize::Zeroizing;
 
 use super::shared::OptionalPostAuthAction;
@@ -133,8 +137,11 @@ pub(crate) async fn post(
     mut rng: BoxRng,
     clock: BoxClock,
     PreferredLanguage(locale): PreferredLanguage,
+    //:tchap: add tchap to the state with site_config as a tuple to stay under the limit of 16
+    //arguments
+    (State(site_config), State(tchap_config)): (State<SiteConfig>, State<TchapConfig>),
+    //:tchap:end
     State(password_manager): State<PasswordManager>,
-    State(site_config): State<SiteConfig>,
     State(templates): State<Templates>,
     State(url_builder): State<UrlBuilder>,
     State(limiter): State<Limiter>,
@@ -161,6 +168,53 @@ pub(crate) async fn post(
     if form.username.is_empty() {
         form_state.add_error_on_field(LoginFormField::Username, FieldError::Required);
     }
+
+    //:tchap:
+    // Check if the username looks like an email
+    if form.username.contains('@') {
+        // Validate email format
+        if form.username.parse::<Address>().is_err() {
+            form_state.add_error_on_field(
+                LoginFormField::Username,
+                FieldError::Policy {
+                    code: None,
+                    message: "Votre adresse mail est malformée".to_owned(),
+                },
+            );
+        } else {
+            // Check if email is allowed for this homeserver
+            let server_name = homeserver.homeserver();
+            let email_result =
+                check_email_allowed(&form.username, server_name, &tchap_config).await;
+
+            match email_result {
+                EmailAllowedResult::Allowed => {
+                    // Email is allowed, continue
+                }
+                EmailAllowedResult::WrongServer => {
+                    form_state.add_error_on_field(
+                        LoginFormField::Username,
+                        FieldError::Policy {
+                            code: None,
+                            message: "Votre adresse mail est associée à un autre serveur."
+                                .to_owned(),
+                        },
+                    );
+                }
+                EmailAllowedResult::InvitationMissing => {
+                    form_state.add_error_on_field(
+                        LoginFormField::Username,
+                        FieldError::Policy {
+                            code: None,
+                            message: "Vous avez besoin d'une invitation pour accéder à Tchap"
+                                .to_owned(),
+                        },
+                    );
+                }
+            }
+        }
+    }
+    //:tchap:end
 
     if form.password.is_empty() {
         form_state.add_error_on_field(LoginFormField::Password, FieldError::Required);
@@ -435,6 +489,31 @@ async fn render(
     Ok((cookie_jar, Html(content)).into_response())
 }
 
+//:tchap:
+///real function used when not testing
+#[cfg(not(test))]
+async fn check_email_allowed(
+    email: &str,
+    server_name: &str,
+    tchap_config: &TchapConfig,
+) -> EmailAllowedResult {
+    tchap::is_email_allowed(email, server_name, tchap_config).await
+}
+///mock function used when testing
+#[cfg(test)]
+async fn check_email_allowed(
+    email: &str,
+    _server_name: &str,
+    _tchap_config: &TchapConfig,
+) -> EmailAllowedResult {
+    if email == "wrong_server@example.com" {
+        EmailAllowedResult::WrongServer
+    } else {
+        EmailAllowedResult::Allowed
+    }
+}
+//:tchap:end
+
 #[cfg(test)]
 mod test {
     use hyper::{
@@ -660,6 +739,7 @@ mod test {
         assert!(response.body().contains("john"));
     }
 
+    #[ignore = "Tchap does no allow login with mxid"]
     #[sqlx::test(migrator = "mas_storage_pg::MIGRATOR")]
     async fn test_password_login_with_mxid(pool: PgPool) {
         setup();
@@ -707,6 +787,7 @@ mod test {
         assert!(response.body().contains("john"));
     }
 
+    #[ignore = "Tchap does no allow login with mxid"]
     #[sqlx::test(migrator = "mas_storage_pg::MIGRATOR")]
     async fn test_password_login_with_mxid_wrong_server(pool: PgPool) {
         setup();
@@ -933,4 +1014,90 @@ mod test {
         assert!(!response.body().contains("Account deleted"));
         assert!(response.body().contains("Invalid credentials"));
     }
+
+    /// :tchap:
+    /// Test login with email from wrong server
+    #[sqlx::test(migrator = "mas_storage_pg::MIGRATOR")]
+    async fn test_password_login_with_email_wrong_server(pool: PgPool) {
+        setup();
+        let state = TestState::from_pool(pool).await.unwrap();
+        let cookies = CookieHelper::new();
+
+        // Render the login page to get a CSRF token
+        let request = Request::get("/login").empty();
+        let request = cookies.with_cookies(request);
+        let response = state.request(request).await;
+        cookies.save_cookies(&response);
+        response.assert_status(StatusCode::OK);
+        response.assert_header_value(CONTENT_TYPE, "text/html; charset=utf-8");
+        // Extract the CSRF token from the response body
+        let csrf_token = response
+            .body()
+            .split("name=\"csrf\" value=\"")
+            .nth(1)
+            .unwrap()
+            .split('\"')
+            .next()
+            .unwrap();
+
+        // Submit the login form with an email from wrong server
+        let request = Request::post("/login").form(serde_json::json!({
+            "csrf": csrf_token,
+            "username": "wrong_server@example.com",
+            "password": "hunter2",
+        }));
+        let request = cookies.with_cookies(request);
+        let response = state.request(request).await;
+        cookies.save_cookies(&response);
+        response.assert_status(StatusCode::OK);
+        response.assert_header_value(CONTENT_TYPE, "text/html; charset=utf-8");
+
+        // Should show email validation error
+        assert!(
+            response
+                .body()
+                .contains("Votre adresse mail est associée à un autre serveur")
+        );
+    }
+
+    /// Test login with invalid email format
+    #[sqlx::test(migrator = "mas_storage_pg::MIGRATOR")]
+    async fn test_password_login_with_invalid_email(pool: PgPool) {
+        setup();
+        let state = TestState::from_pool(pool).await.unwrap();
+        let cookies = CookieHelper::new();
+
+        // Render the login page to get a CSRF token
+        let request = Request::get("/login").empty();
+        let request = cookies.with_cookies(request);
+        let response = state.request(request).await;
+        cookies.save_cookies(&response);
+        response.assert_status(StatusCode::OK);
+        response.assert_header_value(CONTENT_TYPE, "text/html; charset=utf-8");
+        // Extract the CSRF token from the response body
+        let csrf_token = response
+            .body()
+            .split("name=\"csrf\" value=\"")
+            .nth(1)
+            .unwrap()
+            .split('\"')
+            .next()
+            .unwrap();
+
+        // Submit the login form with an invalid email
+        let request = Request::post("/login").form(serde_json::json!({
+            "csrf": csrf_token,
+            "username": "email@with_space.com ",
+            "password": "hunter2",
+        }));
+        let request = cookies.with_cookies(request);
+        let response = state.request(request).await;
+        cookies.save_cookies(&response);
+        response.assert_status(StatusCode::OK);
+        response.assert_header_value(CONTENT_TYPE, "text/html; charset=utf-8");
+
+        // Should show invalid email error
+        assert!(response.body().contains("Votre adresse mail est malformée"));
+    }
+    //:tchap:end
 }

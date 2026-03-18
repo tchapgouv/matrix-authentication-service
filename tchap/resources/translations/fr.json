@@ -133,7 +133,7 @@
     },
     "errors": {
       "captcha": "La vérification du CAPTCHA a échoué, veuillez réessayer",
-      "denied_policy": "Refusé par la politique du serveur : %(policy)s",
+      "denied_policy": "Anomalie détectée: %(policy)s",
       "email_banned": "Cette adresse mail est interdite par la politique du serveur",
       "email_domain_banned": "Le domaine de l'adresse mail est interdit par la politique du serveur.",
       "email_domain_not_allowed": "Le domaine de l'adresse mail n'est pas autorisée par la politique du serveur.",
