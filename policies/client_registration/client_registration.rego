@@ -51,6 +51,7 @@ secure_url(x) if {
 	url.scheme == "http"
 	url.host == "tauri.localhost"
 }
+
 # :TCHAP: end
 
 host_matches_client_uri(_) if {
