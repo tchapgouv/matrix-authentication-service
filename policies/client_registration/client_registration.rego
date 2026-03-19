@@ -45,6 +45,12 @@ secure_url(x) if {
 	url.host == "localhost"
 }
 
+# :TCHAP: Accept client url for Tchap Desktop Windows
+secure_url(x) if {
+	url := parse_uri(x)
+	url.scheme == "http"
+	url.host == "tauri.localhost"
+}
 # :TCHAP: end
 
 host_matches_client_uri(_) if {
