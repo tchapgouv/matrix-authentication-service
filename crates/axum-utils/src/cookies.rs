@@ -99,7 +99,11 @@ impl CookieOption {
         cookie.set_http_only(true);
         cookie.set_secure(self.secure());
         cookie.set_path(self.path().to_owned());
-        cookie.set_same_site(SameSite::Lax);
+        //:tchap:
+        //Control must be done in frame ancestor header
+        //cookie.set_same_site(SameSite::Lax);
+        //:tchap end
+        cookie.set_same_site(SameSite::None);
         cookie
     }
 }
