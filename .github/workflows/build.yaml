@@ -63,151 +63,151 @@ jobs:
           echo "describe=$(git describe --tags --match 'v*.*.*' --always)" >> $GITHUB_OUTPUT
           echo "timestamp=$(git log -1 --format=%ct)" >> $GITHUB_OUTPUT
 
-  build-assets:
-    name: Build assets
-    if: github.event_name == 'push' || github.event.label.name == 'Z-Build-Workflow'
-    runs-on: ubuntu-24.04
+  # build-assets:
+  #   name: Build assets
+  #   if: github.event_name == 'push' || github.event.label.name == 'Z-Build-Workflow'
+  #   runs-on: ubuntu-24.04
 
-    permissions:
-      contents: read
+  #   permissions:
+  #     contents: read
 
-    steps:
-      - name: Checkout the code
-        uses: actions/checkout@v6
+  #   steps:
+  #     - name: Checkout the code
+  #       uses: actions/checkout@v6
 
-      - uses: ./.github/actions/build-frontend
-      - uses: ./.github/actions/build-policies
+  #     - uses: ./.github/actions/build-frontend
+  #     - uses: ./.github/actions/build-policies
 
-      - name: Prepare assets artifact
-        run: |
-          mkdir -p assets-dist/share
-          cp policies/policy.wasm assets-dist/share/policy.wasm
-          cp frontend/dist/manifest.json assets-dist/share/manifest.json
-          cp -r frontend/dist/ assets-dist/share/assets
-          cp -r templates/ assets-dist/share/templates
-          cp -r translations/ assets-dist/share/translations
-          cp LICENSE assets-dist/LICENSE
-          chmod -R u=rwX,go=rX assets-dist/
+  #     - name: Prepare assets artifact
+  #       run: |
+  #         mkdir -p assets-dist/share
+  #         cp policies/policy.wasm assets-dist/share/policy.wasm
+  #         cp frontend/dist/manifest.json assets-dist/share/manifest.json
+  #         cp -r frontend/dist/ assets-dist/share/assets
+  #         cp -r templates/ assets-dist/share/templates
+  #         cp -r translations/ assets-dist/share/translations
+  #         cp LICENSE assets-dist/LICENSE
+  #         chmod -R u=rwX,go=rX assets-dist/
 
-      - name: Upload assets
-        uses: actions/upload-artifact@v5.0.0
-        with:
-          name: assets
-          path: assets-dist
+  #     - name: Upload assets
+  #       uses: actions/upload-artifact@v5.0.0
+  #       with:
+  #         name: assets
+  #         path: assets-dist
 
-  build-binaries:
-    name: Build binaries
-    if: github.event_name == 'push' || github.event.label.name == 'Z-Build-Workflow'
-    runs-on: ubuntu-24.04
+  # build-binaries:
+  #   name: Build binaries
+  #   if: github.event_name == 'push' || github.event.label.name == 'Z-Build-Workflow'
+  #   runs-on: ubuntu-24.04
 
-    needs:
-      - compute-version
+  #   needs:
+  #     - compute-version
 
-    strategy:
-      matrix:
-        include:
-          - target: x86_64-unknown-linux-gnu
-          - target: aarch64-unknown-linux-gnu
+  #   strategy:
+  #     matrix:
+  #       include:
+  #         - target: x86_64-unknown-linux-gnu
+  #         - target: aarch64-unknown-linux-gnu :tchap: does not need aarch64
 
-    env:
-      VERGEN_GIT_DESCRIBE: ${{ needs.compute-version.outputs.describe }}
-      SOURCE_DATE_EPOCH: ${{ needs.compute-version.outputs.timestamp }}
+  #   env:
+  #     VERGEN_GIT_DESCRIBE: ${{ needs.compute-version.outputs.describe }}
+  #     SOURCE_DATE_EPOCH: ${{ needs.compute-version.outputs.timestamp }}
 
-    permissions:
-      contents: read
+  #   permissions:
+  #     contents: read
 
-    steps:
-      - name: Checkout the code
-        uses: actions/checkout@v6
+  #   steps:
+  #     - name: Checkout the code
+  #       uses: actions/checkout@v6
 
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: |
-            ${{ matrix.target }}
+  #     - name: Install Rust toolchain
+  #       uses: dtolnay/rust-toolchain@stable
+  #       with:
+  #         targets: |
+  #           ${{ matrix.target }}
 
-      - name: Setup sccache
-        uses: mozilla-actions/sccache-action@v0.0.9
+  #     - name: Setup sccache
+  #       uses: mozilla-actions/sccache-action@v0.0.9
 
-      - name: Install zig
-        uses: goto-bus-stop/setup-zig@v2
-        with:
-          version: 0.13.0
+  #     - name: Install zig
+  #       uses: goto-bus-stop/setup-zig@v2
+  #       with:
+  #         version: 0.13.0
 
-      - name: Install cargo-zigbuild
-        uses: taiki-e/install-action@v2
-        with:
-          tool: cargo-zigbuild
+  #     - name: Install cargo-zigbuild
+  #       uses: taiki-e/install-action@v2
+  #       with:
+  #         tool: cargo-zigbuild
 
-      - name: Build the binary
-        run: |
-          cargo zigbuild \
-            --release \
-            --target ${{ matrix.target }}.2.17 \
-            --no-default-features \
-            --features dist \
-            -p mas-cli
+  #     - name: Build the binary
+  #       run: |
+  #         cargo zigbuild \
+  #           --release \
+  #           --target ${{ matrix.target }}.2.17 \
+  #           --no-default-features \
+  #           --features dist \
+  #           -p mas-cli
 
-      - name: Upload binary artifact
-        uses: actions/upload-artifact@v5.0.0
-        with:
-          name: binary-${{ matrix.target }}
-          path: target/${{ matrix.target }}/release/mas-cli
+  #     - name: Upload binary artifact
+  #       uses: actions/upload-artifact@v5.0.0
+  #       with:
+  #         name: binary-${{ matrix.target }}
+  #         path: target/${{ matrix.target }}/release/mas-cli
 
-  assemble-archives:
-    name: Assemble release archives
-    if: github.event_name == 'push' || github.event.label.name == 'Z-Build-Workflow'
-    runs-on: ubuntu-24.04
+  # assemble-archives:
+  #   name: Assemble release archives
+  #   if: github.event_name == 'push' || github.event.label.name == 'Z-Build-Workflow'
+  #   runs-on: ubuntu-24.04
 
-    needs:
-      - build-assets
-      - build-binaries
+  #   needs:
+  #     - build-assets
+  #     - build-binaries
 
-    permissions:
-      contents: read
+  #   permissions:
+  #     contents: read
 
-    steps:
-      - name: Download assets
-        uses: actions/download-artifact@v6
-        with:
-          name: assets
-          path: assets-dist
+  #   steps:
+  #     - name: Download assets
+  #       uses: actions/download-artifact@v6
+  #       with:
+  #         name: assets
+  #         path: assets-dist
 
-      - name: Download binary x86_64
-        uses: actions/download-artifact@v6
-        with:
-          name: binary-x86_64-unknown-linux-gnu
-          path: binary-x86_64
+  #     - name: Download binary x86_64
+  #       uses: actions/download-artifact@v6
+  #       with:
+  #         name: binary-x86_64-unknown-linux-gnu
+  #         path: binary-x86_64
 
-      - name: Download binary aarch64
-        uses: actions/download-artifact@v6
-        with:
-          name: binary-aarch64-unknown-linux-gnu
-          path: binary-aarch64
+  #     #- name: Download binary aarch64
+  #     #  uses: actions/download-artifact@v6
+  #     #  with:
+  #     #    name: binary-aarch64-unknown-linux-gnu
+  #     #    path: binary-aarch64
 
-      - name: Create final archives
-        run: |
-          for arch in x86_64 aarch64; do
-            mkdir -p dist/${arch}/share
-            cp -r assets-dist/share/* dist/${arch}/share/
-            cp assets-dist/LICENSE dist/${arch}/LICENSE
-            cp binary-$arch/mas-cli dist/${arch}/mas-cli
-            chmod -R u=rwX,go=rX dist/${arch}/
-            chmod u=rwx,go=rx dist/${arch}/mas-cli
-            tar -czvf mas-cli-${arch}-linux.tar.gz --owner=0 --group=0 -C dist/${arch}/ .
-          done
+  #     - name: Create final archives
+  #       run: |
+  #         for arch in x86_64 aarch64; do
+  #           mkdir -p dist/${arch}/share
+  #           cp -r assets-dist/share/* dist/${arch}/share/
+  #           cp assets-dist/LICENSE dist/${arch}/LICENSE
+  #           cp binary-$arch/mas-cli dist/${arch}/mas-cli
+  #           chmod -R u=rwX,go=rX dist/${arch}/
+  #           chmod u=rwx,go=rx dist/${arch}/mas-cli
+  #           tar -czvf mas-cli-${arch}-linux.tar.gz --owner=0 --group=0 -C dist/${arch}/ .
+  #         done
 
-      - name: Upload aarch64 archive
-        uses: actions/upload-artifact@v5.0.0
-        with:
-          name: mas-cli-aarch64-linux
-          path: mas-cli-aarch64-linux.tar.gz
+  #     #- name: Upload aarch64 archive
+  #     #  uses: actions/upload-artifact@v5.0.0
+  #     #  with:
+  #     #    name: mas-cli-aarch64-linux
+  #     #    path: mas-cli-aarch64-linux.tar.gz
 
-      - name: Upload x86_64 archive
-        uses: actions/upload-artifact@v5.0.0
-        with:
-          name: mas-cli-x86_64-linux
-          path: mas-cli-x86_64-linux.tar.gz
+  #     - name: Upload x86_64 archive
+  #       uses: actions/upload-artifact@v5.0.0
+  #       with:
+  #         name: mas-cli-x86_64-linux
+  #         path: mas-cli-x86_64-linux.tar.gz
 
   build-image:
     name: Build and push Docker image
@@ -322,15 +322,15 @@ jobs:
     if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-24.04
     needs:
-      - assemble-archives
+      #- assemble-archives
       - build-image
     steps:
-      - name: Download the artifacts from the previous job
-        uses: actions/download-artifact@v6
-        with:
-          pattern: mas-cli-*
-          path: artifacts
-          merge-multiple: true
+      # - name: Download the artifacts from the previous job
+      #   uses: actions/download-artifact@v6
+      #   with:
+      #     pattern: mas-cli-*
+      #     path: artifacts
+      #     merge-multiple: true
 
       - name: Prepare a release
         uses: softprops/action-gh-release@v2.5.0
@@ -367,14 +367,13 @@ jobs:
             artifacts/mas-cli-aarch64-linux.tar.gz
             artifacts/mas-cli-x86_64-linux.tar.gz
           draft: true
-
   unstable:
     name: Update the unstable release
     if: github.ref == 'refs/heads/main_tchap'
     runs-on: ubuntu-24.04
 
     needs:
-      - assemble-archives
+      #- assemble-archives
       - build-image
 
     permissions:
@@ -387,19 +386,19 @@ jobs:
           sparse-checkout: |
             .github/scripts
 
-      - name: Download the artifacts from the previous job
-        uses: actions/download-artifact@v6
-        with:
-          pattern: mas-cli-*
-          path: artifacts
-          merge-multiple: true
+      # - name: Download the artifacts from the previous job
+      #   uses: actions/download-artifact@v6
+      #   with:
+      #     pattern: mas-cli-*
+      #     path: artifacts
+      #     merge-multiple: true
 
-      - name: Update unstable git tag
-        uses: actions/github-script@v8.0.0
-        with:
-          script: |
-            const script = require('./.github/scripts/update-unstable-tag.cjs');
-            await script({ core, github, context });
+      # - name: Update unstable git tag
+      #   uses: actions/github-script@v8.0.0
+      #   with:
+      #     script: |
+      #       const script = require('./.github/scripts/update-unstable-tag.cjs');
+      #       await script({ core, github, context });
 
       - name: Update unstable release
         uses: softprops/action-gh-release@v2.5.0
@@ -440,9 +439,9 @@ jobs:
                 ') }}
                 ```
 
-          files: |
-            artifacts/mas-cli-aarch64-linux.tar.gz
-            artifacts/mas-cli-x86_64-linux.tar.gz
+          # files: |
+          #   artifacts/mas-cli-aarch64-linux.tar.gz
+          #   artifacts/mas-cli-x86_64-linux.tar.gz
           prerelease: true
           make_latest: false
 
