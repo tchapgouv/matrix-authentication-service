@@ -552,42 +552,51 @@ pub(crate) async fn get(
 
                 //let maybe_existing_user = repo.user().find_by_username(&localpart).await?;
 
-                //search user by email instead of username
-                let maybe_existing_user =
-                    tchap::search_user_by_email(&mut repo, &maybe_email.unwrap(), &tchap_config)
-                        .await?;
+                //search user by email first
+                let email = maybe_email.unwrap();
+                let mut maybe_existing_user =
+                    tchap::search_user_by_email(&mut repo, &email, &tchap_config).await?;
 
-                // if user was not found by email but searching by username match, we have a
-                // conflict on the email in Tchap
+                // if user was not found by email, search by username
                 if maybe_existing_user.is_none() {
-                    let maybe_existing_user = repo.user().find_by_username(&localpart).await?;
+                    maybe_existing_user = repo.user().find_by_username(&localpart).await?;
 
-                    if let Some(existing_user) = maybe_existing_user {
+                    if let Some(existing_user) = &maybe_existing_user {
                         let email = &repo
                             .user_email()
-                            .all(&existing_user)
+                            .all(existing_user)
                             .await?
                             .first()
                             .map(|user_email| user_email.email.clone());
 
-                        let ctx = ErrorContext::new()
-                            .with_code("Invalid Data")
-                            .with_description(format!(
-                                r"Un compte Tchap existe mais l'email associé diffère de votre email Proconnect. 
-                                Veuillez contacter le support Tchap: support@tchap.numerique.gouv.fr. 
-                                email_tchap:{email:?}, proconnect_username:{localpart}"
-                            ))
-                            .with_language(&locale);
+                        if email.is_some() {
+                            tracing::warn!(
+                                upstream_oauth_provider.id = %provider.id,
+                                upstream_oauth_link.id = %link.id,
+                                user.id = %existing_user.id,
+                                "Un compte Tchap existe mais l'email associé diffère de l'email Proconnect, email_tchap:{email:?}, proconnect_username:{localpart}");
 
-                        return Ok((
-                            cookie_jar,
-                            Html(templates.render_error(&ctx)?).into_response(),
-                        ));
+                            //if email is not None, there is a conflict between the username and
+                            // the email we know and the ones from proconnect
+                            let ctx = ErrorContext::new()
+                                .with_code("Invalid Data")
+                                .with_description(format!(
+                                    r"Un compte Tchap existe mais l'email associé diffère de votre email Proconnect. 
+                                    Veuillez contacter le support Tchap: support@tchap.numerique.gouv.fr. 
+                                    email_tchap:{email:?}, proconnect_username:{localpart}"
+                                ))
+                                .with_language(&locale);
+
+                            return Ok((
+                                cookie_jar,
+                                Html(templates.render_error(&ctx)?).into_response(),
+                            ));
+                        }
                     }
                 }
                 //:tchap: end
 
-                if let Some(existing_user) = maybe_existing_user {
+                if let Some(mut existing_user) = maybe_existing_user {
                     if !forced_or_required {
                         tracing::warn!(
                             upstream_oauth_provider.id = %provider.id,
@@ -731,6 +740,34 @@ pub(crate) async fn get(
 
                     // Now that we've resolved the conflict, log in that existing user
 
+                    //:tchap:
+                    // we want to reactivate the account
+                    // we want to set the email because it might have been deleted when deactivating
+                    if existing_user.deactivated_at.is_some() {
+                        tracing::info!(
+                            user.id = %existing_user.id,
+                            "Existing account was deactivated, reactivate it"
+                        );
+
+                        // Call the homeserver synchronously to reactivate the user
+                        let _ = homeserver.reactivate_user(&existing_user.username).await;
+
+                        // Now reactivate the user in our database
+                        existing_user = repo.user().reactivate(existing_user).await?;
+
+                        // Add email if not existing
+                        let existing_email = repo.user_email().find(&existing_user, &email).await?;
+                        if existing_email.is_none() {
+                            tracing::info!(
+                                user.id = %existing_user.id,
+                                "Restore email in a previously deactivated account"
+                            );
+                            repo.user_email()
+                                .add(&mut rng, &clock, &existing_user, email)
+                                .await?;
+                        }
+                    }
+                    /*
                     // Check that the user is not locked or deactivated
                     if existing_user.deactivated_at.is_some() {
                         // The account is deactivated, show the 'account deactivated' fallback
@@ -740,6 +777,8 @@ pub(crate) async fn get(
                         let fallback = templates.render_account_deactivated(&ctx)?;
                         return Ok((cookie_jar, Html(fallback).into_response()));
                     }
+                    :tchap: end
+                    */
 
                     if existing_user.locked_at.is_some() {
                         // The account is locked, show the 'account locked' fallback
@@ -3051,12 +3090,17 @@ mod tests {
         let cookie_jar = upstream_sessions.save(cookie_jar, &state.clock);
         cookies.import(cookie_jar);
 
-        //create use with no email
-        let _user = repo
+        //create use with different email
+        let user = repo
             .user()
             .add(&mut rng, &state.clock, existing_username.to_owned())
             .await
             .unwrap();
+        
+        let _user_email = repo
+            .user_email()
+            .add(&mut rng, &state.clock, &user, "any_other@example.com".to_owned())
+            .await;
 
         repo.save().await.unwrap();
 
