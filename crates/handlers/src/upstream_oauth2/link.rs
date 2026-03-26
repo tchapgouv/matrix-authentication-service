@@ -3096,10 +3096,15 @@ mod tests {
             .add(&mut rng, &state.clock, existing_username.to_owned())
             .await
             .unwrap();
-        
+
         let _user_email = repo
             .user_email()
-            .add(&mut rng, &state.clock, &user, "any_other@example.com".to_owned())
+            .add(
+                &mut rng,
+                &state.clock,
+                &user,
+                "any_other@example.com".to_owned(),
+            )
             .await;
 
         repo.save().await.unwrap();
