@@ -141,7 +141,7 @@ pub(crate) async fn get(
             .with_code("Compte desactivé")
             .with_description(format!(
                 r"Votre compte existe déjà mais il a été desactivé. 
-                Veuillez contacter le support Tchap: support@tchap.numerique.gouv.fr.
+                Veuillez contacter le support Tchap: support@tchap.beta.gouv.fr.
                 username:{}",
                 found_user.username
             ))
