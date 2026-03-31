@@ -21,9 +21,7 @@ use mas_storage::{
     queue::{ProvisionUserJob, QueueJobRepositoryExt as _},
     user::UserEmailFilter,
 };
-use mas_templates::{
-    ErrorContext, RegisterStepsEmailInUseContext, TemplateContext as _, Templates,
-};
+use mas_templates::{RegisterStepsEmailInUseContext, TemplateContext as _, Templates};
 use opentelemetry::metrics::Counter;
 use ulid::Ulid;
 
@@ -51,9 +49,6 @@ pub(crate) async fn get(
     mut repo: BoxRepository,
     activity_tracker: BoundActivityTracker,
     user_agent: Option<TypedHeader<headers::UserAgent>>,
-    //:tchap:
-    PreferredLanguage(locale): PreferredLanguage,
-    //:tchap:
     State(url_builder): State<UrlBuilder>,
     State(homeserver): State<Arc<dyn HomeserverConnection>>,
     State(templates): State<Templates>,
@@ -131,26 +126,6 @@ pub(crate) async fn get(
     //this block is deactivated
     //:tchap:end
 
-    //:tchap:
-    //if account exists but is deactivated, show an error screen so that users
-    // contact support
-    if let Some(found_user) = repo.user().find_by_username(&registration.username).await?
-        && found_user.deactivated_at.is_some()
-    {
-        let ctx = ErrorContext::new()
-            .with_code("Compte desactivé")
-            .with_description(format!(
-                r"Votre compte existe déjà mais il a été desactivé. 
-                Veuillez contacter le support Tchap: support@tchap.beta.gouv.fr.
-                username:{}",
-                found_user.username
-            ))
-            .with_language(&locale);
-
-        return Ok(Html(templates.render_error(&ctx)?).into_response());
-    }
-    //:tchap:end
-
     // Check if the registration token is required and was provided
     let registration_token = if site_config.registration_token_required {
         if let Some(registration_token_id) = registration.user_registration_token_id {
@@ -181,6 +156,9 @@ pub(crate) async fn get(
     } else {
         None
     };
+    //:tchap:
+    let existing_user = repo.user().find_by_username(&registration.username).await?;
+    //:tchap:end
 
     // If there is an email authentication, we need to check that the email
     // address was verified. If there is no email authentication attached, we
@@ -227,6 +205,23 @@ pub(crate) async fn get(
                 )
                     .into_response());
             }
+            //:tchap:
+            // Reactivate user if needed
+            if let Some(ref user) = existing_user
+                && user.deactivated_at.is_some()
+            {
+                tracing::info!(
+                    user.id = %user.id,
+                    "Existing account was deactivated, reactivate it"
+                );
+
+                // Call the homeserver synchronously to reactivate the user
+                let _ = homeserver.reactivate_user(&user.username).await;
+
+                // Now reactivate the user in our database
+                repo.user().reactivate(user.clone()).await?;
+            }
+            //:tchap:end
 
             Some(email_authentication)
         } else {
@@ -300,11 +295,23 @@ pub(crate) async fn get(
         .consume_session(&registration)?
         .save(cookie_jar, &clock);
 
+    /* :tchap: create user only if needed
     // Now we can start the user creation
     let user = repo
         .user()
         .add(&mut rng, &clock, registration.username)
         .await?;
+    */
+
+    let user = if let Some(user) = existing_user {
+        user
+    } else {
+        repo.user()
+            .add(&mut rng, &clock, registration.username)
+            .await?
+    };
+    //:tchap: end
+
     // Also create a browser session which will log the user in
     let user_session = repo
         .browser_session()

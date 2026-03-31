@@ -32,7 +32,7 @@ http:
   #  public_base: http://[::]:8080/
   #  issuer: http://[::]:8080/
   public_base: https://auth.tchapgouv.com/
-  issuer: https://auth.tchapgouv.com/
+  issuer: https://tchapgouv.com/
 database:
   uri: postgresql://postgres:postgres@localhost:5439/postgres
   max_connections: 10
@@ -102,6 +102,9 @@ secrets:
         oUQDQgAEMHcshHVFbMSEyyt3ptIdAhnrg+XlQskZ33hZvdtzm6I0wW8H8zslMp+I
         t0KYCeIQ7HTPtgJAOsKxEPBfmVXZmA==
         -----END EC PRIVATE KEY-----
+
+
+
 passwords:
   enabled: true
   schemes:
