@@ -624,7 +624,7 @@ pub(crate) async fn get(
                                 .with_code("Invalid Data")
                                 .with_description(format!(
                                     r"Un compte Tchap existe mais l'email associé diffère de votre email Proconnect. 
-                                    Veuillez contacter le support Tchap: support@tchap.numerique.gouv.fr. 
+                                    Veuillez contacter le support Tchap: support@tchap.beta.gouv.fr. 
                                     email_tchap:{email:?}, proconnect_username:{localpart}"
                                 ))
                                 .with_language(&locale);
@@ -1445,7 +1445,7 @@ async fn validate_email_for_server(
                     "Votre adresse mail {email} est associée à un autre serveur."
                 ))
                 .with_details(
-                    "Veuillez-vous contacter le support de Tchap support@tchap.numerique.gouv.fr"
+                    "Veuillez-vous contacter le support de Tchap support@tchap.beta.gouv.fr"
                         .to_owned(),
                 )
                 .with_language(locale);
