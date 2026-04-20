@@ -140,11 +140,18 @@ valid_native_redirector(x) if {
 	url.scheme == "http"
 }
 
-# :TCHAP: allow "tchap:/" deep link
+# :TCHAP: allow tchap deep link for all ENV
 valid_native_redirector(x) if {
 	startswith(x, "tchap:/")
 }
 
+valid_native_redirector(x) if {
+	startswith(x, "tchap-preprod:/")
+}
+
+valid_native_redirector(x) if {
+	startswith(x, "tchap-dev:/")
+}
 # :TCHAP: end
 
 # Custom schemes should match the client_uri, reverse-dns style

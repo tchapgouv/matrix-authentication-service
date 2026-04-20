@@ -234,18 +234,42 @@ test_web_redirect_uri if {
 		"redirect_uris": ["https://example.com:8443/callback"],
 	}
 
-	# :TCHAP: Allow Tchap Desktop for Windows
+	# :TCHAP: Allow Tchap Desktop for Windows for all ENVs
 	client_registration.allow with input.client_metadata as {
 		"application_type": "native",
 		"client_uri": "http://tauri.localhost/",
 		"redirect_uris": ["tchap:/tauri.localhost/"],
 	}
 
-	# :TCHAP: Allow Tchap Desktop for Macos
+	client_registration.allow with input.client_metadata as {
+		"application_type": "native",
+		"client_uri": "http://tauri.localhost/",
+		"redirect_uris": ["tchap-preprod:/tauri.localhost/"],
+	}
+
+	client_registration.allow with input.client_metadata as {
+		"application_type": "native",
+		"client_uri": "http://tauri.localhost/",
+		"redirect_uris": ["tchap-dev:/tauri.localhost/"],
+	}
+
+	# :TCHAP: Allow Tchap Desktop for Macos for all ENVs
 	client_registration.allow with input.client_metadata as {
 		"application_type": "native",
 		"client_uri": "tauri://localhost/",
 		"redirect_uris": ["tchap:/localhost/"],
+	}
+
+	client_registration.allow with input.client_metadata as {
+		"application_type": "native",
+		"client_uri": "tauri://localhost/",
+		"redirect_uris": ["tchap-preprod:/localhost/"],
+	}
+
+	client_registration.allow with input.client_metadata as {
+		"application_type": "native",
+		"client_uri": "tauri://localhost/",
+		"redirect_uris": ["tchap-dev:/localhost/"],
 	}
 }
 
