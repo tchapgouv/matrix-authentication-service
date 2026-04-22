@@ -152,6 +152,7 @@ valid_native_redirector(x) if {
 valid_native_redirector(x) if {
 	startswith(x, "tchap-dev:/")
 }
+
 # :TCHAP: end
 
 # Custom schemes should match the client_uri, reverse-dns style
