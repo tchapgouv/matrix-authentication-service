@@ -1,0 +1,400 @@
+#this config file is a copy of /ansible/roles/matrix-authentication-service/templates/config.yaml.j2
+#jinja2: trim_blocks: True, lstrip_blocks: True
+http:
+  listeners:
+  - name: web
+    resources:
+    - name: discovery
+    - name: human
+    - name: oauth
+    - name: compat
+    - name: graphql
+    - name: assets
+    {% if mas_show_swagger_ui and "dev" in group_names %}
+    # accessible on /api/doc/
+    - name: adminapi
+    {% endif %}
+    binds:
+      - address: '[::]:8080'
+    proxy_protocol: false
+  - name: internal
+    resources:
+    - name: health
+    - name: adminapi
+    - name: oauth
+    - name: discovery
+    binds:
+    - host: localhost
+      port: 8081
+    proxy_protocol: false
+{%- if monitoring_ip is defined and monitoring_ip %}
+
+  - name: monitoring
+    resources:
+    - name: prometheus
+    - name: health
+    binds:
+    - host: {{ monitoring_ip }}
+      port: 8082
+ {%- endif %}
+
+  trusted_proxies:
+  - 192.168.0.0/16
+  - 172.16.0.0/12
+  - 10.0.0.0/10
+  - 127.0.0.1/8
+  - fd00::/8
+  - ::1/128
+  public_base: "https://{{ matrix_mas_domain }}/"
+  #issuer: "https://{{ matrix_mas_domain }}/" dev only
+  issuer: "https://{{ matrix_dinsic_domain }}/"
+database:
+  uri: "postgresql://{{mas_db_user}}:{{mas_db_password}}@{{mas_db_host}}:{{mas_db_port}}/{{mas_db_user}}"
+  max_connections: {{mas_db_max_connections}}
+  min_connections: 0
+  connect_timeout: 30
+  idle_timeout: 600
+  max_lifetime: 1800
+email:
+  from: '"Tchap Authentication Service" <noreply@{{ matrix_synapse_email_from }}>'
+  reply_to: '"Tchap Authentication Service" <noreply@{{ matrix_synapse_email_from }}>'
+  transport: smtp
+  mode: plain
+  hostname: "{{ smtp_server }}"
+  port: 1025
+secrets:
+  # Encryption secret (used for encrypting cookies and database fields)
+  # This must be a 32-byte long hex-encoded key
+  encryption: {{ mas_config_encryption }}
+
+  # Signing keys
+  keys:
+    - kid: dyrZtIyXSA
+      key: |
+        -----BEGIN RSA PRIVATE KEY-----
+        MIIEogIBAAKCAQEAukLyWSv9KOeBsmIG4ntL/BP+wj5L4GbOyAOEzRBBO0ZbBYVn
+        1L/aYQ65cQpQKK0MzH5cn7TvIY0JBh/ZsSm3e7DdhGJzoqPrW6E0/6QqXEl4gN1q
+        DUCMj2CwAcT9OX1Wt6cNq70+gbqp6+yT+Nn++KPylHa/V9wRxkaV3fyM+XYVeddB
+        amDR+fBjHgVXQ3xk2ezUBS3AmyKBgETnHufKCkxJ5mXdU9HT0ewg8J2PrgiRBwDj
+        XP7C5Zif/+NfYPO2mM/b0Y91pl9aXuUHX+/zlqtpcwX/WprEsCaRUa9qWHuiftMf
+        uelsflCgZ0KumZjzr3wPDEfu8n7WbVEObNxF+QIDAQABAoIBAEl82mNGUMbPuEMq
+        G+9FmDAnr27x5zvtNA6EHORPUn1Rf94IyXOOEloS1iV8XS3/QLp57I9ycpq5K2NI
+        M7qLbAIYQP3XXipAJD7ttpxaKABrWGj3cr0xx4NWMXsxPnttMUaaWXF14/CJNjuI
+        BsW7NLbi8HWU+F9wy26AMOb5mqFdQfk15H3LaM3L3hMuV5DOcA467luwHmuGGTji
+        VjZg3yZZF2ROtTwwVSB7UCokmW3FZys/U4SyzXSrboUxF9T3PW3Hxm9e1JfFQuLh
+        rn85Q4IDpRtK2O5ECmKjY0cyvQOVItQytTeVXtSEzgMfK5VpnYMefdCFvhExcsuV
+        JHT1c/UCgYEAziAPCJYNTXsvo3yEW1iWnAjfi6R7g9aluNDjf4xmva5DTOdZSH1d
+        AJkzXZtPYXXlR42RT4FzE/ICdjo81aDMrMHwoIiH9p1n7IdDTt3GONYi3VPKGvZd
+        Ghgdq5jgdedDhF9MximZcWdZOZLCymKME61RuCg18p/MMIJ/FRNBE38CgYEA51R6
+        CjNc93qO7hL7AGu+evs3/PVrHsg5iBf8GcGeyNNGkA5TJcYTO075VBDQuWsMZbvx
+        d0jBjROs8U2AJzgbh6+N/rZACflk8W4LyD3Pw+1coIcckH4hmgN37vkh63qiGX8K
+        YVe8CrbGliBB2OccXsdJVDe0f45kte0eJh6cAocCgYAH9d7+wuTCoEZHtxBZgsNW
+        RVV0zCZlAg4mZBLVIzP4kVlSCAE/tm+4DTKZo9zd87KmH8aD3oj2NTt5G2isC2i8
+        J0VGvd8aXBveW57y1cfI/CQejhTZE7imwFWtAdtxUjweSZvqb0LYyVf9zDgvnryw
+        KdplFVB4DUnSece0pai2uwKBgDzV335dQZ6nsXz0quPScfZ/qJqyo+gledPLkvXn
+        EG35+f2ads1hSN95BmLQRUPt3gXHJlpbXONQAFQ5MHGf9MV7KpmIrlCxMJW5fgm8
+        D66T9p8UyTNKqGWLcff7tqrpxkV0PnOZEg+zP4htlUOIi9J1EFjAiYxeEygw4pPd
+        yuNzAoGAI0lLE32iIm+j5byFCKRuS6cQmDBzUJxZiCuLsuZEINYdz2nxKZqd9VtA
+        rOXzo8vJuGLF1hjf1/C66F3EnPxcclPL10vLCE8RbfQYVwBxw7MG9BLJXIlMjb2V
+        7CjVDE4Gaa96tChg1pepuJcOEuWez3o3Ard9oZ4Z9sm7VJzmuoY=
+        -----END RSA PRIVATE KEY-----
+    - kid: O1hkajPW2v
+      key: |
+        -----BEGIN EC PRIVATE KEY-----
+        MHcCAQEEINsgMBFDIrIzqOIWuR94TCi5MTH1FS8wfgatu9BsO2jVoAoGCCqGSM49
+        AwEHoUQDQgAEldEtvZaXtblpUdHpKKQiH7z9ADC55H0yrCYyQsLXbt14lI2NuseX
+        MWsvSLBzkbEetDxkmKh0bhOfrdwv9x5SwA==
+        -----END EC PRIVATE KEY-----
+    - kid: 2nhe3z2925
+      key: |
+        -----BEGIN EC PRIVATE KEY-----
+        MIGkAgEBBDDTVngHypOwUnPOGXeskQJhdSLLPBCM+mkSvzr2SZ7Kjm3hftvs2s7J
+        gZBOZwXyoaKgBwYFK4EEACKhZANiAAQ3WGOQs3EqO2x4X7PBWs6Lw3qdmRLHqblc
+        Zplh3wYPDOoUMvD99Snxz43t5sK6kphLBL262/srx/UPT1McLUxBMlBvBUbBEKHX
+        a8icrL13yIwflquj0EHrE7czFJw1txs=
+        -----END EC PRIVATE KEY-----
+    - kid: 50aRR3QVqx
+      key: |
+        -----BEGIN EC PRIVATE KEY-----
+        MHQCAQEEIN8bErXY1sWEJ1y9KoYcpcUImIjpS/ay3pEugYPfr3Y/oAcGBSuBBAAK
+        oUQDQgAEMHcshHVFbMSEyyt3ptIdAhnrg+XlQskZ33hZvdtzm6I0wW8H8zslMp+I
+        t0KYCeIQ7HTPtgJAOsKxEPBfmVXZmA==
+        -----END EC PRIVATE KEY-----
+
+# use bcrypt for existing account : https://element-hq.github.io/matrix-authentication-service/setup/migration.html#local-passwords
+passwords:
+  enabled: true
+  schemes:
+  - version: 1
+    algorithm: bcrypt
+    unicode_normalization: true
+    secret: "{{ matrix_pepper_secret }}"
+  - version: 2
+    algorithm: argon2id
+    minimum_complexity: 3
+
+matrix:
+  homeserver: "{{ matrix_dinsic_domain }}"
+  secret: "{{ mas_admin_token }}"
+{% if matrix_ha is defined %}
+  endpoint: "http://{{ matrix_synapse_host_main }}:8008/"
+{% else %}
+  endpoint: "https://matrix.{{ matrix_dinsic_domain }}"
+{% endif %}
+
+clients:
+  - client_id: "{{ mas_synapse_client_id }}"
+    client_auth_method: "{{ mas_synapse_client_auth_method }}"
+    client_secret: "{{ mas_synapse_client_secret }}"
+      #redirect_uris:
+      #- https://tchap-connect.mas01.tchap.incubateur.net/realms/tchap/protocol/openid-connect/auth
+  # for api admin calls
+  - client_id: "{{ mas_api_client_id }}"
+    client_auth_method: "{{ mas_synapse_client_auth_method }}"
+    client_secret: "{{ mas_api_client_secret }}"
+
+
+account:
+  # Whether users are allowed to change their email addresses.
+  #
+  # Defaults to `true`.
+  email_change_allowed: false
+
+  # Whether users are allowed to change their display names
+  #
+  # Defaults to `true`.
+  # This should be in sync with the policy in the homeserver configuration.
+  displayname_change_allowed: false
+
+  # Whether to enable self-service password registration
+  #
+  # Defaults to `false`.
+  # This has no effect if password login is disabled.
+  password_registration_enabled: {{ mas_password_registration_enabled }}
+
+  # Whether users are allowed to change their passwords
+  #
+  # Defaults to `true`.
+  # This has no effect if password login is disabled.
+  password_change_allowed: true
+
+  # Whether email-based password recovery is enabled
+  #
+  # Defaults to `false`.
+  # This has no effect if password login is disabled.
+  password_recovery_enabled: true
+
+  # Whether users can log in with their email address.
+  #
+  # Defaults to `false`.
+  # This has no effect if password login is disabled.
+  login_with_email_allowed: true
+
+# FIXME: allow only Tchap and Element clients (testing are required)
+# allow any client web (ie. app.element.io)
+policy:
+  data:
+    admin_clients:
+      # for api admin calls
+      - {{ mas_api_client_id }}
+    client_registration:
+      allow_host_mismatch: true
+      {% if mas_allow_localhost_client %}
+      allow_insecure_uris: true
+      {% endif %}
+
+telemetry:
+  tracing:
+  #   # List of propagators to use for extracting and injecting trace contexts
+  #   propagators:
+  #     # Propagate according to the W3C Trace Context specification
+  #     - tracecontext
+  #     # Propagate according to the W3C Baggage specification
+  #     - baggage
+  #     # Propagate trace context with Jaeger compatible headers
+  #     - jaeger
+
+  #   # The default: don't export traces
+    exporter: none
+
+    # Export traces to an OTLP-compatible endpoint
+    #exporter: otlp
+    #endpoint: https://localhost:4318
+  metrics:
+    # The default: don't export metrics
+    #exporter: none
+
+    # Export metrics to an OTLP-compatible endpoint
+    #exporter: otlp
+    #endpoint: https://localhost:4317
+
+    # Export metrics by exposing a Prometheus endpoint
+    # This requires mounting the `prometheus` resource to an HTTP listener
+    exporter: prometheus
+
+  # sentry:
+  #   # DSN to use for sending errors and crashes to Sentry
+  #   dsn: https://public@host:port/1
+
+{% if mas_upstream_provider_enabled %}
+upstream_oauth2:
+  providers:
+    - id: "{{ mas_upstream_provider_id }}"
+      synapse_idp_id: "oidc-proconnect"
+      issuer: "{{ mas_upstream_provider_issuer }}"
+      human_name: "ProConnect"
+      token_endpoint_auth_method: {{ mas_upstream_provider_auth_method }}
+      client_id: "{{ mas_upstream_provider_client_id }}"
+      client_secret: "{{ mas_upstream_provider_client_secret }}"
+      scope: "openid profile email acr"
+      forward_login_hint: true
+      #pkce_method: never
+      #id_token_signed_response_alg: ES256 #only for proconnect
+      #fetch_userinfo: true #only for proconnect
+      #userinfo_signed_response_alg: ES256 #only for proconnect
+      #additional_authorization_parameters:  #only for proconnect
+      #  acr_values: eidas1  #only for proconnect
+      {% raw %}
+      claims_imports:
+        skip_confirmation: true
+        localpart:
+          action: require
+          template: "{{ user.email | email_to_mxid_localpart }}"
+          on_conflict: add
+        displayname:
+          action: require
+          template: "{{ user.email | email_to_display_name }}"
+        email:
+          action: require
+          template: "{{ user.email }}"
+          set_email_verification: always
+      {% endraw %}
+{% endif %}
+
+rate_limiting:
+  # Limits how many account recovery attempts are allowed.
+  # These limits can protect against e-mail spam.
+  #
+  # Note: these limit also apply to recovery e-mail re-sends.
+  account_recovery:
+    # Controls how many account recovery attempts are permitted
+    # based on source IP address.
+    per_ip:
+      burst: 10
+      per_second: 1
+
+    # Controls how many account recovery attempts are permitted
+    # based on the e-mail address that is being used for recovery.
+    per_address:
+      burst: 3
+      per_second: 0.1
+
+  # Limits how many login attempts are allowed.
+  #
+  # Note: these limit also applies to password checks when a user attempts to
+  # change their own password.
+  login:
+    # Controls how many login attempts are permitted
+    # based on source IP address.
+    # This can protect against brute force login attempts.
+    per_ip:
+      burst: 30
+      per_second: 1
+
+    # Controls how many login attempts are permitted
+    # based on the account that is being attempted to be logged into.
+    # This can protect against a distributed brute force attack
+    # but should be set high enough to prevent someone's account being
+    # casually locked out.
+    per_account:
+      burst: 3
+      per_second: 0.17
+
+  # Limits how many registrations attempts are allowed,
+  # based on source IP address.
+  # This limit can protect against e-mail spam and against people registering too many accounts.
+  registration:
+    {% if mas_increase_rate_limit_for_testing is defined and mas_increase_rate_limit_for_testing %}
+    burst: 500
+    per_second: 10
+    {% else %}
+    burst: 10
+    per_second: 1
+    {% endif %}
+
+  # Email authentication-specific rate limits
+  email_authentication:
+    # Controls how many email authentication attempts are permitted 
+    # based on the source IP address. This can protect against causing 
+    # e-mail spam to many targets.
+    per_ip:
+      {% if mas_increase_rate_limit_for_testing is defined and mas_increase_rate_limit_for_testing %}
+      burst: 500
+      per_second: 10
+      {% else %}
+      burst: 10
+      per_second: 1
+      {% endif %}
+    
+    # Controls how many email authentication attempts are permitted 
+    # based on the e-mail address entered into the authentication form. This can protect 
+    # against causing e-mail spam to one target. Note: this limit also applies to re-sends.
+    per_address:
+      burst: 3
+      per_second: 0.1
+    
+    # Controls how many authentication emails are permitted to be sent
+    # per authentication session. This ensures not too many authentication
+    # codes are created for the same authentication session.
+    emails_per_session:
+      burst: 2
+      per_second: 0.003
+
+    # Controls how many code authentication attempts are permitted per authentication session. 
+    # This can protect against brute-forcing the code.
+    attempt_per_session:
+      burst: 10
+      per_second: 0.016
+
+experimental:
+  # Time-to-live of OAuth 2.0 access tokens in seconds. Defaults to 300, 5 minutes.
+  access_token_ttl: {{mas_access_token_ttl_in_seconds}}
+
+  # Time-to-live of compatibility access tokens in seconds, when refresh tokens 
+  # are supported. Defaults to 300, 5 minutes.
+  # Tchap client does not use refresh tokens with compat session
+  compat_token_ttl: {{mas_access_token_ttl_in_seconds}}
+
+tchap:
+  identity_server_url: "{{ matrix_authentication_identity_server_url }}"
+{% if mas_upstream_provider_enabled %}
+  {% if matrix_synapse_sso_proconnect_user_id_lookup_fallback_rules is defined %}
+  email_lookup_fallback_rules: 
+    # match_with : the new email pattern
+    # search : the old email pattern
+  {% for item in matrix_synapse_sso_proconnect_user_id_lookup_fallback_rules %}
+    - match_with: "{{ item['match'] }}"
+      search: "{{ item['search'] }}"
+  {% endfor %}
+  {% else %}
+  email_lookup_fallback_rules: []
+  {% endif %}
+  tchap_app_link: "https://{{webapp_domain}}"
+
+{% endif %}
+
+
+# only for dev
+templates:
+  # From where to load the templates
+  # This is relative to the current working directory, *not* the config file
+  path: "{{ environ('MAS_TCHAP_TEMPLATES') }}"
+
+  # Path to the frontend assets manifest file
+  # assets_manifest: "/to/manifest.json"
+
+  # # From where to load the translation files
+  # # Default in Docker distribution: `/usr/local/share/mas-cli/translations/`
+  # # Default in pre-built binaries: `./share/translations/`
+  # # Default in locally-built binaries: `./translations/`
+  translations_path: "{{ environ('MAS_TCHAP_TRANSLATIONS') }}"

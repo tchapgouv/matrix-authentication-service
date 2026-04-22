@@ -57,7 +57,8 @@ else
 fi
 
 echo "Step 5/7: Building configuration..."
-$MAS_TCHAP_HOME/build_conf.sh
+$MAS_TCHAP_HOME/build_conf_jinja.sh
+#$MAS_TCHAP_HOME/build_conf.sh
 
 cd "$MAS_HOME"
 
