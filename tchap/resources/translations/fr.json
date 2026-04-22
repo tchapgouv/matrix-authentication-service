@@ -126,9 +126,9 @@
         "you_can_ignore": "Si vous n’avez pas demandé à réinitialisation votre mot de passe, vous pouvez ignorer cet e-mail. Votre mot de passe actuel continuera de fonctionner."
       },
       "verify": {
-        "body_html": "Votre code de vérification pour confirmer cette adresse mail est :",
-        "body_text": "Votre code de vérification pour confirmer cette adresse mail est : %(code)s",
-        "subject": "Votre code de vérification est : %(code)s"
+        "body_html": "Votre code pour confirmer cette adresse mail est :",
+        "body_text": "Votre code pour confirmer cette adresse mail est : %(code)s",
+        "subject": "Votre code est : %(code)s"
       }
     },
     "errors": {
