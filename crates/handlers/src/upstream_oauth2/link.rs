@@ -1433,16 +1433,16 @@ async fn validate_email_for_server(
     let email_result = check_email_allowed(email, server_name, tchap_config).await;
 
     match email_result {
-        EmailAllowedResult::Allowed => {
+        Ok(EmailAllowedResult::Allowed) => {
             // Email is allowed, continue
             Ok(None)
         }
-        EmailAllowedResult::WrongServer => {
+        Ok(EmailAllowedResult::WrongServer { server_name }) => {
             // Email is mapped to a different server
             let ctx = ErrorContext::new()
                 .with_code("wrong_server")
                 .with_description(format!(
-                    "Votre adresse mail {email} est associée à un autre serveur."
+                    "Votre adresse mail {email} est associée à un autre serveur: {server_name}."
                 ))
                 .with_details(
                     "Veuillez-vous contacter le support de Tchap support@tchap.beta.gouv.fr"
@@ -1452,7 +1452,7 @@ async fn validate_email_for_server(
 
             Ok(Some(ctx))
         }
-        EmailAllowedResult::InvitationMissing => {
+        Ok(EmailAllowedResult::InvitationMissing) => {
             // Server requires an invitation that is not present
             let ctx = ErrorContext::new()
                 .with_code("invitation_missing")
@@ -1460,6 +1460,17 @@ async fn validate_email_for_server(
                 .with_details("Les partenaires externes peuvent accéder à Tchap uniquement avec une invitation d'un agent public.".to_owned())
                 .with_language(locale);
 
+            Ok(Some(ctx))
+        }
+        Err(_) => {
+            let ctx = ErrorContext::new()
+                .with_code("Identity Server Error")
+                .with_description("Impossible de contacter le serveur d'identité".to_owned())
+                .with_details(
+                    "Veuillez réessayer ou contacter le support de Tchap support@tchap.beta.gouv.fr"
+                        .to_owned(),
+                )
+                .with_language(locale);
             Ok(Some(ctx))
         }
     }
@@ -1516,7 +1527,7 @@ async fn check_email_allowed(
     email: &str,
     server_name: &str,
     tchap_config: &TchapConfig,
-) -> EmailAllowedResult {
+) -> Result<EmailAllowedResult, anyhow::Error> {
     tchap::is_email_allowed(email, server_name, tchap_config).await
 }
 ///mock function used when testing
@@ -1525,11 +1536,13 @@ async fn check_email_allowed(
     email: &str,
     _server_name: &str,
     _tchap_config: &TchapConfig,
-) -> EmailAllowedResult {
+) -> Result<EmailAllowedResult, anyhow::Error> {
     if email == "wrong_server@example.com" {
-        EmailAllowedResult::WrongServer
+        Ok(EmailAllowedResult::WrongServer {
+            server_name: "test".to_owned(),
+        })
     } else {
-        EmailAllowedResult::Allowed
+        Ok(EmailAllowedResult::Allowed)
     }
 }
 //:tchap:end

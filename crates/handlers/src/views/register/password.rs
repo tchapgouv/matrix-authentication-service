@@ -243,26 +243,38 @@ pub(crate) async fn post(
             let email_result = check_email_allowed(email, server_name, &tchap_config).await;
 
             match email_result {
-                EmailAllowedResult::Allowed => {
+                Ok(EmailAllowedResult::Allowed) => {
                     // Email is allowed, continue
                 }
-                EmailAllowedResult::WrongServer => {
+                Ok(EmailAllowedResult::WrongServer { server_name }) => {
                     state.add_error_on_field(
                         RegisterFormField::Email,
                         FieldError::Policy {
                             code: None,
-                            message: "Votre adresse mail est associée à un autre serveur."
-                                .to_owned(),
+                            message: format!(
+                                "Votre adresse mail est associée à un autre serveur {server_name}."
+                            ),
                         },
                     );
                 }
-                EmailAllowedResult::InvitationMissing => {
+                Ok(EmailAllowedResult::InvitationMissing) => {
                     state.add_error_on_field(
                         RegisterFormField::Email,
                         FieldError::Policy {
                             code: None,
                             message: "Vous avez besoin d'une invitation pour accéder à Tchap"
                                 .to_owned(),
+                        },
+                    );
+                }
+                Err(_) => {
+                    state.add_error_on_field(
+                        RegisterFormField::Email,
+                        FieldError::Policy {
+                            code: None,
+                            message:
+                                "Impossible de contacter le serveur d'identité, veuillez réessayer ou contacter support@tchap.beta.gouv.fr"
+                                    .to_owned(),
                         },
                     );
                 }
@@ -538,7 +550,7 @@ async fn check_email_allowed(
     email: &str,
     server_name: &str,
     tchap_config: &TchapConfig,
-) -> EmailAllowedResult {
+) -> Result<EmailAllowedResult, anyhow::Error> {
     tchap::is_email_allowed(email, server_name, tchap_config).await
 }
 
@@ -547,8 +559,8 @@ async fn check_email_allowed(
     _email: &str,
     _server_name: &str,
     _tchap_config: &TchapConfig,
-) -> EmailAllowedResult {
-    EmailAllowedResult::Allowed
+) -> Result<EmailAllowedResult, anyhow::Error> {
+    Ok(EmailAllowedResult::Allowed)
 }
 //:tchap:end
 
