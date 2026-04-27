@@ -28,7 +28,7 @@
 extern crate tracing;
 use mas_data_model::TchapConfig;
 use mas_storage::BoxRepository;
-use tracing::info;
+use tracing::{info, warn};
 
 mod identity_client;
 mod test_utils;
@@ -184,14 +184,13 @@ pub enum EmailAllowedResult {
 ///
 /// # Returns
 ///
-/// An `EmailAllowedResult` indicating whether the email is allowed and if not,
-/// why
-#[must_use]
+/// A `Result` containing `EmailAllowedResult` indicating whether the email is
+/// allowed, or an error if the HTTP request to the identity server failed
 pub async fn is_email_allowed(
     email: &str,
     server_name: &str,
     tchap_config: &TchapConfig,
-) -> EmailAllowedResult {
+) -> Result<EmailAllowedResult, anyhow::Error> {
     // Query the identity server
     match identity_client::query_identity_server(email, tchap_config).await {
         Ok(json) => {
@@ -200,10 +199,14 @@ pub async fn is_email_allowed(
             // Check if "hs" is in the response or if hs different from server_name
             if hs.is_none() || hs.unwrap() != server_name {
                 // Email is mapped to a different server or no server at all
-                return EmailAllowedResult::WrongServer;
+                return Ok(EmailAllowedResult::WrongServer);
             }
 
-            info!("hs: {} ", hs.unwrap());
+            info!(
+                ":tchap: - identity server - email {} is mapped to hs: {} ",
+                email,
+                hs.unwrap()
+            );
 
             // Check if requires_invite is true and invited is false
             let requires_invite = json
@@ -216,20 +219,23 @@ pub async fn is_email_allowed(
                 .and_then(|v| v.as_bool())
                 .unwrap_or(false);
 
-            info!("requires_invite: {} invited: {}", requires_invite, invited);
+            info!(
+                ":tchap: - identity server - requires_invite {} invited: {}",
+                requires_invite, invited
+            );
 
             if requires_invite && !invited {
                 // Requires an invite but hasn't been invited
-                return EmailAllowedResult::InvitationMissing;
+                return Ok(EmailAllowedResult::InvitationMissing);
             }
 
             // All checks passed
-            EmailAllowedResult::Allowed
+            Ok(EmailAllowedResult::Allowed)
         }
         Err(err) => {
-            // Log the error and return WrongServer as a default error
-            eprintln!("HTTP request failed: {}", err);
-            EmailAllowedResult::WrongServer
+            // Log the error and return an error result
+            warn!(":tchap: - identity server - HTTP request failed: {}", err);
+            Err(anyhow::anyhow!(err))
         }
     }
 }
@@ -423,7 +429,7 @@ mod tests {
 
         let result = is_email_allowed(email, server_name, &config).await;
 
-        assert_eq!(result, EmailAllowedResult::Allowed);
+        assert_eq!(result.unwrap(), EmailAllowedResult::Allowed);
     }
 
     #[tokio::test]
@@ -459,7 +465,7 @@ mod tests {
 
         let result = is_email_allowed(email, server_name, &config).await;
 
-        assert_eq!(result, EmailAllowedResult::InvitationMissing);
+        assert_eq!(result.unwrap(), EmailAllowedResult::InvitationMissing);
     }
 
     #[tokio::test]
@@ -495,7 +501,7 @@ mod tests {
 
         let result = is_email_allowed(email, server_name, &config).await;
 
-        assert_eq!(result, EmailAllowedResult::WrongServer);
+        assert_eq!(result.unwrap(), EmailAllowedResult::WrongServer);
     }
 
     #[tokio::test]
@@ -531,6 +537,6 @@ mod tests {
 
         let result = is_email_allowed(email, server_name, &config).await;
 
-        assert_eq!(result, EmailAllowedResult::Allowed);
+        assert_eq!(result.unwrap(), EmailAllowedResult::Allowed);
     }
 }
