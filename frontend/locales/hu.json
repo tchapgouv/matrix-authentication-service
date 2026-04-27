@@ -125,6 +125,7 @@
       "heading": "A(z) {{email}} e-mail-cím már használatban van."
     },
     "end_session_button": {
+      "confirmation_modal_body_text": "Make sure you always have access to another verified device or your recovery key to avoid losing your encrypted chat history.",
       "confirmation_modal_title": "Biztos, hogy befejezi a munkamenetet?",
       "text": "Eszköz eltávolítása"
     },
@@ -391,9 +392,9 @@
     "scope": {
       "edit_profile": "Profil és elérhetőségek szerkesztése",
       "manage_sessions": "Eszközök és munkamenetek kezelése",
-      "mas_admin": "Bármely felhasználó kezelése a matrix-authentication-service szolgáltatásban",
+      "mas_admin": "Felhasználók kezelése (urn:mas:admin)",
       "send_messages": "Új üzenetek küldése az Ön nevében",
-      "synapse_admin": "A Synapse Matrix-kiszolgáló kezelése",
+      "synapse_admin": "A kiszolgáló kezelése (urn:synapse:admin:*)",
       "view_messages": "Meglévő üzenetek és adatok megtekintése",
       "view_profile": "Saját profilinformációk és kapcsolati részletek megtekintése"
     }

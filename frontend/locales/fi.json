@@ -125,7 +125,8 @@
       "heading": "Sähköpostiosoite {{email}} on jo käytössä."
     },
     "end_session_button": {
-      "confirmation_modal_title": "Haluatko varmasti lopettaa tämän istunnon?",
+      "confirmation_modal_body_text": "Varmista, että sinulla on toinen vahvistettu laite tai palautusavaimesi käytettävissä, jotta et menetä salattua keskusteluhistoriaasi.",
+      "confirmation_modal_title": "Haluatko varmasti poistaa tämän laitteen?",
       "text": "Poista laite"
     },
     "error": {
@@ -391,9 +392,9 @@
     "scope": {
       "edit_profile": "Muokata profiiliasi ja yhteystietojasi",
       "manage_sessions": "Hallinnoida laitteitasi ja istuntojasi",
-      "mas_admin": "Hallinnoida mitä tahansa käyttäjää matrix-authentication-servicessä",
+      "mas_admin": "Hallinnoida käyttäjiä (urn:mas:admin)",
       "send_messages": "Lähettää uusia viestejä puolestasi",
-      "synapse_admin": "Hallinnoida Synapse-kotipalvelinta",
+      "synapse_admin": "Hallinnoida palvelinta (urn:synapse:admin:*)",
       "view_messages": "Tarkastella olemassa olevia viestejäsi ja tietojasi",
       "view_profile": "Tarkastella profiilitietojasi ja yhteystietojasi"
     }
