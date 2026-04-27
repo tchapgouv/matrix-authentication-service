@@ -166,7 +166,7 @@ pub enum EmailAllowedResult {
     /// Email is allowed on this server
     Allowed,
     /// Email is mapped to a different server
-    WrongServer,
+    WrongServer { server_name: String },
     /// Server requires an invitation that is not present
     InvitationMissing,
 }
@@ -194,12 +194,21 @@ pub async fn is_email_allowed(
     // Query the identity server
     match identity_client::query_identity_server(email, tchap_config).await {
         Ok(json) => {
-            let hs = json.get("hs");
+            let hs = json.get("hs").and_then(|v| v.as_str());
+
+            if hs.is_none() {
+                return Err(anyhow::anyhow!(
+                    "Identity server answered with empty homeserver for email {}",
+                    email
+                ));
+            }
 
             // Check if "hs" is in the response or if hs different from server_name
-            if hs.is_none() || hs.unwrap() != server_name {
+            if hs.unwrap() != server_name {
                 // Email is mapped to a different server or no server at all
-                return Ok(EmailAllowedResult::WrongServer);
+                return Ok(EmailAllowedResult::WrongServer {
+                    server_name: hs.unwrap().to_string(),
+                });
             }
 
             info!(
@@ -501,7 +510,12 @@ mod tests {
 
         let result = is_email_allowed(email, server_name, &config).await;
 
-        assert_eq!(result.unwrap(), EmailAllowedResult::WrongServer);
+        assert_eq!(
+            result.unwrap(),
+            EmailAllowedResult::WrongServer {
+                server_name: "homeserver2".to_string()
+            }
+        );
     }
 
     #[tokio::test]

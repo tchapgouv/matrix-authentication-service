@@ -1437,12 +1437,12 @@ async fn validate_email_for_server(
             // Email is allowed, continue
             Ok(None)
         }
-        Ok(EmailAllowedResult::WrongServer) => {
+        Ok(EmailAllowedResult::WrongServer { server_name }) => {
             // Email is mapped to a different server
             let ctx = ErrorContext::new()
                 .with_code("wrong_server")
                 .with_description(format!(
-                    "Votre adresse mail {email} est associée à un autre serveur."
+                    "Votre adresse mail {email} est associée à un autre serveur: {server_name}."
                 ))
                 .with_details(
                     "Veuillez-vous contacter le support de Tchap support@tchap.beta.gouv.fr"
@@ -1538,7 +1538,9 @@ async fn check_email_allowed(
     _tchap_config: &TchapConfig,
 ) -> Result<EmailAllowedResult, anyhow::Error> {
     if email == "wrong_server@example.com" {
-        Ok(EmailAllowedResult::WrongServer)
+        Ok(EmailAllowedResult::WrongServer {
+            server_name: "test".to_owned(),
+        })
     } else {
         Ok(EmailAllowedResult::Allowed)
     }
