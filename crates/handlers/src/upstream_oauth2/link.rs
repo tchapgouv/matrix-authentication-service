@@ -524,7 +524,6 @@ pub(crate) async fn get(
 
                 let forced_or_required = provider.claims_imports.localpart.is_forced_or_required();
 
-<<<<<<< HEAD
                 // We've got a localpart from the template. Let's run the policy
                 // engine on this registration and react early to a problem on
                 // the username
@@ -575,8 +574,6 @@ pub(crate) async fn get(
                 //:tchap:
                 // matching is done by email so we search users by email and not username
 
-=======
->>>>>>> v1.15.0
                 // We got a localpart from the template. We need to check if it's
                 // available, and if it's not apply the conflict resolution setup in
                 // the config
@@ -874,7 +871,6 @@ pub(crate) async fn get(
                     ));
                 }
 
-<<<<<<< HEAD
                 // when user is not found, verify that the email is allowed on the server for
                 // account creation
                 //:tchap:
@@ -902,54 +898,6 @@ pub(crate) async fn get(
                     ));
                 }
                 //:tchap: end
-=======
-                // We've got a localpart from the template. Let's run the policy
-                // engine on this registration and react early to a problem on
-                // the username
-                let res = policy
-                    .evaluate_register(mas_policy::RegisterInput {
-                        registration_method: mas_policy::RegistrationMethod::UpstreamOAuth2,
-                        username: &localpart,
-                        email: email.as_deref(),
-                        requester: mas_policy::Requester {
-                            ip_address: activity_tracker.ip(),
-                            user_agent: user_agent.clone(),
-                        },
-                    })
-                    .await?;
-
-                // We don't do a full policy check at this point, only look for violations on
-                // the username
-                if res
-                    .violations
-                    .iter()
-                    .any(|violation| violation.field.as_deref() == Some("username"))
-                {
-                    if !forced_or_required {
-                        tracing::warn!(
-                            upstream_oauth_provider.id = %provider.id,
-                            upstream_oauth_link.id = %link.id,
-                            "Upstream provider returned a localpart {localpart:?} which was denied by the policy ({res}). As the username is just a suggestion, it was ignored."
-                        );
-                        break 'localpart None;
-                    }
-
-                    // If the username policy check fails, we display an error message.
-                    // TODO: translate
-                    let ctx = ErrorContext::new()
-                        .with_code("Policy error")
-                        .with_description(format!(
-                            r"Upstream account provider returned {localpart:?} as username,
-                            which does not pass the policy check: {res}"
-                        ))
-                        .with_language(&locale);
-
-                    return Ok((
-                        cookie_jar,
-                        Html(templates.render_error(&ctx)?).into_response(),
-                    ));
-                }
->>>>>>> v1.15.0
 
                 // Now let's check if the localpart is allowed by the homeserver. It's possible
                 // that it's plain invalid (although that should have been caught by the

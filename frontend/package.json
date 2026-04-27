@@ -25,17 +25,10 @@
     "@gouvfr-lasuite/integration": "^1.0.3",
     "@radix-ui/react-collapsible": "^1.1.12",
     "@radix-ui/react-dialog": "^1.1.15",
-<<<<<<< HEAD
-    "@tanstack/react-query": "^5.90.11",
-    "@tanstack/react-router": "^1.131.44",
-    "@vector-im/compound-design-tokens": "git+https://github.com/tchapgouv/compound-design-tokens.git",
-    "@vector-im/compound-web": "^8.2.5",
-=======
     "@tanstack/react-query": "^5.90.21",
     "@tanstack/react-router": "^1.167.4",
-    "@vector-im/compound-design-tokens": "6.10.1",
+    "@vector-im/compound-design-tokens": "git+https://github.com/tchapgouv/compound-design-tokens.git",
     "@vector-im/compound-web": "^8.3.5",
->>>>>>> v1.15.0
     "@zxcvbn-ts/core": "^3.0.4",
     "@zxcvbn-ts/language-common": "^3.0.4",
     "classnames": "^2.5.1",

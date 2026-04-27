@@ -13,28 +13,14 @@ MAS_HOME="$(dirname "$TCHAP_HOME")"
 TCHAP_ENV_YAML="$TCHAP_HOME/.env.yaml"
 MAS_TCHAP_DATA="$MAS_TCHAP_HOME/tmp"
 
-echo "Step 1/7: Checking requirements..."
+echo "Step 1/3: Checking requirements..."
 # Check if Docker is available
 if ! command -v docker &> /dev/null; then
   echo "Error: Docker is not installed or not in PATH."
   exit 1
 fi
 
-echo "Step 2/7: Preparing template directories..."
-
-# Create tmp directory
-if [ ! -d "$MAS_TCHAP_DATA" ]; then
-  echo "Creating MAS tchap temp folder..."
-  mkdir -p "$MAS_TCHAP_DATA"
-fi
-
-echo "Step 3/7: Copying MAS templates..."
-cp -r "$MAS_HOME/templates" "$MAS_TCHAP_DATA"
-
-echo "Step 4/7: Overriding with custom Tchap templates..."
-cp -r "$MAS_HOME/tchap/resources/templates" "$MAS_TCHAP_DATA"
-
-echo "Step 5/7: Building MAS config file..."
+echo "Step 2/3: Validating variables file..."
 # Check if .env.yaml file exists
 if [ ! -f "$TCHAP_ENV_YAML" ]; then
   echo "Error: .env.yaml file not found at $TCHAP_ENV_YAML"
@@ -42,6 +28,7 @@ if [ ! -f "$TCHAP_ENV_YAML" ]; then
   exit 1
 fi
 
+echo "Step 3/3: Rendering Jinja2 template..."
 # Create tmp directory if needed
 MAS_TCHAP_DATA="$TCHAP_HOME/tmp"
 if [ ! -d "$MAS_TCHAP_DATA" ]; then

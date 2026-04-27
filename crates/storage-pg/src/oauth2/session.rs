@@ -595,7 +595,6 @@ impl OAuth2SessionRepository for PgOAuth2SessionRepository<'_> {
     }
 
     #[tracing::instrument(
-<<<<<<< HEAD
         name = "db.oauth2_session.find_by_browser_session",
         skip_all,
         fields(
@@ -632,7 +631,9 @@ impl OAuth2SessionRepository for PgOAuth2SessionRepository<'_> {
         let Some(session) = res else { return Ok(None) };
 
         Ok(Some(session.try_into()?))
-=======
+    }
+
+    #[tracing::instrument(
         name = "db.oauth2_session.cleanup_finished",
         skip_all,
         fields(
@@ -742,6 +743,5 @@ impl OAuth2SessionRepository for PgOAuth2SessionRepository<'_> {
             res.count.try_into().unwrap_or(usize::MAX),
             res.last_active_at,
         ))
->>>>>>> v1.15.0
     }
 }

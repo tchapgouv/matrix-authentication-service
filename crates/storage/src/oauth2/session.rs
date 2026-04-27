@@ -463,7 +463,6 @@ pub trait OAuth2SessionRepository: Send + Sync {
         human_name: Option<String>,
     ) -> Result<Session, Self::Error>;
 
-<<<<<<< HEAD
     /// Lookup an [`Session`] by its browser session id
     ///
     /// Returns `None` if no [`Session`] was found
@@ -471,7 +470,12 @@ pub trait OAuth2SessionRepository: Send + Sync {
     /// # Parameters
     ///
     /// * `id`: The ID of the [`Session`] to lookup
-=======
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Self::Error`] if the underlying repository fails
+    async fn find_by_browser_session(&mut self, id: Ulid) -> Result<Option<Session>, Self::Error>;
+
     /// Cleanup finished [`Session`]s
     ///
     /// Deletes sessions finished between `since` and `until`. Returns the
@@ -484,14 +488,10 @@ pub trait OAuth2SessionRepository: Send + Sync {
     ///   starts from the beginning.
     /// * `until`: The latest finish time to delete (exclusive)
     /// * `limit`: Maximum number of sessions to delete in this batch
->>>>>>> v1.15.0
     ///
     /// # Errors
     ///
     /// Returns [`Self::Error`] if the underlying repository fails
-<<<<<<< HEAD
-    async fn find_by_browser_session(&mut self, id: Ulid) -> Result<Option<Session>, Self::Error>;
-=======
     async fn cleanup_finished(
         &mut self,
         since: Option<DateTime<Utc>>,
@@ -522,7 +522,6 @@ pub trait OAuth2SessionRepository: Send + Sync {
         threshold: DateTime<Utc>,
         limit: usize,
     ) -> Result<(usize, Option<DateTime<Utc>>), Self::Error>;
->>>>>>> v1.15.0
 }
 
 repository_impl!(OAuth2SessionRepository:
@@ -589,9 +588,8 @@ repository_impl!(OAuth2SessionRepository:
         human_name: Option<String>,
     ) -> Result<Session, Self::Error>;
 
-<<<<<<< HEAD
     async fn find_by_browser_session(&mut self, id: Ulid) -> Result<Option<Session>, Self::Error>;
-=======
+
     async fn cleanup_finished(
         &mut self,
         since: Option<DateTime<Utc>>,
@@ -605,5 +603,4 @@ repository_impl!(OAuth2SessionRepository:
         threshold: DateTime<Utc>,
         limit: usize,
     ) -> Result<(usize, Option<DateTime<Utc>>), Self::Error>;
->>>>>>> v1.15.0
 );
