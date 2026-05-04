@@ -15,7 +15,7 @@ use mas_storage::{
     queue::{QueueJobRepositoryExt as _, SyncDevicesJob},
     user::BrowserSessionFilter,
 };
-use tracing::{error, info};
+use tracing::info;
 use ulid::Ulid;
 
 use crate::{

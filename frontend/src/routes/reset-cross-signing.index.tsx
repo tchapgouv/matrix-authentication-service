@@ -96,6 +96,7 @@ function ResetCrossSigning(): React.ReactNode {
         // :tchap:
         // we use a param here instead if user agent since it is an internal redirection and we lose the correct useragents
         if (desktop) {
+          //TODO this deeplink is not env-aware (dev, preprod)
           window.location.href = "tchap:/reset-cross-signing.success";
           navigate({ to: "/reset-cross-signing/success", replace: true });
           return;

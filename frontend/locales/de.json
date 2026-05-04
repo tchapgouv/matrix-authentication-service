@@ -125,6 +125,7 @@
       "heading": "Die E-Mail-Adresse {{email}} wird bereits verwendet."
     },
     "end_session_button": {
+      "confirmation_modal_body_text": "Make sure you always have access to another verified device or your recovery key to avoid losing your encrypted chat history.",
       "confirmation_modal_title": "Möchtest du diese Sitzung wirklich beenden?",
       "text": "Gerät entfernen"
     },
@@ -391,9 +392,9 @@
     "scope": {
       "edit_profile": "Bearbeite dein Profil und deine Kontaktdaten",
       "manage_sessions": "Verwalte deine Geräte und Sitzungen",
-      "mas_admin": "Beliebige Benutzer verwalten",
+      "mas_admin": "Beliebige Benutzer verwalten (urn:mas:admin)",
       "send_messages": "Neue Nachrichten in deinem Namen senden",
-      "synapse_admin": "Den Synapse-Homeserver verwalten",
+      "synapse_admin": "Den Synapse-Homeserver verwalten (urn:synapse:admin:*)",
       "view_messages": "Zeig deine vorhandenen Nachrichten und Daten an",
       "view_profile": "Deine Profilinfos und Kontaktdaten anzeigen"
     }

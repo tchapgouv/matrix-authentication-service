@@ -170,7 +170,7 @@ pub async fn handler(
 
     let user = repo.user().add(&mut rng, &clock, params.username).await?;
     //:tchap:
-    let mut provision_request = ProvisionRequest::new(&user.username, &user.sub);
+    let mut provision_request = ProvisionRequest::new(&user.username, &user.sub, false);
     if let Some(displayname) = params.displayname {
         provision_request = provision_request.set_displayname(displayname);
     }

@@ -12,12 +12,14 @@ export MAS_HOME="$(dirname "$SCRIPT_DIR")"
 # fmt
 cd $MAS_HOME
 sh ./misc/update.sh
-cargo +nightly fmt 
+cargo +nightly fmt
 
 # unit tests
 #export DATABASE_URL=postgresql://postgres:postgres@localhost:5439/postgres
 #cargo test --workspace
 #export DATABASE_URL=postgresql://postgres:postgres@localhost:5439/postgres; cargo test --lib views::register::password::tests::test_register
+
+rustup default 1.93
 
 # clippy
 unset DATABASE_URL

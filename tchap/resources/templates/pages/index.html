@@ -61,6 +61,7 @@ Please see LICENSE files in the repository root for full details.
       <!--    
         do not show Tchap Windows before official release     
         {{ button.link(text="Continuer dans Tchap Windows", href="tchap://connect") }}
+         //TODO: should be env-aware (dev, preprod..)
       -->        
         {{ logout.button(text=_("action.sign_out"), csrf_token=csrf_token) }} 
     {% else %}
@@ -68,6 +69,7 @@ Please see LICENSE files in the repository root for full details.
       <!-- 
         do not show Tchap Windows before official release     
         {{ button.link(text="Continuer dans Tchap Windows", href="tchap://connect") }} 
+         //TODO: should be env-aware (dev, preprod..)
       -->
     {% endif %}
   </main>
