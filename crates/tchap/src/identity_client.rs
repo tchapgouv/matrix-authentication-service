@@ -42,6 +42,8 @@ pub async fn query_identity_server(
     email: &str,
     tchap_config: &TchapConfig,
 ) -> Result<serde_json::Value, reqwest::Error> {
+    let email: String = email.to_lowercase(); //identity server is case sensitive
+
     let identity_server_url = &tchap_config.identity_server_url;
 
     // Construct the URL with the email address
@@ -49,7 +51,7 @@ pub async fn query_identity_server(
         "{}_matrix/identity/api/v1/internal-info",
         identity_server_url
     );
-    let query_params = [("medium", "email"), ("address", email)];
+    let query_params = [("medium", "email"), ("address", &email)];
 
     info!("Making request to identity server: {}", url);
 
