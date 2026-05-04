@@ -180,20 +180,23 @@ impl SimpleRoute for Healthcheck {
 }
 
 /// `GET|POST /login`
-#[derive(Default, Debug, Clone)]
+#[derive(Default, Debug, Clone, Serialize, Deserialize)]
 pub struct Login {
+    #[serde(flatten)]
     post_auth_action: Option<PostAuthAction>,
+
+    login_hint: Option<String>,
 }
 
 impl Route for Login {
-    type Query = PostAuthAction;
+    type Query = Self;
 
     fn route() -> &'static str {
         "/login"
     }
 
     fn query(&self) -> Option<&Self::Query> {
-        self.post_auth_action.as_ref()
+        Some(self)
     }
 }
 
@@ -202,6 +205,7 @@ impl Login {
     pub const fn and_then(action: PostAuthAction) -> Self {
         Self {
             post_auth_action: Some(action),
+            login_hint: None,
         }
     }
 
@@ -209,6 +213,7 @@ impl Login {
     pub const fn and_continue_grant(id: Ulid) -> Self {
         Self {
             post_auth_action: Some(PostAuthAction::continue_grant(id)),
+            login_hint: None,
         }
     }
 
@@ -216,6 +221,7 @@ impl Login {
     pub const fn and_continue_device_code_grant(id: Ulid) -> Self {
         Self {
             post_auth_action: Some(PostAuthAction::continue_device_code_grant(id)),
+            login_hint: None,
         }
     }
 
@@ -223,6 +229,7 @@ impl Login {
     pub const fn and_continue_compat_sso_login(id: Ulid) -> Self {
         Self {
             post_auth_action: Some(PostAuthAction::continue_compat_sso_login(id)),
+            login_hint: None,
         }
     }
 
@@ -230,7 +237,14 @@ impl Login {
     pub const fn and_link_upstream(id: Ulid) -> Self {
         Self {
             post_auth_action: Some(PostAuthAction::link_upstream(id)),
+            login_hint: None,
         }
+    }
+
+    #[must_use]
+    pub fn with_login_hint(mut self, login_hint: String) -> Self {
+        self.login_hint = Some(login_hint);
+        self
     }
 
     /// Get a reference to the login's post auth action.
@@ -249,7 +263,10 @@ impl Login {
 
 impl From<Option<PostAuthAction>> for Login {
     fn from(post_auth_action: Option<PostAuthAction>) -> Self {
-        Self { post_auth_action }
+        Self {
+            post_auth_action,
+            login_hint: None,
+        }
     }
 }
 
@@ -486,27 +503,40 @@ impl Route for RegisterFinish {
     }
 }
 
-/// Actions parameters as defined by MSC2965
+/// Actions parameters as defined by MSC4191
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "action")]
 pub enum AccountAction {
     #[serde(rename = "org.matrix.profile")]
     OrgMatrixProfile,
+    /// DEPRECATED: Use `OrgMatrixProfile` instead
     #[serde(rename = "profile")]
     Profile,
 
+    #[serde(rename = "org.matrix.devices_list")]
+    OrgMatrixDevicesList,
+    /// DEPRECATED: Use `OrgMatrixDevicesList` instead
     #[serde(rename = "org.matrix.sessions_list")]
     OrgMatrixSessionsList,
+    /// DEPRECATED: Use `OrgMatrixDevicesList` instead
     #[serde(rename = "sessions_list")]
     SessionsList,
 
+    #[serde(rename = "org.matrix.device_view")]
+    OrgMatrixDeviceView { device_id: String },
+    /// DEPRECATED: Use `OrgMatrixDeviceView` instead
     #[serde(rename = "org.matrix.session_view")]
     OrgMatrixSessionView { device_id: String },
+    /// DEPRECATED: Use `OrgMatrixDeviceView` instead
     #[serde(rename = "session_view")]
     SessionView { device_id: String },
 
+    #[serde(rename = "org.matrix.device_delete")]
+    OrgMatrixDeviceDelete { device_id: String },
+    /// DEPRECATED: Use `OrgMatrixDeviceDelete` instead
     #[serde(rename = "org.matrix.session_end")]
     OrgMatrixSessionEnd { device_id: String },
+    /// DEPRECATED: Use `OrgMatrixDeviceDelete` instead
     #[serde(rename = "session_end")]
     SessionEnd { device_id: String },
 
@@ -625,6 +655,16 @@ pub enum CompatLoginSsoAction {
     Login,
     #[serde(alias = "REGISTER")]
     Register,
+    #[serde(other)]
+    Unknown,
+}
+
+impl CompatLoginSsoAction {
+    /// Returns true if the action is a known action.
+    #[must_use]
+    pub fn is_known(&self) -> bool {
+        !matches!(self, Self::Unknown)
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Copy)]

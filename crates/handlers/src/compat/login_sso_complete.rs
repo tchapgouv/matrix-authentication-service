@@ -4,7 +4,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
 // Please see LICENSE files in the repository root for full details.
 
-use std::{collections::HashMap, sync::Arc};
+use std::sync::Arc;
 
 use anyhow::Context;
 use axum::{
@@ -27,22 +27,13 @@ use mas_storage::{BoxRepository, RepositoryAccess, compat::CompatSsoLoginReposit
 use mas_templates::{
     CompatLoginPolicyViolationContext, CompatSsoContext, ErrorContext, TemplateContext, Templates,
 };
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use ulid::Ulid;
 
 use crate::{
     BoundActivityTracker, PreferredLanguage,
     session::{SessionOrFallback, count_user_sessions_for_limiting, load_session_or_fallback},
 };
-
-#[derive(Serialize)]
-struct AllParams<'s> {
-    #[serde(flatten)]
-    existing_params: HashMap<&'s str, &'s str>,
-
-    #[serde(rename = "loginToken")]
-    login_token: &'s str,
-}
 
 #[derive(Debug, Deserialize)]
 pub struct Params {
@@ -92,7 +83,7 @@ pub async fn get(
             Some(CompatLoginSsoAction::Register) => {
                 url_builder.redirect(&mas_router::Register::and_continue_compat_sso_login(id))
             }
-            Some(CompatLoginSsoAction::Login) | None => {
+            Some(CompatLoginSsoAction::Login | CompatLoginSsoAction::Unknown) | None => {
                 url_builder.redirect(&mas_router::Login::and_continue_compat_sso_login(id))
             }
         };
@@ -233,7 +224,7 @@ pub async fn post(
             Some(CompatLoginSsoAction::Register) => {
                 url_builder.redirect(&mas_router::Register::and_continue_compat_sso_login(id))
             }
-            Some(CompatLoginSsoAction::Login) | None => {
+            Some(CompatLoginSsoAction::Login | CompatLoginSsoAction::Unknown) | None => {
                 url_builder.redirect(&mas_router::Login::and_continue_compat_sso_login(id))
             }
         };
@@ -263,18 +254,9 @@ pub async fn post(
 
     let redirect_uri = {
         let mut redirect_uri = login.redirect_uri.clone();
-        let existing_params = redirect_uri
-            .query()
-            .map(serde_urlencoded::from_str)
-            .transpose()?
-            .unwrap_or_default();
-
-        let params = AllParams {
-            existing_params,
-            login_token: &login.login_token,
-        };
-        let query = serde_urlencoded::to_string(params)?;
-        redirect_uri.set_query(Some(&query));
+        redirect_uri
+            .query_pairs_mut()
+            .append_pair("loginToken", &login.login_token);
         redirect_uri
     };
 

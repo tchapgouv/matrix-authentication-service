@@ -16,7 +16,7 @@ use mas_data_model::{
     User,
 };
 use mas_matrix::HomeserverConnection;
-use mas_policy::{Policy, Requester, ViolationCode, model::CompatLogin};
+use mas_policy::{Policy, Requester, ViolationVariant, model::CompatLogin};
 use mas_storage::{
     BoxRepository, BoxRepositoryFactory, RepositoryAccess,
     compat::{
@@ -66,8 +66,11 @@ enum LoginType {
     Sso {
         #[serde(skip_serializing_if = "Vec::is_empty")]
         identity_providers: Vec<SsoIdentityProvider>,
+        oauth_aware_preferred: bool,
+        /// DEPRECATED: Use `oauth_aware_preferred` instead. We will remove this
+        /// once enough clients support the stable name `oauth_aware_preferred`.
         #[serde(rename = "org.matrix.msc3824.delegated_oidc_compatibility")]
-        delegated_oidc_compatibility: bool,
+        unstable_delegated_oidc_compatibility: bool,
     },
 }
 
@@ -89,7 +92,8 @@ pub(crate) async fn get(State(password_manager): State<PasswordManager>) -> impl
             LoginType::Password,
             LoginType::Sso {
                 identity_providers: vec![],
-                delegated_oidc_compatibility: true,
+                oauth_aware_preferred: true,
+                unstable_delegated_oidc_compatibility: true,
             },
             LoginType::Token,
         ]
@@ -97,7 +101,8 @@ pub(crate) async fn get(State(password_manager): State<PasswordManager>) -> impl
         vec![
             LoginType::Sso {
                 identity_providers: vec![],
-                delegated_oidc_compatibility: true,
+                oauth_aware_preferred: true,
+                unstable_delegated_oidc_compatibility: true,
             },
             LoginType::Token,
         ]
@@ -600,7 +605,7 @@ async fn token_login(
         // that removing a session wouldn't actually unblock the login.
         if res.violations.len() == 1 {
             let violation = &res.violations[0];
-            if violation.code == Some(ViolationCode::TooManySessions) {
+            if violation.variant == Some(ViolationVariant::TooManySessions) {
                 // The only violation is having reached the session limit.
                 return Err(RouteError::PolicyHardSessionLimitReached);
             }
@@ -733,7 +738,7 @@ async fn user_password_login(
         // that removing a session wouldn't actually unblock the login.
         if res.violations.len() == 1 {
             let violation = &res.violations[0];
-            if violation.code == Some(ViolationCode::TooManySessions) {
+            if violation.variant == Some(ViolationVariant::TooManySessions) {
                 // The only violation is having reached the session limit.
                 return Err(RouteError::PolicyHardSessionLimitReached);
             }
@@ -787,6 +792,7 @@ mod tests {
             },
             {
               "type": "m.login.sso",
+              "oauth_aware_preferred": true,
               "org.matrix.msc3824.delegated_oidc_compatibility": true
             },
             {
@@ -872,6 +878,7 @@ mod tests {
           "flows": [
             {
               "type": "m.login.sso",
+              "oauth_aware_preferred": true,
               "org.matrix.msc3824.delegated_oidc_compatibility": true
             },
             {
@@ -928,7 +935,7 @@ mod tests {
             .unwrap();
         state
             .homeserver_connection
-            .provision_user(&ProvisionRequest::new(&user.username, &user.sub))
+            .provision_user(&ProvisionRequest::new(&user.username, &user.sub, locked))
             .await
             .unwrap();
 
@@ -1231,7 +1238,7 @@ mod tests {
 
         state
             .homeserver_connection
-            .provision_user(&ProvisionRequest::new(&user.username, &user.sub))
+            .provision_user(&ProvisionRequest::new(&user.username, &user.sub, false))
             .await
             .unwrap();
 
@@ -1336,7 +1343,7 @@ mod tests {
 
         state
             .homeserver_connection
-            .provision_user(&ProvisionRequest::new(&user.username, &user.sub))
+            .provision_user(&ProvisionRequest::new(&user.username, &user.sub, false))
             .await
             .unwrap();
 

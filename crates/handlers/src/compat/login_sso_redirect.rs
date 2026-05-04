@@ -22,10 +22,18 @@ use crate::impl_from_error_for_route;
 pub struct Params {
     #[serde(rename = "redirectUrl")]
     redirect_url: Option<String>,
-    //:tchap: add params renaming for mobile legacy tchap devices
-    #[serde(rename = "org.matrix.msc3824.action")]
-    //:tchap: end
     action: Option<CompatLoginSsoAction>,
+
+    #[serde(rename = "org.matrix.msc3824.action")]
+    unstable_action: Option<CompatLoginSsoAction>,
+}
+
+impl Params {
+    fn action(&self) -> Option<CompatLoginSsoAction> {
+        self.action
+            .filter(CompatLoginSsoAction::is_known)
+            .or(self.unstable_action.filter(CompatLoginSsoAction::is_known))
+    }
 }
 
 #[derive(Debug, Error)]
@@ -61,6 +69,8 @@ pub async fn get(
     State(url_builder): State<UrlBuilder>,
     Query(params): Query<Params>,
 ) -> Result<impl IntoResponse, RouteError> {
+    let action = params.action();
+
     // Check the redirectUrl parameter
     let redirect_url = params.redirect_url.ok_or(RouteError::MissingRedirectUrl)?;
     let redirect_url = Url::parse(&redirect_url).map_err(|_| RouteError::InvalidRedirectUrl)?;
@@ -83,5 +93,63 @@ pub async fn get(
 
     repo.save().await?;
 
-    Ok(url_builder.absolute_redirect(&CompatLoginSsoComplete::new(login.id, params.action)))
+    Ok(url_builder.absolute_redirect(&CompatLoginSsoComplete::new(login.id, action)))
+}
+
+#[cfg(test)]
+mod tests {
+    use hyper::{Request, StatusCode};
+    use sqlx::PgPool;
+
+    use crate::test_utils::{RequestBuilderExt, ResponseExt, TestState};
+
+    #[sqlx::test(migrator = "mas_storage_pg::MIGRATOR")]
+    async fn test_unstable_action_fallback(pool: PgPool) {
+        let state: TestState = TestState::from_pool(pool).await.unwrap();
+
+        let request = Request::get(
+            "/_matrix/client/v3/login/sso/redirect?\
+             redirectUrl=http://example.com/\
+             &org.matrix.msc3824.action=register",
+        )
+        .empty();
+
+        let response = state.request(request).await;
+
+        response.assert_status(StatusCode::SEE_OTHER);
+
+        let location = response
+            .headers()
+            .get("Location")
+            .unwrap()
+            .to_str()
+            .unwrap();
+        assert!(location.contains("org.matrix.msc3824.action=register"));
+        assert!(location.contains("action=register"));
+    }
+
+    #[sqlx::test(migrator = "mas_storage_pg::MIGRATOR")]
+    async fn test_unknown_action(pool: PgPool) {
+        let state: TestState = TestState::from_pool(pool).await.unwrap();
+
+        let request = Request::get(
+            "/_matrix/client/v3/login/sso/redirect?\
+             redirectUrl=http://example.com/\
+             &org.matrix.msc3824.action=undefinedaction",
+        )
+        .empty();
+
+        let response = state.request(request).await;
+
+        response.assert_status(StatusCode::SEE_OTHER);
+
+        let location = response
+            .headers()
+            .get("Location")
+            .unwrap()
+            .to_str()
+            .unwrap();
+        assert!(!location.contains("org.matrix.msc3824.action"));
+        assert!(!location.contains("action"));
+    }
 }

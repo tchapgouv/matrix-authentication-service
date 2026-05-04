@@ -363,7 +363,7 @@ pub(crate) async fn post(
                 Some("email") => state.add_error_on_field(
                     RegisterFormField::Email,
                     FieldError::Policy {
-                        code: violation.code.map(|c| c.as_str()),
+                        code: violation.variant.map(|c| c.as_str()),
                         message: violation.msg,
                     },
                 ),
@@ -374,7 +374,7 @@ pub(crate) async fn post(
                     state.add_error_on_field(
                         RegisterFormField::Username,
                         FieldError::Policy {
-                            code: violation.code.map(|c| c.as_str()),
+                            code: violation.variant.map(|c| c.as_str()),
                             message: violation.msg,
                         },
                     );
@@ -382,12 +382,12 @@ pub(crate) async fn post(
                 Some("password") => state.add_error_on_field(
                     RegisterFormField::Password,
                     FieldError::Policy {
-                        code: violation.code.map(|c| c.as_str()),
+                        code: violation.variant.map(|c| c.as_str()),
                         message: violation.msg,
                     },
                 ),
                 _ => state.add_error_on_form(FormError::Policy {
-                    code: violation.code.map(|c| c.as_str()),
+                    code: violation.variant.map(|c| c.as_str()),
                     message: violation.msg,
                 }),
             }
