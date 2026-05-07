@@ -234,7 +234,7 @@ mod tests {
         assert!(result.is_ok());
         assert_eq!(result.unwrap().displayname, None);
     }
-
+//:tchap:
     #[sqlx::test(migrator = "mas_storage_pg::MIGRATOR")]
     async fn test_add_user_with_displayname(pool: PgPool) {
         setup();
@@ -271,6 +271,7 @@ mod tests {
         let result = state.homeserver_connection.query_user("alice").await;
         assert!(result.is_ok());
         assert_eq!(result.unwrap().displayname, Some("Alice Test".to_owned()));
+//:tchap:end
     }
 
     #[sqlx::test(migrator = "mas_storage_pg::MIGRATOR")]
