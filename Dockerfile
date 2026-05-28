@@ -150,9 +150,10 @@ FROM --platform=${BUILDPLATFORM} scratch AS share
 COPY --from=frontend /share /share
 COPY --from=policy /app/policies/policy.wasm /share/policy.wasm
 COPY ./templates/ /share/templates
-COPY ./translations/ /share/translations
+
 
 #:tchap:
+#COPY ./translations/ /share/translations we do not want all translations, only french and english
 COPY ./tchap/resources/templates/ /share/templates/
 COPY ./tchap/resources/translations/ /share/translations/
 #:tchap:
