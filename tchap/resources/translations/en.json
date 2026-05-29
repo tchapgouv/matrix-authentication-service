@@ -189,7 +189,7 @@
       }
     },
     "consent": {
-      "client_wants_access": "",
+      "client_wants_access": "You will find this new device in your list of Tchap devices.",
       "@client_wants_access": {
         "context": "pages/consent.html:41:11-122, pages/sso.html:37:11-72, sso.html:36:11-122"
       },
