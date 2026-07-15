@@ -13,13 +13,10 @@ Please see LICENSE in the repository root for full details.
 
 {% block content %}
   {% set client_name = client.client_name or client.client_id %}
+
   <header class="page-heading">
-    
     {% if client.logo_uri %}
-    <!-- <img class="consent-client-icon image" referrerpolicy="no-referrer" src="{{ client.logo_uri }}" /> -->
-    <div class="consent-client-icon generic">
-      {{ icon.devices() }}
-    </div>
+    <img class="consent-client-icon image" referrerpolicy="no-referrer" src="{{ client.logo_uri }}" />
     {% else %}
     <div class="consent-client-icon generic">
       {{ icon.web_browser() }}
@@ -27,54 +24,58 @@ Please see LICENSE in the repository root for full details.
     {% endif %}
 
     <div class="header">
-      <h1 class="title">{{ _("mas.consent.heading") }}</h1>
-      {% if email %}
-      <span class="email-box">
-        {{ email }}
-      </span>
-      {% else %}
-      <span class="email-box">
-        {{ current_session.user.username }}
-      </span>
-      {% endif %}
-      <p class="text [&>span]:whitespace-nowrap">
-        {{ _("mas.consent.client_wants_access", client_name=client_name, redirect_uri=(grant.redirect_uri | simplify_url)) }}
+      <h1 class="title">
+        {{ _('mas.consent.continue_to', client_name=client_name) }}
+      </h1>
+      <p class="text [&>span]:whitespace-nowrap [&>span]:text-[var(--cpd-color-text-link-external)]">
+        {{ _("mas.consent.this_will_setup", client_name=client_name, client_uri=((client.client_uri or grant.redirect_uri) | simplify_url)) }}
       </p>
     </div>
   </header>
 
-  <!--
-  :tchap:
-  <section class="consent-scope-list">
-    {{ scope.list(scopes=grant.scope) }}
+  {% call(scopes) scope.unsafe_scopes(scopes=grant.scope.split(" ")) %}
+    {% if scopes is not empty %}
+      <section class="flex flex-col gap-3">
+        <p class="text-center cpd-text-body-md-regular">
+          {{ _('mas.consent.scope_list_preface', client_name=client_name) }}
+        </p>
+        <div class="consent-scope-list">
+          {{ scope.list(scopes=scopes) }}
+        </div>
+      </section>
+    {% endif %}
+  {% endcall %}
+
+  {% set display_name -%}
+    {%- if matrix_user.display_name -%}
+      {{- matrix_user.display_name[0] | upper -}}
+    {%- elif current_session.user.username -%}
+      {{- current_session.user.username[0] | upper -}}
+    {%- elif email -%}
+      {{- email -}}
+    {%- else -%}
+      {{- matrix_user.mxid[1] | upper -}}
+    {%- endif -%}
+  {%- endset %}
+
+  <section class="flex items-center p-4 gap-4 border border-[var(--cpd-color-gray-400)] rounded-xl">
+    <div class="flex flex-col">
+      <div class="text-primary cpd-text-body-lg-semibold">{{ display_name }}</div>
+    </div>
   </section>
 
-  <section class="text-center cpd-text-secondary cpd-text-body-md-regular [&>span]:whitespace-nowrap">
-    <strong class="font-semibold cpd-text-primary [&>span]:whitespace-nowrap">{{ _("mas.consent.make_sure_you_trust", client_name=client_name) }}</strong>
-    {{ _("mas.consent.you_may_be_sharing") }}
-    {% if client.policy_uri or client.tos_uri %}
-      Find out how <span>{{ client_name }}</span> will handle your data by reviewing its
-      {% if client.policy_uri %}
-        <a target="_blank" href="{{ client.policy_uri }}" class="cpd-link" data-kind="primary">privacy policy</a>{% if not client.tos_uri %}.{% endif %}
-      {% endif %}
-      {% if client.policy_uri and client.tos_uri%}
-        and
-      {% endif %}
-      {% if client.tos_uri %}
-        <a target="_blank" href="{{ client.tos_uri }}" class="cpd-link" data-kind="primary">terms of service</a>.
-      {% endif %}
-    {% endif %}
-  </section>
-  :tchap:
-  -->
   <section class="flex flex-col gap-6">
     <form method="POST" class="cpd-form-root">
       <input type="hidden" name="csrf" value="{{ csrf_token }}" />
       {{ button.button(text=_("action.continue")) }}
     </form>
-    <div class="flex flex-col gap-6">
-    {{ logout.button(text=_("action.sign_out"), csrf_token=csrf_token, post_logout_action=action, as_link=true) }}
-    </div>
+
+    {% call logout.button(csrf_token=csrf_token, post_logout_action=action) %}
+      <button type="submit" class="cpd-button primary" data-kind="secondary" data-size="lg" type="submit">
+        {{ _("mas.consent.use_another_account") }}
+      </button>
+    {% endcall %}
+
 <!-- :tchap:
     {{ back_to_client.link(
       text=_("action.cancel"),
@@ -83,6 +84,6 @@ Please see LICENSE in the repository root for full details.
       mode=grant.response_mode,
       params=dict(error="access_denied", state=grant.state)
     ) }}
-  -->
+-->
   </section>
 {% endblock content %}
