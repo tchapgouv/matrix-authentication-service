@@ -213,7 +213,7 @@
       "@this_will_allow": {
         "context": "sso.html:37:11-68"
       },
-      "this_will_setup": "This will set up %(client_name)s (<span>%(client_uri)s</span>) with your <span>%(server_name)s</span> account.",
+      "this_will_setup": "This will set up %(client_name)s (<span>%(client_uri)s</span>) with your Tchap account.",
       "@this_will_setup": {},
       "use_another_account": "Use another account",
       "@use_another_account": {
