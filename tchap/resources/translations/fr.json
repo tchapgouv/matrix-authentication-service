@@ -73,13 +73,13 @@
       "headline": "Votre nom d'affichage"
     },
     "consent": {
-      "client_wants_access": "Ce nouvel appareil sera visible dans la liste des vos appareils Tchap.",
+      "client_wants_access": "Ce nouvel appareil sera visible dans la liste de vos appareils %(client_name)s.",
       "continue_to": "Continuer vers <span>%(client_name)s</span>?",
-      "heading": "Connecter cet appareil à votre compte Tchap",
+      "heading": "Nouvel appareil détecté",
       "make_sure_you_trust": "Assurez-vous de faire confiance <span>%(client_name)s</span>.",
       "scope_list_preface": "En continuant, vous autorisez <span>%(client_name)s</span> à :",
       "this_will_allow": "Cela va permettre à <span>%(client_name)s</span> de :",
-      "this_will_setup": "Continuer connectera %(client_name)s (<span>%(client_uri)s</span>) avec votre compte Tchap<span></span>.",
+      "this_will_setup": "Autoriser cet appareil à vous connecter à %(client_name)s (<span>%(client_uri)s</span>) en utilisant le compte suivant:<span></span>",
       "use_another_account": "Utiliser un autre compte",
       "you_may_be_sharing": "Vous partagez peut-être des informations sensibles avec ce site ou cette application."
     },
