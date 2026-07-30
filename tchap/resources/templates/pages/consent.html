@@ -28,6 +28,9 @@ Please see LICENSE in the repository root for full details.
 
     <div class="header">
       <h1 class="title">{{ _("mas.consent.heading") }}</h1>
+      <p class="text [&>span]:whitespace-nowrap [&>span]:text-[var(--cpd-color-text-link-external)]">
+        {{ _("mas.consent.this_will_setup", client_name=client_name, client_uri=((client.client_uri or grant.redirect_uri) | simplify_url)) }}
+      </p>
       {% if email %}
       <span class="email-box">
         {{ email }}
@@ -37,9 +40,6 @@ Please see LICENSE in the repository root for full details.
         {{ current_session.user.username }}
       </span>
       {% endif %}
-      <p class="text [&>span]:whitespace-nowrap">
-        {{ _("mas.consent.client_wants_access", client_name=client_name, redirect_uri=(grant.redirect_uri | simplify_url)) }}
-      </p>
     </div>
   </header>
 
@@ -84,5 +84,10 @@ Please see LICENSE in the repository root for full details.
       params=dict(error="access_denied", state=grant.state)
     ) }}
   -->
+  </section>
+  <section class="flex flex-col gap-6">
+    <p class="cpd-text-secondary [&>span]:whitespace-nowrap italic">
+      {{ _("mas.consent.client_wants_access", client_name=client_name, redirect_uri=(grant.redirect_uri | simplify_url)) }}
+    </p>
   </section>
 {% endblock content %}
