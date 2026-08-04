@@ -68,7 +68,7 @@ Please see LICENSE in the repository root for full details.
   :tchap:
   -->
   <section class="flex flex-col gap-6">
-    <form method="POST" class="cpd-form-root">
+    <form method="POST" class="cpd-form-root" onsubmit="this.querySelector('button').disabled=true">
       <input type="hidden" name="csrf" value="{{ csrf_token }}" />
       {{ button.button(text=_("action.continue")) }}
     </form>
