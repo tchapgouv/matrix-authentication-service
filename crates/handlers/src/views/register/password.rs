@@ -246,13 +246,16 @@ pub(crate) async fn post(
                 Ok(EmailAllowedResult::Allowed) => {
                     // Email is allowed, continue
                 }
-                Ok(EmailAllowedResult::WrongServer { server_name }) => {
+                Ok(EmailAllowedResult::WrongServer {
+                    wrong_server_name,
+                    correct_server_name,
+                }) => {
                     state.add_error_on_field(
                         RegisterFormField::Email,
                         FieldError::Policy {
                             code: None,
                             message: format!(
-                                "Votre adresse mail est associée à un autre serveur {server_name}."
+                                "Votre adresse mail {email} est associée au serveur:{correct_server_name} hors vous êtes sur le serveur:{wrong_server_name}."
                             ),
                         },
                     );
