@@ -165,8 +165,12 @@ pub fn email_to_display_name(address: &str) -> String {
 pub enum EmailAllowedResult {
     /// Email is allowed on this server
     Allowed,
-    /// Email is mapped to a different server
-    WrongServer { server_name: String },
+    /// Error is thrown when email is mapped to a different server
+    /// `correct_server_name`, `wrong_server_name` is the current server
+    WrongServer {
+        wrong_server_name: String,
+        correct_server_name: String,
+    },
     /// Server requires an invitation that is not present
     InvitationMissing,
 }
@@ -207,7 +211,8 @@ pub async fn is_email_allowed(
             if hs.unwrap() != server_name {
                 // Email is mapped to a different server or no server at all
                 return Ok(EmailAllowedResult::WrongServer {
-                    server_name: hs.unwrap().to_string(),
+                    wrong_server_name: server_name.to_owned(),
+                    correct_server_name: hs.unwrap().to_string(),
                 });
             }
 
@@ -513,7 +518,8 @@ mod tests {
         assert_eq!(
             result.unwrap(),
             EmailAllowedResult::WrongServer {
-                server_name: "homeserver2".to_string()
+                correct_server_name: "homeserver2".to_string(),
+                wrong_server_name: "homeserver1".to_string()
             }
         );
     }
