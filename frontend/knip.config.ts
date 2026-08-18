@@ -6,6 +6,7 @@
 import type { KnipConfig } from "knip";
 
 export default {
+<<<<<<< HEAD
   entry: ["src/entrypoints/**", "src/routes/*"],
   ignore: [
     "src/gql/*",
@@ -19,4 +20,8 @@ export default {
     // This is used by the tailwind PostCSS plugin, but not detected by knip
     "postcss-nesting",
   ],
+=======
+  entry: ["src/entrypoints/*", "src/routes/*"],
+  ignore: ["src/gql/*", ".storybook/locales.ts", "i18next.config.ts"],
+>>>>>>> v1.22.0
 } satisfies KnipConfig;

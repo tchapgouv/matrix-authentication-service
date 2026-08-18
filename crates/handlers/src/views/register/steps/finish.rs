@@ -12,7 +12,7 @@ use axum::{
 };
 use axum_extra::TypedHeader;
 use chrono::Duration;
-use mas_axum_utils::{InternalError, SessionInfoExt as _, cookies::CookieJar};
+use mas_axum_utils::{InternalError, RecordAsRequester, SessionInfoExt as _, cookies::CookieJar};
 use mas_data_model::{BoxClock, BoxRng, SiteConfig};
 use mas_matrix::HomeserverConnection;
 use mas_router::{PostAuthAction, UrlBuilder};
@@ -126,8 +126,29 @@ pub(crate) async fn get(
     //this block is deactivated
     //:tchap:end
 
-    // Check if the registration token is required and was provided
-    let registration_token = if site_config.registration_token_required {
+    let token_required = if let Some(session_id) =
+        registration.upstream_oauth_authorization_session_id
+    {
+        let session = repo
+            .upstream_oauth_session()
+            .lookup(session_id)
+            .await?
+            .context("Could not load the upstream OAuth authorization session")
+            .map_err(InternalError::from_anyhow)?;
+
+        let provider = repo
+            .upstream_oauth_provider()
+            .lookup(session.provider_id)
+            .await?
+            .context("Could not load the upstream OAuth provider")
+            .map_err(InternalError::from_anyhow)?;
+
+        provider.registration_token_required || site_config.registration_token_required
+    } else {
+        site_config.password_registration_token_required || site_config.registration_token_required
+    };
+
+    let registration_token = if token_required {
         if let Some(registration_token_id) = registration.user_registration_token_id {
             let registration_token = repo
                 .user_registration_token()
@@ -313,6 +334,7 @@ pub(crate) async fn get(
         .user()
         .add(&mut rng, &clock, registration.username)
         .await?;
+<<<<<<< HEAD
     */
 
     let user = if let Some(user) = existing_user {
@@ -324,6 +346,11 @@ pub(crate) async fn get(
     };
     //:tchap: end
 
+=======
+    // Attribute this request (and its log line) to the user that was just
+    // registered and logged in.
+    user.maybe_record_as_requester();
+>>>>>>> v1.22.0
     // Also create a browser session which will log the user in
     let user_session = repo
         .browser_session()
