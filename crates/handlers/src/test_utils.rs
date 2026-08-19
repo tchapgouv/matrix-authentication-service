@@ -30,12 +30,8 @@ use mas_axum_utils::{
     cookies::{CookieJar, CookieManager},
 };
 use mas_config::RateLimitingConfig;
-<<<<<<< HEAD
-use mas_data_model::{AppVersion, BoxClock, BoxRng, SiteConfig, TchapConfig, clock::MockClock}; /*  */
-=======
 use mas_context::LogContext;
-use mas_data_model::{AppVersion, BoxClock, BoxRng, SiteConfig, clock::MockClock};
->>>>>>> v1.22.0
+use mas_data_model::{AppVersion, BoxClock, BoxRng, SiteConfig, TchapConfig, clock::MockClock}; /* :tchap: */
 use mas_email::{MailTransport, Mailer};
 use mas_i18n::Translator;
 use mas_keystore::{Encrypter, JsonWebKey, JsonWebKeySet, Keystore, PrivateKey};

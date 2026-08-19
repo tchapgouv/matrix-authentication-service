@@ -7,16 +7,11 @@
 
 @import "tailwindcss";
 
-<<<<<<< HEAD
-@import url("../../tchap/css/tchap.css");
-
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-=======
 /* The SSR templates live outside the frontend root, so they aren't picked up by
  * Tailwind's automatic content detection. */
 @source "../../../templates/**/*.html";
+
+/* :TCHAP: should we include our templates too ? */
 
 @theme {
   /* Replace the default palette and font weights with our own tokens. */
@@ -43,4 +38,3 @@
   --font-weight-medium: var(--cpd-font-weight-medium);
   --font-weight-regular: var(--cpd-font-weight-regular);
 }
->>>>>>> v1.22.0

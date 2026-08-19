@@ -78,6 +78,8 @@ impl ConfigurationSection for TchapAppConfig {
 
 #[cfg(test)]
 mod tests {
+    #![expect(clippy::result_large_err)]
+
     use figment::{
         Figment, Jail,
         providers::{Format, Yaml},

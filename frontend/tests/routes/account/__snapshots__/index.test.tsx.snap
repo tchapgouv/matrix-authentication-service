@@ -756,41 +756,8 @@ exports[`Account home page > renders the page 1`] = `
     <footer
       class="lasuite fr-footer"
     >
-<<<<<<< HEAD
       <div
         class="fr-container lasuite-container"
-=======
-      <nav>
-        <a
-          class="_link_k9ljz_8"
-          data-kind="primary"
-          data-size="md"
-          href="https://matrix.org/policy"
-          rel="noreferrer noopener"
-          title="Link to the service privacy policy"
-        >
-          Privacy Policy
-        </a>
-        <div
-          aria-hidden="true"
-          class="_separator_acfd2c"
-        >
-          •
-        </div>
-        <a
-          class="_link_k9ljz_8"
-          data-kind="primary"
-          data-size="md"
-          href="https://matrix.org/tos"
-          rel="noreferrer noopener"
-          title="Link to the service terms and conditions"
-        >
-          Terms & Conditions
-        </a>
-      </nav>
-      <p
-        class="_imprint_acfd2c"
->>>>>>> v1.22.0
       >
         <div
           class="fr-footer__body"

@@ -6757,8 +6757,6 @@
               "string",
               "null"
             ]
-<<<<<<< HEAD
-=======
           },
           "avatar_url": {
             "description": "The avatar URL of the user to add.",
@@ -6766,7 +6764,6 @@
               "string",
               "null"
             ]
->>>>>>> v1.22.0
           }
         },
         "required": [

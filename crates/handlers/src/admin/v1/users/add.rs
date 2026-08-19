@@ -104,18 +104,11 @@ pub struct Request {
     #[serde(default)]
     skip_homeserver_check: bool,
 
-<<<<<<< HEAD
-    //:tchap:
-    /// The displayname of the user to add.
-    displayname: Option<String>,
-    //:tchap:end
-=======
     /// The displayname of the user to add.
     displayname: Option<String>,
 
     /// The avatar URL of the user to add.
     avatar_url: Option<String>,
->>>>>>> v1.22.0
 }
 
 pub fn doc(operation: TransformOperation) -> TransformOperation {
@@ -177,11 +170,6 @@ pub async fn handler(
     }
 
     let user = repo.user().add(&mut rng, &clock, params.username).await?;
-    //:tchap:
-    let mut provision_request = ProvisionRequest::new(&user.username, &user.sub, false);
-    if let Some(displayname) = params.displayname {
-        provision_request = provision_request.set_displayname(displayname);
-    }
 
     let mut provision_request = ProvisionRequest::new(&user.username, &user.sub, false);
     if let Some(displayname) = params.displayname {
@@ -195,7 +183,6 @@ pub async fn handler(
         .provision_user(&provision_request)
         .await
         .map_err(RouteError::Homeserver)?;
-    //:tchap:end
 
     repo.save().await?;
 
@@ -250,48 +237,6 @@ mod tests {
         // Check that the user was created on the homeserver
         let result = state.homeserver_connection.query_user("alice").await;
         assert!(result.is_ok());
-<<<<<<< HEAD
-        assert_eq!(result.unwrap().displayname, None);
-    }
-    //:tchap:
-    #[sqlx::test(migrator = "mas_storage_pg::MIGRATOR")]
-    async fn test_add_user_with_displayname(pool: PgPool) {
-        setup();
-        let mut state = TestState::from_pool(pool).await.unwrap();
-        let token = state.token_with_scope("urn:mas:admin").await;
-
-        let request = Request::post("/api/admin/v1/users")
-            .bearer(&token)
-            .json(serde_json::json!({
-                "username": "alice",
-                "displayname": "Alice Test",
-            }));
-
-        let response = state.request(request).await;
-        response.assert_status(StatusCode::CREATED);
-
-        let body: serde_json::Value = response.json();
-        assert_eq!(body["data"]["type"], "user");
-        let id = body["data"]["id"].as_str().unwrap();
-        assert_eq!(body["data"]["attributes"]["username"], "alice");
-
-        // Check that the user was created in the database
-        let mut repo = state.repository().await.unwrap();
-        let user = repo
-            .user()
-            .lookup(id.parse().unwrap())
-            .await
-            .unwrap()
-            .unwrap();
-
-        assert_eq!(user.username, "alice");
-
-        // Check that the user was created on the homeserver
-        let result = state.homeserver_connection.query_user("alice").await;
-        assert!(result.is_ok());
-        assert_eq!(result.unwrap().displayname, Some("Alice Test".to_owned()));
-        //:tchap:end
-=======
         let user = result.unwrap();
         assert_eq!(user.displayname, Some("Alice Test".to_owned()));
         assert_eq!(
@@ -301,7 +246,6 @@ mod tests {
                     .to_owned()
             )
         );
->>>>>>> v1.22.0
     }
 
     #[sqlx::test(migrator = "mas_storage_pg::MIGRATOR")]

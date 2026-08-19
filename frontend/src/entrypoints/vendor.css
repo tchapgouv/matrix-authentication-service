@@ -19,3 +19,5 @@
 @import "@fontsource/inconsolata/700.css";
 @import "@vector-im/compound-design-tokens/assets/web/css/compound-design-tokens.css";
 @import "@vector-im/compound-web/dist/style.css";
+
+@import url("../../tchap/css/tchap.css");

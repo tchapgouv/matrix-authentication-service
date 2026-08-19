@@ -681,6 +681,7 @@ mod tests {
                 false,
                 Some(login_hint.to_owned()),
                 None,
+                std::collections::BTreeMap::new(),
             )
             .await
             .unwrap();

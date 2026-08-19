@@ -341,7 +341,6 @@ pub(crate) async fn get(
                 .await?
                 .ok_or(RouteError::UserNotFound(user_id))?;
 
-<<<<<<< HEAD
             //:tchap
             //reactivate user if deactivated
             if user.deactivated_at.is_some() {
@@ -382,26 +381,6 @@ pub(crate) async fn get(
                 }
             }
             /*
-            // Check that the user is not locked or deactivated
-            if user.deactivated_at.is_some() {
-                // The account is deactivated, show the 'account deactivated' fallback
-                let ctx = AccountInactiveContext::new(user)
-                    .with_csrf(csrf_token.form_value())
-                    .with_language(locale);
-                let fallback = templates.render_account_deactivated(&ctx)?;
-                return Ok((cookie_jar, Html(fallback).into_response()));
-            }
-            */
-            //:tchap:end
-
-            if user.locked_at.is_some() {
-                // The account is locked, show the 'account locked' fallback
-                let ctx = AccountInactiveContext::new(user)
-                    .with_csrf(csrf_token.form_value())
-                    .with_language(locale);
-                let fallback = templates.render_account_locked(&ctx)?;
-                return Ok((cookie_jar, Html(fallback).into_response()));
-=======
             // Check that the user is not locked or deactivated. Preserve the
             // stashed post-auth action (the ultimate grant/device/compat
             // destination) so the interstitial's sign-in button resumes it,
@@ -417,7 +396,20 @@ pub(crate) async fn get(
                     post_auth_action.cloned(),
                 )?;
                 return Ok((cookie_jar, response));
->>>>>>> v1.22.0
+            */
+
+            if user.locked_at.is_some() {
+                let (cookie_jar, response) = render_account_inactive(
+                    &templates,
+                    &locale,
+                    &clock,
+                    &mut rng,
+                    cookie_jar,
+                    user,
+                    post_auth_action.cloned(),
+                )?;
+                return Ok((cookie_jar, response));
+                //:tchap:end
             }
 
             let session = repo
@@ -807,7 +799,6 @@ pub(crate) async fn get(
 
                     // Now that we've resolved the conflict, log in that existing user
 
-<<<<<<< HEAD
                     //:tchap:
                     // we want to reactivate the account
                     // we want to set the email because it might have been deleted when deactivating
@@ -836,26 +827,6 @@ pub(crate) async fn get(
                         }
                     }
                     /*
-                    // Check that the user is not locked or deactivated
-                    if existing_user.deactivated_at.is_some() {
-                        // The account is deactivated, show the 'account deactivated' fallback
-                        let ctx = AccountInactiveContext::new(existing_user)
-                            .with_csrf(csrf_token.form_value())
-                            .with_language(locale);
-                        let fallback = templates.render_account_deactivated(&ctx)?;
-                        return Ok((cookie_jar, Html(fallback).into_response()));
-                    }
-                    :tchap: end
-                    */
-
-                    if existing_user.locked_at.is_some() {
-                        // The account is locked, show the 'account locked' fallback
-                        let ctx = AccountInactiveContext::new(existing_user)
-                            .with_csrf(csrf_token.form_value())
-                            .with_language(locale);
-                        let fallback = templates.render_account_locked(&ctx)?;
-                        return Ok((cookie_jar, Html(fallback).into_response()));
-=======
                     // Check that the user is not locked or deactivated, preserving
                     // the stashed post-auth action so the interstitial resumes it.
                     if existing_user.deactivated_at.is_some() || existing_user.locked_at.is_some() {
@@ -869,7 +840,20 @@ pub(crate) async fn get(
                             post_auth_action.cloned(),
                         )?;
                         return Ok((cookie_jar, response));
->>>>>>> v1.22.0
+                    :tchap: end
+                    */
+
+                    if existing_user.locked_at.is_some() {
+                        let (cookie_jar, response) = render_account_inactive(
+                            &templates,
+                            &locale,
+                            &clock,
+                            &mut rng,
+                            cookie_jar,
+                            existing_user,
+                            post_auth_action.cloned(),
+                        )?;
+                        return Ok((cookie_jar, response));
                     }
 
                     let session = repo
@@ -1888,6 +1872,7 @@ mod tests {
                     ui_order: 0,
                     on_backchannel_logout:
                         mas_data_model::UpstreamOAuthProviderOnBackchannelLogout::DoNothing,
+                    registration_token_required: false,
                 },
             )
             .await
@@ -2430,6 +2415,7 @@ mod tests {
                     on_backchannel_logout:
                         mas_data_model::UpstreamOAuthProviderOnBackchannelLogout::DoNothing,
                     ui_order: 0,
+                    registration_token_required: false,
                 },
             )
             .await
@@ -2559,6 +2545,7 @@ mod tests {
                     on_backchannel_logout:
                         mas_data_model::UpstreamOAuthProviderOnBackchannelLogout::DoNothing,
                     ui_order: 0,
+                    registration_token_required: false,
                 },
             )
             .await
@@ -3214,6 +3201,7 @@ mod tests {
                     on_backchannel_logout:
                         mas_data_model::UpstreamOAuthProviderOnBackchannelLogout::DoNothing,
                     ui_order: 0,
+                    registration_token_required: false,
                 },
             )
             .await

@@ -334,7 +334,7 @@ pub(crate) async fn get(
         .user()
         .add(&mut rng, &clock, registration.username)
         .await?;
-<<<<<<< HEAD
+
     */
 
     let user = if let Some(user) = existing_user {
@@ -346,11 +346,9 @@ pub(crate) async fn get(
     };
     //:tchap: end
 
-=======
     // Attribute this request (and its log line) to the user that was just
     // registered and logged in.
     user.maybe_record_as_requester();
->>>>>>> v1.22.0
     // Also create a browser session which will log the user in
     let user_session = repo
         .browser_session()

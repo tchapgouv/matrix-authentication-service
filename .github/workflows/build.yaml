@@ -5,7 +5,8 @@
 
 
 #:tchap:
-# the only job used by tchap are `compute-version` and `build-image`
+# TODO : add conditions to run selected jobs
+# the only job used by tchap are `compute-version` and `build-image` to save time
 #:tchap:
 
 name: Build
@@ -33,18 +34,13 @@ env:
   CARGO_NET_GIT_FETCH_WITH_CLI: "true"
   SCCACHE_GHA_ENABLED: "true"
   RUSTC_WRAPPER: "sccache"
-<<<<<<< HEAD
   IMAGE: ghcr.io/tchapgouv/matrix-authentication-service
   BUILDCACHE: ghcr.io/tchapgouv/matrix-authentication-service/buildcache
-  DOCKER_METADATA_ANNOTATIONS_LEVELS: manifest,index
-=======
-  BUILDCACHE: ghcr.io/element-hq/matrix-authentication-service/buildcache
-  # metadata-action defaults to `manifest`, which `docker buildx imagetools
+    # metadata-action defaults to `manifest`, which `docker buildx imagetools
   # create --annotation` refuses with "manifest annotations are not supported
   # yet". We only want annotations on the manifest list anyway, so narrow it
   # to `index`.
   DOCKER_METADATA_ANNOTATIONS_LEVELS: index
->>>>>>> v1.22.0
 
 jobs:
   compute-version:
@@ -81,17 +77,9 @@ jobs:
   #   permissions:
   #     contents: read
 
-<<<<<<< HEAD
   #   steps:
   #     - name: Checkout the code
   #       uses: actions/checkout@v6
-=======
-    steps:
-      - name: Checkout the code
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v6
-        with:
-          persist-credentials: false
->>>>>>> v1.22.0
 
   #     - uses: ./.github/actions/build-frontend
   #     - uses: ./.github/actions/build-policies
@@ -107,19 +95,11 @@ jobs:
   #         cp LICENSE assets-dist/LICENSE
   #         chmod -R u=rwX,go=rX assets-dist/
 
-<<<<<<< HEAD
   #     - name: Upload assets
   #       uses: actions/upload-artifact@v5.0.0
   #       with:
   #         name: assets
   #         path: assets-dist
-=======
-      - name: Upload assets
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: assets
-          path: assets-dist
->>>>>>> v1.22.0
 
   # build-binaries:
   #   name: Build binaries
@@ -142,7 +122,6 @@ jobs:
   #   permissions:
   #     contents: read
 
-<<<<<<< HEAD
   #   steps:
   #     - name: Checkout the code
   #       uses: actions/checkout@v6
@@ -165,32 +144,6 @@ jobs:
   #       uses: taiki-e/install-action@v2
   #       with:
   #         tool: cargo-zigbuild
-=======
-    steps:
-      - name: Checkout the code
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v6
-        with:
-          persist-credentials: false
-
-      - name: Install Rust toolchain
-        # Install the minimal toolchain, which includes rustc, rustdoc, and cargo.
-        run: |
-          rustup toolchain install stable --profile minimal
-          rustup target add ${{ matrix.target }}
-
-      - name: Setup sccache
-        uses: mozilla-actions/sccache-action@9e7fa8a12102821edf02ca5dbea1acd0f89a2696 # v0.0.10
-
-      - name: Install zig
-        uses: goto-bus-stop/setup-zig@abea47f85e598557f500fa1fd2ab7464fcb39406 # v2
-        with:
-          version: 0.13.0
-
-      - name: Install cargo-zigbuild
-        uses: taiki-e/install-action@b8cecb83565409bcc297b2df6e77f030b2a468d5 # v2
-        with:
-          tool: cargo-zigbuild
->>>>>>> v1.22.0
 
   #     - name: Build the binary
   #       run: |
@@ -201,19 +154,11 @@ jobs:
   #           --features dist \
   #           -p mas-cli
 
-<<<<<<< HEAD
   #     - name: Upload binary artifact
   #       uses: actions/upload-artifact@v5.0.0
   #       with:
   #         name: binary-${{ matrix.target }}
   #         path: target/${{ matrix.target }}/release/mas-cli
-=======
-      - name: Upload binary artifact
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: binary-${{ matrix.target }}
-          path: target/${{ matrix.target }}/release/mas-cli
->>>>>>> v1.22.0
 
   # assemble-archives:
   #   name: Assemble release archives
@@ -227,7 +172,6 @@ jobs:
   #   permissions:
   #     contents: read
 
-<<<<<<< HEAD
   #   steps:
   #     - name: Download assets
   #       uses: actions/download-artifact@v6
@@ -246,26 +190,6 @@ jobs:
   #     #  with:
   #     #    name: binary-aarch64-unknown-linux-gnu
   #     #    path: binary-aarch64
-=======
-    steps:
-      - name: Download assets
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
-        with:
-          name: assets
-          path: assets-dist
-
-      - name: Download binary x86_64
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
-        with:
-          name: binary-x86_64-unknown-linux-gnu
-          path: binary-x86_64
-
-      - name: Download binary aarch64
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
-        with:
-          name: binary-aarch64-unknown-linux-gnu
-          path: binary-aarch64
->>>>>>> v1.22.0
 
   #     - name: Create final archives
   #       run: |
@@ -279,7 +203,6 @@ jobs:
   #           tar -czvf mas-cli-${arch}-linux.tar.gz --owner=0 --group=0 -C dist/${arch}/ .
   #         done
 
-<<<<<<< HEAD
   #     #- name: Upload aarch64 archive
   #     #  uses: actions/upload-artifact@v5.0.0
   #     #  with:
@@ -291,19 +214,6 @@ jobs:
   #       with:
   #         name: mas-cli-x86_64-linux
   #         path: mas-cli-x86_64-linux.tar.gz
-=======
-      - name: Upload aarch64 archive
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: mas-cli-aarch64-linux
-          path: mas-cli-aarch64-linux.tar.gz
-
-      - name: Upload x86_64 archive
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: mas-cli-x86_64-linux
-          path: mas-cli-x86_64-linux.tar.gz
->>>>>>> v1.22.0
 
   compute-image-meta:
     name: Compute Docker image metadata
@@ -704,9 +614,8 @@ jobs:
     if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-24.04
     needs:
-<<<<<<< HEAD
       #- assemble-archives
-      - build-image
+      - finalize-image
     steps:
       # - name: Download the artifacts from the previous job
       #   uses: actions/download-artifact@v6
@@ -714,18 +623,6 @@ jobs:
       #     pattern: mas-cli-*
       #     path: artifacts
       #     merge-multiple: true
-=======
-      - assemble-archives
-      - finalize-image
-
-    steps:
-      - name: Download the artifacts from the previous job
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
-        with:
-          pattern: mas-cli-*
-          path: artifacts
-          merge-multiple: true
->>>>>>> v1.22.0
 
       - name: Prepare a release
         uses: softprops/action-gh-release@b4309332981a82ec1c5618f44dd2e27cc8bfbfda # v3.0.0
@@ -770,13 +667,8 @@ jobs:
     runs-on: ubuntu-24.04
 
     needs:
-<<<<<<< HEAD
       #- assemble-archives
-      - build-image
-=======
-      - assemble-archives
       - finalize-image
->>>>>>> v1.22.0
 
     permissions:
       contents: write
@@ -789,7 +681,6 @@ jobs:
             .github/scripts
           persist-credentials: false
 
-<<<<<<< HEAD
       # - name: Download the artifacts from the previous job
       #   uses: actions/download-artifact@v6
       #   with:
@@ -803,21 +694,6 @@ jobs:
       #     script: |
       #       const script = require('./.github/scripts/update-unstable-tag.cjs');
       #       await script({ core, github, context });
-=======
-      - name: Download the artifacts from the previous job
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
-        with:
-          pattern: mas-cli-*
-          path: artifacts
-          merge-multiple: true
-
-      - name: Update unstable git tag
-        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
-        with:
-          script: |
-            const script = require('./.github/scripts/update-unstable-tag.cjs');
-            await script({ core, github, context });
->>>>>>> v1.22.0
 
       - name: Update unstable release
         uses: softprops/action-gh-release@b4309332981a82ec1c5618f44dd2e27cc8bfbfda # v3.0.0

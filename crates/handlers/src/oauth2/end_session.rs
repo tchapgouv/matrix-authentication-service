@@ -171,7 +171,7 @@ pub(crate) async fn get(
 
     // We always want to clear out the session cookie, even if the session was
     // invalid
-    let cookie_jar = cookie_jar.update_session_info(&session_info.mark_session_ended());
+    let cookie_jar = cookie_jar.update_session_info(&session_info.mark_session_ended(clock.now()));
 
     Ok((cookie_jar, Redirect::to(&params.post_logout_redirect_uri)).into_response())
 }

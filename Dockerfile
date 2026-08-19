@@ -49,15 +49,11 @@ RUN --network=default \
 COPY ./frontend/ /app/frontend/
 COPY ./templates/ /app/templates/
 RUN --network=none \
-<<<<<<< HEAD
   
-  #:tchap:
-  #npm run build
-  npm run build-tchap
-  #:tchap:
-=======
-  pnpm --filter mas-frontend run build
->>>>>>> v1.22.0
+#:tchap:
+#pnpm --filter mas-frontend run build
+pnpm --filter mas-frontend run build-tchap
+#:tchap:
 
 # Move the built files
 WORKDIR /app/frontend

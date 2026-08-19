@@ -24,6 +24,7 @@ Please see LICENSE in the repository root for full details.
     <meta charset="utf-8">
     <title>{% block title %}{{ _("app.name") }}{% endblock title %}</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    {{ include_asset('src/entrypoints/vendor.css') | indent(4) | safe }}
     {{ include_asset('src/entrypoints/shared.css') | indent(4) | safe }}
     {{ include_asset('src/entrypoints/templates.css') | indent(4) | safe }}
     {{ include_asset('src/entrypoints/templates.ts') | indent(4) | safe }}
@@ -31,7 +32,7 @@ Please see LICENSE in the repository root for full details.
     <!-- :tchap: -->
     <link rel="icon" href="https://www.tchap.gouv.fr/vector-icons/favicon.e336df8.ico">
     {{ include_asset('tchap/css/tchap.css') | indent(4) | safe }}
-    {{ include_asset('node_modules/@gouvfr-lasuite/integration/dist/css/homepage-full.css') | indent(4) | safe }}
+    {{ include_asset('../node_modules/.pnpm/@gouvfr-lasuite+integration@1.0.1_@types+react-dom@19.2.3_@types+react@19.2.17__@types+_bcf7c12c123674858c0771608cbd9aab/node_modules/@gouvfr-lasuite/integration/dist/css/homepage-full.css') | indent(4) | safe }}
     <script id="lasuite-gaufre-script" async defer src="https://integration.lasuite.numerique.gouv.fr/api/v1/gaufre.js"></script>
     <!-- :tchap: -->
     {{ captcha.head() }}

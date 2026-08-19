@@ -239,7 +239,12 @@
       },
       "ip_address": "IP address",
       "@ip_address": {
-        "context": "pages/device_consent.html:83:36-67"
+        "context": "pages/device_consent.html:118:34-65"
+      },
+      "security_code": "Security code",
+      "@security_code": {
+        "context": "pages/device_consent.html:127:32-66",
+        "description": "On the device consent page, label for the six-character user code shown next to the requesting device's IP address and access time."
       }
     },
     "device_code_link": {
@@ -250,9 +255,19 @@
       "headline": "Enter the code displayed on your device",
       "@headline": {
         "context": "pages/device_link.html:18:27-61"
+      },
+      "verification_code": "Verification code",
+      "@verification_code": {
+        "context": "pages/device_link.html:26:35-78",
+        "description": "On the device link page, label of the text field where the user enters the verification code shown on the other device."
       }
     },
     "device_consent": {
+      "confirm_device": "Yes, I confirm this is my device and I want to sign it in.",
+      "@confirm_device": {
+        "context": "pages/device_consent.html:161:17-55",
+        "description": "On the device consent page, label of the required checkbox the user must tick to confirm the device is theirs before granting access."
+      },
       "denied": {
         "description": "You denied access to %(client_name)s. You can close this window.",
         "@description": {
@@ -262,6 +277,16 @@
         "@heading": {
           "context": "pages/device_consent.html:157:29-67"
         }
+      },
+      "description": "<strong>Another device</strong> wants to link %(client_name)s with your <span>%(server_name)s</span> account. Make sure you recognise this device.",
+      "@description": {
+        "context": "pages/device_consent.html:43:13-115",
+        "description": "On the device consent page, the body text below the title describing which client is asking to be linked with the user's homeserver account."
+      },
+      "grant_access": "Grant access",
+      "@grant_access": {
+        "context": "pages/device_consent.html:166:13-49",
+        "description": "On the device consent page, label of the primary submit button which grants the requesting device access."
       },
       "granted": {
         "description": "You granted access to %(client_name)s. You can close this window.",
@@ -273,9 +298,22 @@
           "context": "pages/device_consent.html:168:29-68"
         }
       },
-      "this_will_setup": "Another device wants to set up %(client_name)s (<span>%(client_uri)s</span>) with your <span>%(server_name)s</span> account. Make sure you recognise that device.",
-      "@this_will_setup": {
-        "context": "pages/device_consent.html:33:13-166"
+      "title": "Give access to your account?",
+      "@title": {
+        "context": "pages/device_consent.html:39:13-42",
+        "description": "On the device consent page, the main heading asking the user whether to authorise the requesting device."
+      },
+      "warning": {
+        "description": "Are you sure this is your device? Administrators or IT support would never ask you to accept this.",
+        "@description": {
+          "context": "pages/device_consent.html:65:17-60",
+          "description": "On the device consent page, the body of the critical alert reminding the user that administrators or IT support would never ask them to accept this."
+        },
+        "title": "You are about to grant a remote device access to your account",
+        "@title": {
+          "context": "pages/device_consent.html:62:17-54",
+          "description": "On the device consent page, the title of the critical alert warning that a remote device is about to be granted access to the user's account."
+        }
       }
     },
     "device_display_name": {
@@ -515,7 +553,21 @@
       },
       "logged_as": "Logged as <span class=\"font-semibold\">%(username)s</span>",
       "@logged_as": {
-        "context": "pages/compat_login_policy_violation.html:25:11-86, pages/policy_violation.html:35:11-86"
+        "context": "pages/compat_login_policy_violation.html:35:11-86, pages/policy_violation.html:56:11-86"
+      },
+      "too_many_sessions": {
+        "description": "Your account is already signed in on the maximum number of devices. To continue, <span class=\"font-semibold\">remove %(num_devices_to_remove)s of your existing devices</span> and sign in again.",
+        "@description": {
+          "context": "pages/compat_login_policy_violation.html:22:27-133, pages/policy_violation.html:25:27-133"
+        },
+        "heading": "Device limit reached",
+        "@heading": {
+          "context": "pages/compat_login_policy_violation.html:21:29-80, pages/policy_violation.html:24:29-80"
+        },
+        "manage_devices": "Manage devices",
+        "@manage_devices": {
+          "context": "pages/compat_login_policy_violation.html:42:26-84, pages/policy_violation.html:64:28-86"
+        }
       }
     },
     "recovery": {

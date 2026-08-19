@@ -26,7 +26,6 @@
 use url::Url;
 
 /// Random tchap configuration we want accessible in various places.
-#[allow(clippy::struct_excessive_bools)]
 #[derive(Debug, Clone)]
 pub struct TchapConfig {
     /// Identity Server Url

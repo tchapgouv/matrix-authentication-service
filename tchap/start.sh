@@ -49,9 +49,9 @@ cd "$MAS_HOME/frontend"
 # Check if -f flag is present in command line arguments
 if [[ "$*" == *"-f"* ]]; then
     echo "Step 3/7: Installing npm dependencies..."
-    npm install
+    pnpm install
     echo "Step 4/7: Building frontend and static resources..."
-    npm run build-tchap
+    pnpm run build-tchap
 else
     echo "Skipping npm install and build steps due to absence of -f flag"
 fi

@@ -341,13 +341,10 @@ export type BrowserSessionsOverview_UserFragment = { browserSessions: { totalCou
 export type PasswordChangeQueryVariables = Exact<{ [key: string]: never; }>;
 
 
-export type PasswordChangeQuery = { __typename?: 'Query', viewer:
+export type PasswordChangeQuery = { viewer:
     | { __typename: 'Anonymous', id: string }
     | { __typename: 'User', id: string }
-  , siteConfig: (
-    { __typename?: 'SiteConfig' }
-    & { ' $fragmentRefs'?: { 'PasswordCreationDoubleInput_SiteConfigFragment': PasswordCreationDoubleInput_SiteConfigFragment } }
-  ) };
+  , siteConfig: { ' $fragmentRefs'?: { 'PasswordCreationDoubleInput_SiteConfigFragment': PasswordCreationDoubleInput_SiteConfigFragment } } };
 
 export type UserProfileQueryVariables = Exact<{ [key: string]: never; }>;
 
@@ -493,17 +490,6 @@ export type ChangePasswordMutationVariables = Exact<{
 
 export type ChangePasswordMutation = { setPassword: { status: SetPasswordStatus } };
 
-<<<<<<< HEAD
-=======
-export type PasswordChangeQueryVariables = Exact<{ [key: string]: never; }>;
-
-
-export type PasswordChangeQuery = { viewer:
-    | { __typename: 'Anonymous', id: string }
-    | { __typename: 'User', id: string }
-  , siteConfig: { ' $fragmentRefs'?: { 'PasswordCreationDoubleInput_SiteConfigFragment': PasswordCreationDoubleInput_SiteConfigFragment } } };
-
->>>>>>> v1.22.0
 export type RecoverPasswordMutationVariables = Exact<{
   ticket: string;
   newPassword: string;
