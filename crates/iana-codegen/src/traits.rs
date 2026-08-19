@@ -63,6 +63,7 @@ pub trait EnumEntry: DeserializeOwned + Send + Sync {
             .to_case(Case::Pascal)
     }
 
+    #[must_use]
     async fn fetch(client: &Client) -> anyhow::Result<Vec<(&'static str, EnumMember)>> {
         tracing::info!("Fetching CSV");
 
