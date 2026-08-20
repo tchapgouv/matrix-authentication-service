@@ -412,6 +412,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_is_email_allowed() {
+        let _ = rustls::crypto::aws_lc_rs::default_provider().install_default();
         let email = "user@example.org";
         let server_name = "homeserver1";
         let allowed = true;
@@ -448,6 +449,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_is_email_allowed_no_invitation() {
+        let _ = rustls::crypto::aws_lc_rs::default_provider().install_default();
         let email = "user@example.org";
         let server_name = "homeserver1";
         let allowed = false;
@@ -484,6 +486,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_is_email_allowed_wrong_server() {
+        let _ = rustls::crypto::aws_lc_rs::default_provider().install_default();
         let email = "user@example.org";
         let server_name = "homeserver1";
         let allowed = true;
@@ -526,6 +529,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_is_email_allowed_with_special_character() {
+        let _ = rustls::crypto::aws_lc_rs::default_provider().install_default();
         let email = "user+1@example.org";
         let server_name = "homeserver1";
         let allowed = true;

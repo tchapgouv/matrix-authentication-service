@@ -21,3 +21,4 @@ mas-http.workspace = true
 
 [dev-dependencies]
 wiremock.workspace = true
+rustls.workspace = true

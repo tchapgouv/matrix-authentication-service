@@ -160,7 +160,7 @@ pub(crate) async fn get(
 }
 
 #[tracing::instrument(name = "handlers.views.password_register.post", skip_all)]
-#[allow(clippy::too_many_arguments)]
+#[expect(clippy::too_many_arguments)]
 pub(crate) async fn post(
     mut rng: BoxRng,
     clock: BoxClock,
@@ -681,6 +681,7 @@ mod tests {
                 false,
                 Some(login_hint.to_owned()),
                 None,
+                std::collections::BTreeMap::new(),
             )
             .await
             .unwrap();

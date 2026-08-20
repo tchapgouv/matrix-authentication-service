@@ -90,6 +90,7 @@ mas-templates.workspace = true
 mas-tower.workspace = true
 
 syn2mas.workspace = true
+icu_experimental = "0.6.0"
 
 [build-dependencies]
 anyhow.workspace = true
