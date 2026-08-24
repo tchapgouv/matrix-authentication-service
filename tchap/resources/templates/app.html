@@ -31,9 +31,9 @@ USE OR OTHER DEALINGS IN THE SOFTWARE.
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>{{ _("app.name") }}</title>
     <!-- :tchap: -->
-    <link rel="icon" href="https://www.tchap.gouv.fr/vector-icons/favicon.e336df8.ico">
+    <title>Tchap</title>
+    <link rel="icon" href="https://www.tchap.gouv.fr/vector-icons/favicon.ico">
     <!-- :tchap: -->
     {% set config = {
       'graphqlEndpoint': app_config.graphqlEndpoint,
@@ -43,6 +43,8 @@ USE OR OTHER DEALINGS IN THE SOFTWARE.
       window.APP_CONFIG = JSON.parse("{{ config | tojson | add_slashes | safe }}");
     </script>
     {{ include_asset('src/entrypoints/main.tsx') | indent(4) | safe }}
+    {# Pre-load the locale data for the current language #}
+    {{ include_asset('locales/' ~ lang ~ '.json') | indent(4) | safe }}
   </head>
 
   <body>
