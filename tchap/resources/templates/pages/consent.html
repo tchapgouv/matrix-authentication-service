@@ -6,25 +6,25 @@ SPDX-License-Identifier: AGPL-3.0-only
 Please see LICENSE in the repository root for full details.
 -#}
 
-<!-- TODO remove this variable if not used anymore -->
-{% set consent_page = false %}
+{% set consent_page = true %}
 
 {% extends "base.html" %}
 
 {% block content %}
   {% set client_name = client.client_name or client.client_id %}
   <header class="page-heading">
-    
-    {% if client.logo_uri %}
-    <!-- <img class="consent-client-icon image" referrerpolicy="no-referrer" src="{{ client.logo_uri }}" /> -->
-    <div class="consent-client-icon generic">
-      {{ icon.devices() }}
+    <div class="flex justify-center">
+      {% if client.logo_uri %}
+        <!-- <img class="consent-client-icon image" referrerpolicy="no-referrer" src="{{ client.logo_uri }}" /> -->
+        <div class="consent-client-icon generic">
+          {{ icon.devices() }}
+        </div>
+        {% else %}
+        <div class="consent-client-icon generic">
+          {{ icon.web_browser() }}
+        </div>
+      {% endif %}
     </div>
-    {% else %}
-    <div class="consent-client-icon generic">
-      {{ icon.web_browser() }}
-    </div>
-    {% endif %}
 
     <div class="header">
       <h1 class="title">{{ _("mas.consent.heading") }}</h1>
@@ -85,9 +85,11 @@ Please see LICENSE in the repository root for full details.
     ) }}
   -->
   </section>
+  <!--
   <section class="flex flex-col gap-6">
     <p class="cpd-text-secondary [&>span]:whitespace-nowrap italic">
       {{ _("mas.consent.client_wants_access", client_name=client_name, redirect_uri=(grant.redirect_uri | simplify_url)) }}
     </p>
   </section>
+  -->
 {% endblock content %}
