@@ -98,9 +98,8 @@ pub(crate) async fn get(
         )));
     }
 
-    //:tchap: deactivate this username checks because it raises a 500 error which is
-    //:tchap: caught by our WAF furthermore user existance is covered by email
-    //:tchap: checks below
+    //:tchap: deactivate this username existance checks because it happens before the email
+    // is verified which can leak information (username is generated from email)
     if false {
         // Let's perform last minute checks on the registration, especially to avoid
         // race conditions where multiple users register with the same username or email
@@ -123,7 +122,7 @@ pub(crate) async fn get(
             )));
         }
     }
-    //this block is deactivated
+    //:tchap: this block is deactivated
     //:tchap:end
 
     let token_required = if let Some(session_id) =
@@ -211,7 +210,16 @@ pub(crate) async fn get(
                 .count(UserEmailFilter::new().for_email(&email_authentication.email))
                 .await?
                 > 0
+                // :tchap: different emails can collide to the same username.
+                // Block impersonation attempts at this stage and show a "email in use" 
+                // error page
+                || repo.user().exists(&registration.username).await?
             {
+                tracing::info!(
+                    "user already exists email:{email}, username:{username}",
+                    username = &registration.username,
+                    email = &email_authentication.email
+                );
                 let action = registration
                     .post_auth_action
                     .map(serde_json::from_value)
