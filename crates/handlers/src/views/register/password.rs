@@ -192,10 +192,8 @@ pub(crate) async fn post(
         return Ok(StatusCode::METHOD_NOT_ALLOWED.into_response());
     }
 
-    //:tchap:
-    //let form = cookie_jar.verify_form(&clock, form)?;
-    let mut form: RegisterForm = cookie_jar.verify_form(&clock, form)?;
-    //:tchap:
+    let form = cookie_jar.verify_form(&clock, form)?;
+    let tchap_generated_username: String; //:tchap:
 
     let (csrf_token, cookie_jar) = cookie_jar.csrf_token(&clock, &mut rng);
 
@@ -275,17 +273,22 @@ pub(crate) async fn post(
                         RegisterFormField::Email,
                         FieldError::Policy {
                             code: None,
-                            message:
-                                "Impossible de contacter le serveur d'identité, veuillez réessayer ou contacter support@tchap.beta.gouv.fr"
-                                    .to_owned(),
+                            message: format!(
+                                "Impossible de contacter le serveur d'identité:{identity_server}, veuillez réessayer ou contacter support@tchap.beta.gouv.fr",
+                                   identity_server = tchap_config.identity_server_url
+                            ),
                         },
                     );
                 }
             }
 
-            //mutate the username in the form based on the email
-            form.username = email_to_mxid_localpart(email);
-        }
+            tchap_generated_username = email_to_mxid_localpart(email);
+        } else {
+            return Err(InternalError::new(
+                std::io::Error::other("L'adresse email est obligatoire pour créer un compte Tchap")
+                    .into(),
+            ));
+        };
         //:tchap: end
 
         let mut homeserver_denied_username = false;
@@ -299,8 +302,7 @@ pub(crate) async fn post(
         } else if repo.user().exists(&form.username).await? {
             // The user already exists in the database
             state.add_error_on_field(RegisterFormField::Username, FieldError::Exists);
-        } else
-        if !homeserver
+        } else if !homeserver
             .is_localpart_available(&form.username)
             .await
             .map_err(InternalError::from_anyhow)?
@@ -310,9 +312,21 @@ pub(crate) async fn post(
                 username = &form.username,
                 "Homeserver denied username provided by user"
             );
+
             // We defer adding the error on the field, until we know whether we had another
             // error from the policy, to avoid showing both
             homeserver_denied_username = true;
+        }
+
+        if let Some(email) = &email {
+            // Note that we don't check here if the email is already taken here, as
+            // we don't want to leak the information about other users. Instead, we will
+            // show an error message once the user confirmed their email address.
+            if email.is_empty() {
+                state.add_error_on_field(RegisterFormField::Email, FieldError::Required);
+            } else if Address::from_str(email).is_err() {
+                state.add_error_on_field(RegisterFormField::Email, FieldError::Invalid);
+            }
         }
         */
         //:tchap:end
@@ -352,7 +366,7 @@ pub(crate) async fn post(
         let res = policy
             .evaluate_register(mas_policy::RegisterInput {
                 registration_method: mas_policy::RegistrationMethod::Password,
-                username: &form.username,
+                username: &tchap_generated_username, //:tchap:
                 email: email.as_deref(),
                 requester: mas_policy::Requester {
                     ip_address: activity_tracker.ip(),
@@ -443,7 +457,7 @@ pub(crate) async fn post(
         .add(
             &mut rng,
             &clock,
-            form.username,
+            tchap_generated_username, //:tchap:
             ip_address,
             user_agent,
             post_auth_action,
@@ -1017,6 +1031,7 @@ mod tests {
 
     /// Test registration without email when email is not required
     #[sqlx::test(migrator = "mas_storage_pg::MIGRATOR")]
+    #[ignore = "Tchap requires email to create an account"]
     async fn test_register_without_email_when_not_required(pool: PgPool) {
         setup();
         let state = TestState::from_pool_with_site_config(
@@ -1085,6 +1100,7 @@ mod tests {
 
     /// Test registration with valid email when email is not required
     /// (email input is ignored completely when not required)
+    #[ignore = "Tchap requires email to create an account"]
     #[sqlx::test(migrator = "mas_storage_pg::MIGRATOR")]
     async fn test_register_with_email_when_not_required(pool: PgPool) {
         setup();
@@ -1155,6 +1171,7 @@ mod tests {
     }
 
     /// Test registration fails when email is required but not provided
+    #[ignore = "Tchap requires email to create an account"]
     #[sqlx::test(migrator = "mas_storage_pg::MIGRATOR")]
     async fn test_register_fails_without_email_when_required(pool: PgPool) {
         setup();

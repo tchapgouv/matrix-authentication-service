@@ -98,9 +98,8 @@ pub(crate) async fn get(
         )));
     }
 
-    //:tchap: deactivate this username checks because it raises a 500 error which is
-    //:tchap: caught by our WAF furthermore user existance is covered by email
-    //:tchap: checks below
+    //:tchap: deactivate this username existance checks because it happens before the email
+    // is verified which can leak information (username is generated from email)
     if false {
         // Let's perform last minute checks on the registration, especially to avoid
         // race conditions where multiple users register with the same username or email
@@ -123,7 +122,7 @@ pub(crate) async fn get(
             )));
         }
     }
-    //this block is deactivated
+    //:tchap: this block is deactivated
     //:tchap:end
 
     let token_required = if let Some(session_id) =
@@ -177,9 +176,6 @@ pub(crate) async fn get(
     } else {
         None
     };
-    //:tchap:
-    let existing_user = repo.user().find_by_username(&registration.username).await?;
-    //:tchap:end
 
     // If there is an email authentication, we need to check that the email
     // address was verified. If there is no email authentication attached, we
@@ -211,7 +207,16 @@ pub(crate) async fn get(
                 .count(UserEmailFilter::new().for_email(&email_authentication.email))
                 .await?
                 > 0
+                // :tchap: different emails can collide to the same username.
+                // Block impersonation attempts at this stage and show a "email in use" 
+                // error page
+                || repo.user().exists(&registration.username).await?
             {
+                tracing::info!(
+                    "user already exists email:{email}, username:{username}",
+                    username = &registration.username,
+                    email = &email_authentication.email
+                );
                 let action = registration
                     .post_auth_action
                     .map(serde_json::from_value)
@@ -226,23 +231,6 @@ pub(crate) async fn get(
                 )
                     .into_response());
             }
-            //:tchap:
-            // Reactivate user if needed
-            if let Some(ref user) = existing_user
-                && user.deactivated_at.is_some()
-            {
-                tracing::info!(
-                    user.id = %user.id,
-                    "Existing account was deactivated, reactivate it"
-                );
-
-                // Call the homeserver synchronously to reactivate the user
-                let _ = homeserver.reactivate_user(&user.username).await;
-
-                // Now reactivate the user in our database
-                repo.user().reactivate(user.clone()).await?;
-            }
-            //:tchap:end
 
             Some(email_authentication)
         } else {
@@ -328,24 +316,11 @@ pub(crate) async fn get(
         .consume_session(&registration)?
         .save(cookie_jar, &clock);
 
-    /* :tchap: create user only if needed
     // Now we can start the user creation
     let user = repo
         .user()
         .add(&mut rng, &clock, registration.username)
         .await?;
-
-    */
-
-    let user = if let Some(user) = existing_user {
-        user
-    } else {
-        repo.user()
-            .add(&mut rng, &clock, registration.username)
-            .await?
-    };
-    //:tchap: end
-
     // Attribute this request (and its log line) to the user that was just
     // registered and logged in.
     user.maybe_record_as_requester();
