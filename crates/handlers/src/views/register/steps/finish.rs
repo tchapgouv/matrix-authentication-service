@@ -222,7 +222,20 @@ pub(crate) async fn get(
                     .map(serde_json::from_value)
                     .transpose()?;
 
+                // :tchap: Check if the existing account is deactivated
+                // show a specific message to the user
+                let is_deactivated = is_existing_user_deactivated(
+                    &mut repo,
+                    &email_authentication.email,
+                    &registration.username,
+                )
+                .await?;
+                // :tchap:end
+
                 let ctx = RegisterStepsEmailInUseContext::new(email_authentication.email, action)
+                    // :tchap:
+                    .with_is_deactivated(is_deactivated)
+                    // :tchap:end
                     .with_language(lang);
 
                 return Ok((
@@ -402,4 +415,41 @@ pub(crate) async fn get(
         OptionalPostAuthAction::from(post_auth_action).go_next(&url_builder),
     )
         .into_response());
+}
+
+/// :tchap: Check if an existing account (matching by email or username) is deactivated.
+///
+/// # Parameters
+///
+/// * `repo`: The repository to use for the lookup
+/// * `email`: The email address to look up
+/// * `username`: The username to look up if no email match is found
+///
+/// # Errors
+///
+/// Returns [`InternalError`] if the underlying repository fails
+async fn is_existing_user_deactivated(
+    repo: &mut BoxRepository,
+    email: &str,
+    username: &str,
+) -> Result<bool, InternalError> {
+    // First try to find the user by email
+    let existing_user_id = if let Some(user_email) = repo.user_email().find_by_email(email).await? {
+        Some(user_email.user_id)
+    } else {
+        // If no email match, try to find by username
+        repo.user().find_by_username(username).await?.map(|user| user.id)
+    };
+
+    // Check if the found user is deactivated
+    if let Some(user_id) = existing_user_id {
+        Ok(repo
+            .user()
+            .lookup(user_id)
+            .await?
+            .map(|u| u.deactivated_at.is_some())
+            .unwrap_or(false))
+    } else {
+        Ok(false)
+    }
 }
