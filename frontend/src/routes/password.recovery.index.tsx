@@ -196,7 +196,7 @@ const EmailRecovery: React.FC<{
   ticket: string;
 }> = (props) => {
   const { t } = useTranslation();
-  const navigate = useNavigate();
+  const _navigate = useNavigate();
   const siteConfig = useFragment(SITE_CONFIG_FRAGMENT, props.siteConfig);
   const userRecoveryTicket = useFragment(FRAGMENT, props.userRecoveryTicket);
 

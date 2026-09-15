@@ -31,7 +31,7 @@ export const query = queryOptions({
   throwOnError: false,
 });
 
-const AsyncFooter: React.FC = () => {
+const _AsyncFooter: React.FC = () => {
   const result = useSuspenseQuery(query);
 
   if (result.error || result.isPending) {
