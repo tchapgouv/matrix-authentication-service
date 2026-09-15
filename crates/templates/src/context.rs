@@ -1201,14 +1201,32 @@ impl TemplateContext for RegisterStepsVerifyEmailContext {
 pub struct RegisterStepsEmailInUseContext {
     email: String,
     action: Option<PostAuthAction>,
+    // :tchap:
+    is_deactivated: bool, // :tchap:end
 }
 
 impl RegisterStepsEmailInUseContext {
     /// Constructs a context for the email in use page
     #[must_use]
     pub fn new(email: String, action: Option<PostAuthAction>) -> Self {
-        Self { email, action }
+        Self {
+            email,
+            action,
+            // :tchap:
+            is_deactivated: false, // :tchap:end
+        }
     }
+
+    // :tchap:
+    /// Set whether the existing account is deactivated
+    #[must_use]
+    pub fn with_is_deactivated(self, is_deactivated: bool) -> Self {
+        Self {
+            is_deactivated,
+            ..self
+        }
+    }
+    // :tchap:end
 }
 
 impl TemplateContext for RegisterStepsEmailInUseContext {
@@ -1222,7 +1240,12 @@ impl TemplateContext for RegisterStepsEmailInUseContext {
     {
         let email = "hello@example.com".to_owned();
         let action = PostAuthAction::continue_grant(Ulid::nil());
-        sample_list(vec![Self::new(email, Some(action))])
+        // :tchap:
+        sample_list(vec![
+            Self::new(email.clone(), Some(action.clone())),
+            Self::new(email, Some(action)).with_is_deactivated(true),
+        ])
+        // :tchap:end
     }
 }
 

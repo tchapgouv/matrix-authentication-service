@@ -333,6 +333,10 @@
       "@description": {
         "context": "pages/register/steps/email_in_use.html:22:13-46"
       },
+      "deactivated_description": "This account is deactivated. Please contact user support: support@tchap.beta.gouv.fr",
+      "@deactivated_description": {
+        "context": "pages/register/steps/email_in_use.html:24:13-65"
+      },
       "title": "The Tchap account already exists : <span>%(email)s</span>",
       "@title": {
         "context": "pages/register/steps/email_in_use.html:19:13-53"
