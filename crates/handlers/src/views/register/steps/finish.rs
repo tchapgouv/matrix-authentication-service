@@ -98,7 +98,8 @@ pub(crate) async fn get(
         )));
     }
 
-    //:tchap: deactivate this username existance checks because it happens before the email
+    //:tchap: deactivate this username existance checks because it happens before
+    //:tchap: the email
     // is verified which can leak information (username is generated from email)
     if false {
         // Let's perform last minute checks on the registration, especially to avoid

@@ -18,7 +18,7 @@ use mas_axum_utils::{
     cookies::CookieJar,
     csrf::{CsrfExt, ProtectedForm},
 };
-use mas_data_model::{BoxClock, BoxRng, Clock};
+use mas_data_model::{BoxClock, BoxRng, Clock, TchapConfig};
 use mas_i18n::DataLocale;
 use mas_matrix::HomeserverConnection;
 use mas_router::{UpstreamOAuth2Authorize, UrlBuilder};
@@ -34,8 +34,11 @@ use mas_templates::{
 use opentelemetry::{Key, KeyValue, metrics::Counter};
 use rand::Rng;
 use serde::{Deserialize, Serialize};
+//:tchap:
+use tchap::EmailAllowedResult;
 use zeroize::Zeroizing;
 
+//:tchap:end
 use super::shared::{LoginHint, OptionalPostAuthAction, QueryLoginHint};
 use crate::{
     BoundActivityTracker, Limiter, METER, PreferredLanguage, RequesterFingerprint, SiteConfig,
@@ -143,11 +146,14 @@ pub(crate) async fn post(
     clock: BoxClock,
     PreferredLanguage(locale): PreferredLanguage,
     State(password_manager): State<PasswordManager>,
-    State(site_config): State<SiteConfig>,
     State(templates): State<Templates>,
     State(url_builder): State<UrlBuilder>,
     State(limiter): State<Limiter>,
     State(homeserver): State<Arc<dyn HomeserverConnection>>,
+    //:tchap: add tchap to the state with site_config as a tuple to stay under the limit of 16
+    //:tchap: arguments
+    (State(site_config), State(tchap_config)): (State<SiteConfig>, State<TchapConfig>),
+    //:tchap:end
     mut repo: BoxRepository,
     activity_tracker: BoundActivityTracker,
     requester: RequesterFingerprint,
@@ -193,6 +199,54 @@ pub(crate) async fn post(
         )
         .await;
     }
+
+    //:tchap:
+    // If the username looks like an email, verify it is allowed on this
+    // server before any further processing. If the email is mapped to a
+    // different server, the login will fail anyway, so we abort early with
+    // a clear error message.
+    if site_config.login_with_email_allowed && form.username.contains('@') {
+        let email = &form.username;
+
+        let email_check =
+            tchap::is_email_allowed(email, homeserver.homeserver(), &tchap_config).await;
+
+        if let Ok(EmailAllowedResult::WrongServer {
+            wrong_server_name,
+            correct_server_name,
+        }) = &email_check
+        {
+            tracing::warn!(
+                ":tchap: - login - email {} is mapped to server {}, but current server is {}",
+                email,
+                correct_server_name,
+                wrong_server_name
+            );
+            PASSWORD_LOGIN_COUNTER.add(1, &[KeyValue::new(RESULT, "error")]);
+
+            let form_state = form_state.with_error_on_form(FormError::Policy {
+                code: None,
+                message: format!(
+                        "Votre adresse mail {email} est associée au serveur:{correct_server_name} hors vous êtes sur le serveur:{wrong_server_name}",
+                ),
+            });
+            return render(
+                locale,
+                cookie_jar,
+                form_state,
+                query,
+                &mut repo,
+                &clock,
+                &mut rng,
+                &templates,
+                &homeserver,
+                &site_config,
+                query_login_hint,
+            )
+            .await;
+        }
+    }
+    //:tchap: end
 
     // Extract the localpart of the MXID, fallback to the bare username
     let username = homeserver
@@ -477,8 +531,17 @@ mod test {
         upstream_oauth2::{UpstreamOAuthProviderParams, UpstreamOAuthProviderRepository},
     };
     use mas_templates::escape_html;
-    use oauth2_types::scope::OPENID;
+    use oauth2_types::{
+        registration::ClientRegistrationResponse,
+        requests::ResponseMode,
+        scope::{OPENID, Scope},
+    };
     use sqlx::PgPool;
+    use url::Url;
+    use wiremock::{
+        Mock, MockServer, ResponseTemplate,
+        matchers::{method, path, query_param},
+    };
     use zeroize::Zeroizing;
 
     use crate::{
@@ -543,6 +606,30 @@ mod test {
             .next()
             .unwrap()
     }
+
+    //:tchap:
+    /// Start a mock identity server where `wrong_server@example.com` is
+    /// mapped to a different homeserver, and point the test state's tchap
+    /// config at it. The returned server must be kept alive for the duration
+    /// of the test.
+    async fn mock_wrong_server_identity(state: &mut TestState) -> MockServer {
+        let mock_server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/_matrix/identity/api/v1/internal-info"))
+            .and(query_param("medium", "email"))
+            .and(query_param("address", "wrong_server@example.com"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "hs": "correct-server",
+                "requires_invite": false,
+                "invited": false,
+            })))
+            .mount(&mock_server)
+            .await;
+        state.tchap_config.identity_server_url =
+            Url::parse(&format!("{}/", mock_server.uri())).unwrap();
+        mock_server
+    }
+    //:tchap: end
 
     /// Provision a live browser-session cookie for `user` into `cookies`, and
     /// return the created session.
@@ -1287,4 +1374,54 @@ mod test {
         response.assert_status(StatusCode::OK);
         response.assert_header_value(X_FRAME_OPTIONS, "DENY");
     }
+
+    /// :tchap:
+    /// When the username is an email mapped to a different server, the login
+    /// must be aborted before any password check with a `wrong_server` error.
+    #[sqlx::test(migrator = "mas_storage_pg::MIGRATOR")]
+    async fn test_password_login_wrong_server_email(pool: PgPool) {
+        setup();
+        let mut state = TestState::from_pool(pool).await.unwrap();
+        let _identity_server = mock_wrong_server_identity(&mut state).await;
+        let cookies = CookieHelper::new();
+
+        // Render the login page to get a CSRF token
+        let request = Request::get("/login").empty();
+        let request = cookies.with_cookies(request);
+        let response = state.request(request).await;
+        cookies.save_cookies(&response);
+        response.assert_status(StatusCode::OK);
+        let csrf_token = response
+            .body()
+            .split("name=\"csrf\" value=\"")
+            .nth(1)
+            .unwrap()
+            .split('\"')
+            .next()
+            .unwrap();
+
+        // Submit the login form with a wrong-server email
+        let request = Request::post("/login").form(serde_json::json!({
+            "csrf": csrf_token,
+            "username": "wrong_server@example.com",
+            "password": "hunter2",
+        }));
+        let request = cookies.with_cookies(request);
+        let response = state.request(request).await;
+
+        // Should be back on the login page with the wrong_server error
+        response.assert_status(StatusCode::OK);
+        assert!(
+            response.body().contains("wrong_server"),
+            "expected wrong_server error in body: {}",
+            response.body()
+        );
+        // Should NOT have checked credentials, so no "Invalid credentials"
+        assert!(
+            !response.body().contains("Invalid credentials"),
+            "should not show invalid credentials for wrong server: {}",
+            response.body()
+        );
+    }
+
 }

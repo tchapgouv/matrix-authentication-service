@@ -186,6 +186,7 @@ pub fn environment() -> Environment<'static> {
     env.add_filter("string", string);
     env.add_filter("from_json", from_json);
 
+    //:tchap:
     // Add Tchap-specific filters, this could be a generic config submitted
     // to upstream allowing all users to add their own filters without upstream code
     // modifications tester les fonctions async pour le reseau
@@ -195,6 +196,7 @@ pub fn environment() -> Environment<'static> {
     env.add_filter("email_to_mxid_localpart", |s: &str| {
         tchap::email_to_mxid_localpart(s)
     });
+    //:tchap: end
 
     env.set_unknown_method_callback(minijinja_contrib::pycompat::unknown_method_callback);
 
