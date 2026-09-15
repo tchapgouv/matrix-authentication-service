@@ -795,7 +795,7 @@ impl UserMutations {
         input: SetPasswordByRecoveryInput,
     ) -> Result<SetPasswordPayload, async_graphql::Error> {
         let state = ctx.state();
-        let requester = ctx.requester();
+        let _requester = ctx.requester();
         let clock = state.clock();
         //:tchap:
         //deactivate this check as it is blocking users without strong reasons
