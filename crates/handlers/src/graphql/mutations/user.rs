@@ -797,11 +797,17 @@ impl UserMutations {
         let state = ctx.state();
         let requester = ctx.requester();
         let clock = state.clock();
+        //:tchap:
+        //deactivate this check as it is blocking users without strong reasons
+        //upstream PR should be coming
+        /*
         if !requester.is_unauthenticated() {
             return Err(async_graphql::Error::new(
                 "Account recovery is only for anonymous users.",
             ));
         }
+         */
+        //:tchap:end
 
         let password_manager = state.password_manager();
 
