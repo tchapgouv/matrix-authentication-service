@@ -122,7 +122,8 @@
     },
     "email_in_use": {
       "description": "Si vous avez oublié votre mot de passe, demandez une réinitialisation du mot de passe ou connectez-vous via Proconnect",
-      "deactivated_description": "Ce compte est désactivé. Veuillez contacter le support de Tchap: support@tchap.beta.gouv.fr",
+      "deactivated_description": "Veuillez contacter le support de Tchap: support@tchap.beta.gouv.fr",
+      "deactivated_title": "Compte désactivé: <span>%(email)s</span>",
       "title": "Le compte Tchap existe déjà: <span>%(email)s</span>"
     },
     "emails": {
@@ -144,7 +145,7 @@
     },
     "errors": {
       "captcha": "La vérification du CAPTCHA a échoué, veuillez réessayer",
-      "denied_policy": "Refusé par la politique du serveur : %(policy)s",
+      "denied_policy": "%(policy)s",
       "email_banned": "Cette adresse mail est interdite par la politique du serveur",
       "email_domain_banned": "Le domaine de l'adresse mail est interdit par la politique du serveur.",
       "email_domain_not_allowed": "Le domaine de l'adresse mail n'est pas autorisée par la politique du serveur.",
