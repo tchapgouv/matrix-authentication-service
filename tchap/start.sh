@@ -11,6 +11,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 export MAS_HOME="$(dirname "$SCRIPT_DIR")"
 export MAS_TCHAP_HOME=$SCRIPT_DIR
 export RUST_LOG=info
+echo "MAS_TCHAP_HOME " $MAS_TCHAP_HOME
 
 DOCKER_COMPOSE_FILE="$MAS_TCHAP_HOME/docker-compose.yml"
 

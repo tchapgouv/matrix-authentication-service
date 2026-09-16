@@ -10,7 +10,7 @@ use std::{convert::Infallible, net::IpAddr, sync::Arc};
 use axum::extract::{FromRef, FromRequestParts, State};
 use ipnetwork::IpNetwork;
 use mas_context::LogContext;
-use mas_data_model::{AppVersion, BoxClock, BoxRng, SiteConfig, SystemClock, TchapConfig}; /*  */
+use mas_data_model::{AppVersion, BoxClock, BoxRng, SiteConfig, SystemClock, TchapConfig}; /* :tchap: */
 use mas_handlers::{
     ActivityTracker, ClientIp, CookieManager, ErrorWrapper, GraphQLSchema, Limiter, MetadataCache,
     passwords::PasswordManager,
@@ -291,7 +291,8 @@ fn infer_client_ip(
     let connection_info = extensions.get::<mas_listener::ConnectionInfo>();
 
     let peer = if let Some(info) = connection_info {
-        // We can always trust the proxy protocol to give us the correct IP address
+        // We can always trust the proxy protocol to give us the correct IP
+        // address
         if let Some(proxy) = info.get_proxy_ref()
             && let Some(source) = proxy.source()
         {
@@ -311,10 +312,10 @@ fn infer_client_ip(
         .into_iter()
         .flatten();
 
-    // This constructs a list of IP addresses that might be the client's IP address.
-    // Each intermediate proxy is supposed to add the client's IP address to front
-    // of the list. We are effectively adding the IP we got from the socket to the
-    // front of the list.
+    // This constructs a list of IP addresses that might be the client's IP
+    // address. Each intermediate proxy is supposed to add the client's IP
+    // address to front of the list. We are effectively adding the IP we got
+    // from the socket to the front of the list.
     // We also call `to_canonical` so that IPv6-mapped IPv4 addresses
     // (::ffff:A.B.C.D) are converted to IPv4.
     let peer_list: Vec<IpAddr> = peer
@@ -323,11 +324,12 @@ fn infer_client_ip(
         .map(|ip| ip.to_canonical())
         .collect();
 
-    // We'll fallback to the first IP in the list if all the IPs we got are trusted
+    // We'll fallback to the first IP in the list if all the IPs we got are
+    // trusted
     let fallback = peer_list.first().copied();
 
-    // Now we go through the list, and the IP of the client is the first IP that is
-    // not in the list of trusted proxies, starting from the back.
+    // Now we go through the list, and the IP of the client is the first IP that
+    // is not in the list of trusted proxies, starting from the back.
     let client_ip = peer_list
         .iter()
         .rfind(|ip| !trusted_proxies.iter().any(|network| network.contains(**ip)))

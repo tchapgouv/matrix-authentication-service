@@ -22,6 +22,7 @@ use crate::impl_from_error_for_route;
 pub struct Params {
     #[serde(rename = "redirectUrl")]
     redirect_url: Option<String>,
+
     action: Option<CompatLoginSsoAction>,
 
     #[serde(rename = "org.matrix.msc3824.action")]
