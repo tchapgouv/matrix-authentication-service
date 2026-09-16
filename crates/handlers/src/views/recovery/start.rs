@@ -146,7 +146,7 @@ pub(crate) async fn post(
                 FieldError::Policy {
                     code: None,
                     message: format!(
-                        "Votre adresse mail {email} est associée au serveur:{correct_server_name} hors vous êtes sur le serveur:{wrong_server_name}", email=form.email
+                        "Adresse mail {email} associée au serveur:{correct_server_name} hors vous êtes sur le serveur:{wrong_server_name}. Veuillez contacter le support: support@tchap.beta.gouv.fr", email=form.email
                     ),
                 },
             );
