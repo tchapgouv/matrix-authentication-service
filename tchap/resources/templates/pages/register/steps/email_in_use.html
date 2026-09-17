@@ -16,7 +16,12 @@ Please see LICENSE files in the repository root for full details.
 
       <div class="header">
         <h1 class="title">
-          {{ _("mas.email_in_use.title", email=email) }}
+          {#- :tchap: show a specific title when the existing account is deactivated -#}
+          {%- if is_deactivated -%}
+            {{ _("mas.email_in_use.deactivated_title", email=email) }}
+          {%- else -%}
+            {{ _("mas.email_in_use.title", email=email) }}
+          {%- endif -%}
         </h1>
         <p class="text">
           {#- :tchap: show a specific message when the existing account is deactivated -#}

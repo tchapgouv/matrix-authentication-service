@@ -437,10 +437,12 @@ where
             mas_router::OAuth2AuthorizationEndpoint::route(),
             get(self::oauth2::authorization::get),
         )
+        //:tchap
         .route(
             mas_router::OAuth2EndSession::route(),
             get(self::oauth2::end_session::get),
         )
+        //:tchap:end
         .route(
             mas_router::Consent::route(),
             get(self::oauth2::authorization::consent::get)

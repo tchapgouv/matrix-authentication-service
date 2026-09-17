@@ -69,7 +69,7 @@ pub(crate) async fn get(
     let revocation_endpoint = Some(url_builder.oauth_revocation_endpoint());
     let userinfo_endpoint = Some(url_builder.oidc_userinfo_endpoint());
     let registration_endpoint = Some(url_builder.oauth_registration_endpoint());
-    let end_session_endpoint = Some(url_builder.oauth_end_session_endpoint());
+    let end_session_endpoint = Some(url_builder.oauth_end_session_endpoint());//:tchap:
 
     let scopes_supported = Some(vec![scope::OPENID.to_string(), scope::EMAIL.to_string()]);
 
@@ -182,7 +182,7 @@ pub(crate) async fn get(
         request_uri_parameter_supported,
         prompt_values_supported,
         device_authorization_endpoint,
-        end_session_endpoint,
+        end_session_endpoint,//:tchap:
         ..ProviderMetadata::default()
     };
 

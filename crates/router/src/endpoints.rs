@@ -155,7 +155,7 @@ pub struct OAuth2AuthorizationEndpoint;
 impl SimpleRoute for OAuth2AuthorizationEndpoint {
     const PATH: &'static str = "/authorize";
 }
-
+//:tchap
 /// `POST /oauth2/end_session`
 #[derive(Default, Debug, Clone)]
 pub struct OAuth2EndSession;
@@ -163,6 +163,7 @@ pub struct OAuth2EndSession;
 impl SimpleRoute for OAuth2EndSession {
     const PATH: &'static str = "/oauth2/end_session";
 }
+//:tchap:end
 
 /// `GET /`
 #[derive(Default, Debug, Clone)]
