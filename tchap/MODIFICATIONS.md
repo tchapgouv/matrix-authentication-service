@@ -190,12 +190,26 @@ Files:
 
 ### 12. Build and CI
 
-Tchap-specific CI workflow that builds and publishes the Docker image. Only
-the `compute-version` and `build-image` jobs are used; `aarch64` builds are
-disabled.
+The upstream `build.yaml` workflow is modified for Tchap:
+- Triggers on `main_tchap` instead of `main`.
+- Docker image is pushed to `ghcr.io/tchapgouv/matrix-authentication-service`
+  instead of `ghcr.io/element-hq/matrix-authentication-service`.
+- The `oci-push.vpn.infra.element.io` registry and Tailscale/Vault logins are
+  disabled (`if: false`).
+- Archive jobs (`build-assets`, `build-binaries`, `assemble-archives`) are
+  disabled (`if: false`) — the Dockerfile builds everything internally.
+- The `release` and `unstable` jobs no longer depend on `assemble-archives`
+  and don't upload archive files.
+- Cosign signing is gated on `refs/heads/main_tchap` instead of
+  `refs/heads/main`.
+- Multi-arch builds (amd64 + arm64) are preserved.
+
+The previous standalone `build_tchap.yaml` is kept as a disabled backup
+(`workflow_dispatch` only).
 
 Files:
-- [.github/workflows/build_tchap.yaml](../.github/workflows/build_tchap.yaml) (Tchap CI pipeline)
+- [.github/workflows/build.yaml](../.github/workflows/build.yaml) (Tchap CI modifications)
+- [.github/workflows/build_tchap.yaml](../.github/workflows/build_tchap.yaml) (disabled backup)
 
 ### 13. Handler wiring and test state
 
@@ -221,7 +235,7 @@ These files exist only in the Tchap fork and have no upstream equivalent:
 - `crates/tchap/**` — the Tchap crate
 - `tchap/resources/**` — Tchap templates, emails, and resources
 - `tchap/start*.sh`, `tchap/docker-compose.yml`, `tchap/build*.sh` — Tchap dev tooling
-- `.github/workflows/build_tchap.yaml` — Tchap CI workflow
+- `.github/workflows/build_tchap.yaml` — Tchap CI workflow (disabled backup)
 
 ## Upstream merge procedure
 

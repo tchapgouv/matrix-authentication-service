@@ -3,12 +3,26 @@
 # SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
 # Please see LICENSE files in the repository root for full details.
 
+#:tchap:
+# Tchap modifications to the upstream build workflow:
+#   - Triggers on `main_tchap` instead of `main`.
+#   - Docker image pushed to ghcr.io/tchapgouv/matrix-authentication-service.
+#   - Tailscale/Vault/Element OCI registry logins disabled (if: false).
+#   - Archive jobs (build-assets, build-binaries, assemble-archives) disabled
+#     (if: false) — the Dockerfile builds everything internally.
+#   - release/unstable jobs no longer depend on assemble-archives.
+#   - Cosign signing gated on refs/heads/main_tchap.
+#:tchap:
+
 name: Build
 
 on:
   push:
     branches:
-      - main
+      #:tchap:
+      - main_tchap
+      - "test/**"
+      #:tchap:
       - "release/**"
     tags:
       - "v*"
@@ -27,7 +41,9 @@ env:
   CARGO_NET_GIT_FETCH_WITH_CLI: "true"
   SCCACHE_GHA_ENABLED: "true"
   RUSTC_WRAPPER: "sccache"
-  BUILDCACHE: ghcr.io/element-hq/matrix-authentication-service/buildcache
+  #:tchap:
+  BUILDCACHE: ghcr.io/tchapgouv/matrix-authentication-service/buildcache
+  #:tchap:
   # metadata-action defaults to `manifest`, which `docker buildx imagetools
   # create --annotation` refuses with "manifest annotations are not supported
   # yet". We only want annotations on the manifest list anyway, so narrow it
@@ -63,7 +79,10 @@ jobs:
 
   build-assets:
     name: Build assets
-    if: github.event_name == 'push' || github.event.label.name == 'Z-Build-Workflow'
+    #:tchap: not needed — Dockerfile builds assets internally
+    #if: github.event_name == 'push' || github.event.label.name == 'Z-Build-Workflow'
+    if: false
+    #:tchap:
     runs-on: ubuntu-24.04
 
     permissions:
@@ -97,7 +116,10 @@ jobs:
 
   build-binaries:
     name: Build binaries
-    if: github.event_name == 'push' || github.event.label.name == 'Z-Build-Workflow'
+    #:tchap: not needed — Dockerfile builds the binary internally
+    #if: github.event_name == 'push' || github.event.label.name == 'Z-Build-Workflow'
+    if: false
+    #:tchap:
     runs-on: ubuntu-24.04
 
     needs:
@@ -158,7 +180,10 @@ jobs:
 
   assemble-archives:
     name: Assemble release archives
-    if: github.event_name == 'push' || github.event.label.name == 'Z-Build-Workflow'
+    #:tchap: not needed — no archives are built for Tchap
+    #if: github.event_name == 'push' || github.event.label.name == 'Z-Build-Workflow'
+    if: false
+    #:tchap:
     runs-on: ubuntu-24.04
 
     needs:
@@ -232,9 +257,9 @@ jobs:
         with:
           # The oci-push registry login requires Tailscale + Vault, which only
           # works for `push` events (PR-labelled runs lack the right OIDC token).
-          images: |
-            ghcr.io/element-hq/matrix-authentication-service
-            ${{ github.event_name == 'push' && 'oci-push.vpn.infra.element.io/matrix-authentication-service' || '' }}
+          #:tchap:
+          images: ghcr.io/tchapgouv/matrix-authentication-service
+          #:tchap:
           bake-target: docker-metadata-action
           flavor: |
             latest=auto
@@ -259,9 +284,9 @@ jobs:
         id: meta-debug
         uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6.2.0
         with:
-          images: |
-            ghcr.io/element-hq/matrix-authentication-service
-            ${{ github.event_name == 'push' && 'oci-push.vpn.infra.element.io/matrix-authentication-service' || '' }}
+          #:tchap:
+          images: ghcr.io/tchapgouv/matrix-authentication-service
+          #:tchap:
           bake-target: docker-metadata-action-debug
           flavor: |
             latest=auto
@@ -327,7 +352,9 @@ jobs:
       # Comma-separated list of registries to push each per-arch image to.
       # The oci-push registry is only included on `push` events because the
       # Tailscale + Vault login below requires the right OIDC token.
-      IMAGES: ghcr.io/element-hq/matrix-authentication-service${{ github.event_name == 'push' && ',oci-push.vpn.infra.element.io/matrix-authentication-service' || '' }}
+      #:tchap:
+      IMAGES: ghcr.io/tchapgouv/matrix-authentication-service
+      #:tchap:
 
     steps:
       - name: Set up Docker Buildx
@@ -344,11 +371,11 @@ jobs:
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      # The Element OCI Registry is only reachable via Tailscale, and the Vault
-      # JWT exchange relies on a GitHub OIDC token issued from a `push` event.
-      # PR-labelled builds (`Z-Build-Workflow`) skip this and push only to ghcr.
+      # :tchap: no Tailscale/Vault/Element OCI — Tchap pushes only to ghcr.io
       - name: Tailscale
-        if: github.event_name == 'push'
+        #:tchap:
+        if: false
+        #:tchap:
         uses: tailscale/github-action@306e68a486fd2350f2bfc3b19fcd143891a4a2d8 # v4.1.2
         with:
           oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
@@ -357,13 +384,17 @@ jobs:
 
       - name: Compute vault jwt role name
         id: vault-jwt-role
-        if: github.event_name == 'push'
+        #:tchap:
+        if: false
+        #:tchap:
         run: |
           echo "role_name=github_service_management_$( echo "${{ github.repository }}" | sed -r 's|[/-]|_|g')" | tee -a "$GITHUB_OUTPUT"
 
       - name: Get team registry token
         id: import-secrets
-        if: github.event_name == 'push'
+        #:tchap:
+        if: false
+        #:tchap:
         uses: hashicorp/vault-action@892a26828f195e65540a40b4768ae4571f51ebfc # v4.0.0
         with:
           url: https://vault.infra.ci.i.element.dev
@@ -376,7 +407,9 @@ jobs:
             services/backend-repositories/secret/data/oci.element.io password | OCI_PASSWORD ;
 
       - name: Login to Element OCI Registry
-        if: github.event_name == 'push'
+        #:tchap:
+        if: false
+        #:tchap:
         uses: docker/login-action@af1e73f918a031802d376d3c8bbc3fe56130a9b0 # v4.4.0
         with:
           registry: oci-push.vpn.infra.element.io
@@ -482,8 +515,11 @@ jobs:
 
       # See `build-image` for why the Element OCI Registry login is gated on
       # `push` events.
+      # :tchap: no Tailscale/Vault/Element OCI — Tchap pushes only to ghcr.io
       - name: Tailscale
-        if: github.event_name == 'push'
+        #:tchap:
+        if: false
+        #:tchap:
         uses: tailscale/github-action@306e68a486fd2350f2bfc3b19fcd143891a4a2d8 # v4.1.2
         with:
           oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
@@ -492,13 +528,17 @@ jobs:
 
       - name: Compute vault jwt role name
         id: vault-jwt-role
-        if: github.event_name == 'push'
+        #:tchap:
+        if: false
+        #:tchap:
         run: |
           echo "role_name=github_service_management_$( echo "${{ github.repository }}" | sed -r 's|[/-]|_|g')" | tee -a "$GITHUB_OUTPUT"
 
       - name: Get team registry token
         id: import-secrets
-        if: github.event_name == 'push'
+        #:tchap:
+        if: false
+        #:tchap:
         uses: hashicorp/vault-action@892a26828f195e65540a40b4768ae4571f51ebfc # v4.0.0
         with:
           url: https://vault.infra.ci.i.element.dev
@@ -511,7 +551,9 @@ jobs:
             services/backend-repositories/secret/data/oci.element.io password | OCI_PASSWORD ;
 
       - name: Login to Element OCI Registry
-        if: github.event_name == 'push'
+        #:tchap:
+        if: false
+        #:tchap:
         uses: docker/login-action@af1e73f918a031802d376d3c8bbc3fe56130a9b0 # v4.4.0
         with:
           registry: oci-push.vpn.infra.element.io
@@ -534,8 +576,10 @@ jobs:
           while IFS= read -r a; do [[ -n $a && $a != *= ]] && args+=(--annotation "$a"); done <<< "$ANNOTATIONS"
 
           docker buildx imagetools create "${args[@]}" \
-            "ghcr.io/element-hq/matrix-authentication-service@$(cat /tmp/digests/regular-amd64)" \
-            "ghcr.io/element-hq/matrix-authentication-service@$(cat /tmp/digests/regular-arm64)" \
+            #:tchap:
+            "ghcr.io/tchapgouv/matrix-authentication-service@$(cat /tmp/digests/regular-amd64)" \
+            "ghcr.io/tchapgouv/matrix-authentication-service@$(cat /tmp/digests/regular-arm64)" \
+            #:tchap:
             --metadata-file regular-metadata.json
 
           # `imagetools create` wrote the digest to regular-metadata.json
@@ -552,28 +596,31 @@ jobs:
           while IFS= read -r t; do [[ -n $t ]] && args+=(-t "$t"); done <<< "$TAGS"
           while IFS= read -r a; do [[ -n $a && $a != *= ]] && args+=(--annotation "$a"); done <<< "$ANNOTATIONS"
           docker buildx imagetools create "${args[@]}" \
-            "ghcr.io/element-hq/matrix-authentication-service@$(cat /tmp/digests/debug-amd64)" \
-            "ghcr.io/element-hq/matrix-authentication-service@$(cat /tmp/digests/debug-arm64)" \
+            #:tchap:
+            "ghcr.io/tchapgouv/matrix-authentication-service@$(cat /tmp/digests/debug-amd64)" \
+            "ghcr.io/tchapgouv/matrix-authentication-service@$(cat /tmp/digests/debug-arm64)" \
+            #:tchap:
             --metadata-file debug-metadata.json
           echo "digest=$(jq -r '.["containerimage.descriptor"].digest' debug-metadata.json)" >> "$GITHUB_OUTPUT"
 
       - name: Sign the images with GitHub Actions provided token
         # Only sign on tags and on commits on main branch
+        #:tchap: sign on tags and on main_tchap branch
         if: |
           github.event_name != 'pull_request'
-          && (startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/main')
+          && (startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/main_tchap')
+        #:tchap:
 
         env:
           REGULAR_DIGEST: ${{ steps.regular.outputs.digest }}
           DEBUG_DIGEST: ${{ steps.debug.outputs.digest }}
 
+        #:tchap:
         run: |-
           cosign sign --yes \
-            "ghcr.io/element-hq/matrix-authentication-service@$REGULAR_DIGEST" \
-            "ghcr.io/element-hq/matrix-authentication-service@$DEBUG_DIGEST"
-          cosign sign --yes \
-            "oci-push.vpn.infra.element.io/matrix-authentication-service@$REGULAR_DIGEST" \
-            "oci-push.vpn.infra.element.io/matrix-authentication-service@$DEBUG_DIGEST"
+            "ghcr.io/tchapgouv/matrix-authentication-service@$REGULAR_DIGEST" \
+            "ghcr.io/tchapgouv/matrix-authentication-service@$DEBUG_DIGEST"
+        #:tchap:
 
       - name: Output metadata
         id: output
@@ -609,12 +656,19 @@ jobs:
     name: Release
     if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-24.04
+    #:tchap: no assemble-archives — only Docker image is built
     needs:
-      - assemble-archives
+      #- assemble-archives
       - finalize-image
+    #:tchap:
+    permissions:
+      contents: write
 
     steps:
       - name: Download the artifacts from the previous job
+        #:tchap: no artifacts to download — archives are not built
+        if: false
+        #:tchap:
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
           pattern: mas-cli-*
@@ -632,8 +686,7 @@ jobs:
 
               - Digest:
                 ```
-                ghcr.io/element-hq/matrix-authentication-service@${{ fromJSON(needs.finalize-image.outputs.metadata).regular.digest }}
-                oci.element.io/matrix-authentication-service@${{ fromJSON(needs.finalize-image.outputs.metadata).regular.digest }}
+                ghcr.io/tchapgouv/matrix-authentication-service@${{ fromJSON(needs.finalize-image.outputs.metadata).regular.digest }}
                 ```
               - Tags:
                 ```
@@ -645,8 +698,7 @@ jobs:
 
               - Digest:
                 ```
-                ghcr.io/element-hq/matrix-authentication-service@${{ fromJSON(needs.finalize-image.outputs.metadata).debug.digest }}
-                oci.element.io/matrix-authentication-service@${{ fromJSON(needs.finalize-image.outputs.metadata).debug.digest }}
+                ghcr.io/tchapgouv/matrix-authentication-service@${{ fromJSON(needs.finalize-image.outputs.metadata).debug.digest }}
                 ```
               - Tags:
                 ```
@@ -654,19 +706,24 @@ jobs:
                 ') }}
                 ```
 
-          files: |
-            artifacts/mas-cli-aarch64-linux.tar.gz
-            artifacts/mas-cli-x86_64-linux.tar.gz
+          #:tchap: no archive files — only Docker image
+          #files: |
+          #  artifacts/mas-cli-aarch64-linux.tar.gz
+          # artifacts/mas-cli-x86_64-linux.tar.gz
           draft: true
 
   unstable:
     name: Update the unstable release
-    if: github.ref == 'refs/heads/main'
+    #:tchap:
+    if: github.ref == 'refs/heads/main_tchap'
+    #:tchap:
     runs-on: ubuntu-24.04
 
+    #:tchap: no assemble-archives — only Docker image is built
     needs:
-      - assemble-archives
+      #- assemble-archives
       - finalize-image
+    #:tchap:
 
     permissions:
       contents: write
@@ -679,12 +736,13 @@ jobs:
             .github/scripts
           persist-credentials: false
 
-      - name: Download the artifacts from the previous job
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
-        with:
-          pattern: mas-cli-*
-          path: artifacts
-          merge-multiple: true
+      #:tchap: no artifacts to download — archives are not built
+      #- name: Download the artifacts from the previous job
+      #  uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+      #  with:
+      #    pattern: mas-cli-*
+      #    path: artifacts
+      #    merge-multiple: true
 
       - name: Update unstable git tag
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
@@ -712,8 +770,7 @@ jobs:
 
               - Digest:
                 ```
-                ghcr.io/element-hq/matrix-authentication-service@${{ fromJSON(needs.finalize-image.outputs.metadata).regular.digest }}
-                oci.element.io/matrix-authentication-service@${{ fromJSON(needs.finalize-image.outputs.metadata).regular.digest }}
+                ghcr.io/tchapgouv/matrix-authentication-service@${{ fromJSON(needs.finalize-image.outputs.metadata).regular.digest }}
                 ```
               - Tags:
                 ```
@@ -725,8 +782,7 @@ jobs:
 
               - Digest:
                 ```
-                ghcr.io/element-hq/matrix-authentication-service@${{ fromJSON(needs.finalize-image.outputs.metadata).debug.digest }}
-                oci.element.io/matrix-authentication-service@${{ fromJSON(needs.finalize-image.outputs.metadata).debug.digest }}
+                ghcr.io/tchapgouv/matrix-authentication-service@${{ fromJSON(needs.finalize-image.outputs.metadata).debug.digest }}
                 ```
               - Tags:
                 ```
@@ -734,9 +790,10 @@ jobs:
                 ') }}
                 ```
 
-          files: |
-            artifacts/mas-cli-aarch64-linux.tar.gz
-            artifacts/mas-cli-x86_64-linux.tar.gz
+          #:tchap: no archive files — only Docker image
+          #files: |
+          #  artifacts/mas-cli-aarch64-linux.tar.gz
+          #  artifacts/mas-cli-x86_64-linux.tar.gz
           prerelease: true
           make_latest: false
 
