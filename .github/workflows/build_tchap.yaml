@@ -8,21 +8,13 @@
 # the only job used by tchap are `compute-version` and `build-image`
 #:tchap:
 
-name: Build
+# :tchap:
+# Kept as a backup only — the active CI is in build.yaml
+# :tchap:
+name: Build (Tchap backup — disabled)
 
 on:
-  push:
-    branches:
-      - main_tchap
-      - "release/**"
-      - "test/**"
-    tags:
-      - "v*"
-
-  # Run when there is a label change on the pull request
-  # This runs only if the 'Z-Build-Workflow' is added to the pull request
-  pull_request:
-    types: [labeled]
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}

@@ -19,7 +19,8 @@ cargo +nightly fmt
 #cargo test --workspace
 #export DATABASE_URL=postgresql://postgres:postgres@localhost:5439/postgres; cargo test --lib views::register::password::tests::test_register
 
-rustup default 1.96
+# should not be necessary if main_tchap is closed enough to the version in Element CI
+#rustup default 1.96
 
 # clippy
 unset DATABASE_URL
