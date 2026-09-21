@@ -515,6 +515,7 @@ pub trait OAuth2SessionRepository: Send + Sync {
         human_name: Option<String>,
     ) -> Result<Session, Self::Error>;
 
+    //:tchap: session lookup by browser session (end session feature)
     /// Lookup an [`Session`] by its browser session id
     ///
     /// Returns `None` if no [`Session`] was found
@@ -527,6 +528,7 @@ pub trait OAuth2SessionRepository: Send + Sync {
     ///
     /// Returns [`Self::Error`] if the underlying repository fails
     async fn find_by_browser_session(&mut self, id: Ulid) -> Result<Option<Session>, Self::Error>;
+    //:tchap:end
 
     /// Cleanup finished [`Session`]s
     ///
@@ -640,7 +642,9 @@ repository_impl!(OAuth2SessionRepository:
         human_name: Option<String>,
     ) -> Result<Session, Self::Error>;
 
+    //:tchap: session lookup by browser session (end session feature)
     async fn find_by_browser_session(&mut self, id: Ulid) -> Result<Option<Session>, Self::Error>;
+    //:tchap:end
 
     async fn cleanup_finished(
         &mut self,

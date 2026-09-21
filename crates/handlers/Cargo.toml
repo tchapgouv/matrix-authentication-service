@@ -91,7 +91,9 @@ mas-templates.workspace = true
 oauth2-types.workspace = true
 zxcvbn.workspace = true
 
+#:tchap: tchap crate
 tchap.workspace = true
+#:tchap:end
 
 [dev-dependencies]
 assert_matches.workspace = true

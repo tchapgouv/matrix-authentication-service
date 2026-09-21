@@ -11,10 +11,11 @@ This file documents all Tchap-specific modifications to the upstream
 ## How Tchap modifications are tagged
 
 Every Tchap-specific code change in upstream files is enclosed between
-`:tchap:` and `:tchap: end` (or `:tchap:end`) comment tags. These tags must
-**never** be removed during upstream merges. Files that exist only in the
-Tchap fork (e.g. `crates/tchap/**`, `tchap/resources/**`, `frontend/tchap/**`)
-do not need tags.
+`:tchap:` and `:tchap: end` (or `:tchap:end`) comment tags, matched
+case-insensitively (`:TCHAP:` is also used). These tags must **never** be
+removed during upstream merges. Files that exist only in the Tchap fork
+(e.g. `crates/tchap/**`, `tchap/resources/**`, `frontend/tchap/**`) do not
+need tags.
 
 ## Feature map
 
@@ -31,9 +32,12 @@ do not need tags.
 | 9 | Branding (templates) | `tchap/resources/templates/base.html`, `tchap/resources/templates/app.html`, `tchap/resources/templates/pages/**` |
 | 10 | Frontend customizations | `frontend/index.html`, `frontend/src/components/Layout/Layout.tsx`, `frontend/src/routes/_account.index.tsx`, `frontend/src/routes/password.recovery.index.tsx`, `frontend/src/routes/reset-cross-signing.tsx`, `frontend/src/routes/reset-cross-signing.index.tsx`, `frontend/src/utils/password_complexity/index.ts`, `frontend/knip.config.ts`, `frontend/tests/routes/reset-cross-signing.test.tsx` |
 | 11 | Cookies | `crates/axum-utils/src/cookies.rs` |
-| 12 | Build and CI | `.github/workflows/build_tchap.yaml` |
+| 12 | Build and CI | `.github/workflows/build.yaml`, `.github/workflows/ci.yaml`, `Dockerfile` |
 | 13 | Handler wiring and test state | `crates/handlers/src/lib.rs`, `crates/handlers/src/test_utils.rs` |
 | 14 | GraphQL user mutations | `crates/handlers/src/graphql/mutations/user.rs` |
+| 15 | OIDC end session (RP-initiated logout) | `crates/handlers/src/oauth2/end_session.rs`, `crates/handlers/src/oauth2/discovery.rs`, `crates/router/src/endpoints.rs` |
+| 16 | Client registration policy for Tchap Desktop | `policies/client_registration/client_registration.rego` |
+| 17 | Password visibility toggle on login page | `templates/components/password_field.html`, `templates/pages/login.html` |
 
 ## Detail sections
 
@@ -50,6 +54,8 @@ Files:
 - [crates/tchap/src/lib.rs](../crates/tchap/src/lib.rs) (email conversion, server validation, user search)
 - [crates/tchap/src/identity_client.rs](../crates/tchap/src/identity_client.rs) (identity server HTTP client)
 - [crates/tchap/src/test_utils.rs](../crates/tchap/src/test_utils.rs) (test configuration)
+- [Cargo.toml](../Cargo.toml) (tchap crate registration, dependency pins)
+- [crates/cli/Cargo.toml](../crates/cli/Cargo.toml) (icu_experimental dependency)
 
 ### 2. Tchap configuration
 
@@ -60,7 +66,9 @@ application state and made available as an axum extractor for handlers.
 
 Files:
 - [crates/config/src/sections/mod.rs](../crates/config/src/sections/mod.rs) (tchap config submodule registration)
+- [crates/config/src/sections/tchap.rs](../crates/config/src/sections/tchap.rs) (config section definition)
 - [crates/data-model/src/lib.rs](../crates/data-model/src/lib.rs) (TchapConfig type and re-exports)
+- [crates/data-model/src/tchap_config.rs](../crates/data-model/src/tchap_config.rs) (runtime TchapConfig type)
 - [crates/cli/src/app_state.rs](../crates/cli/src/app_state.rs) (AppState field + FromRef impl)
 - [crates/cli/src/commands/server.rs](../crates/cli/src/commands/server.rs) (config extraction + injection)
 
@@ -79,6 +87,7 @@ Files:
 - [crates/handlers/src/views/register/password.rs](../crates/handlers/src/views/register/password.rs) (email validation, MXID/display-name generation)
 - [crates/handlers/src/views/register/steps/finish.rs](../crates/handlers/src/views/register/steps/finish.rs) (email-in-use check, deactivated account flag)
 - [frontend/src/entrypoints/register/PasswordCreationDoubleInput.tsx](../frontend/src/entrypoints/register/PasswordCreationDoubleInput.tsx) (custom password input component)
+- [frontend/src/entrypoints/register/PasswordDoubleInput.tsx](../frontend/src/entrypoints/register/PasswordDoubleInput.tsx) (register password input entrypoint)
 - [tchap/resources/templates/pages/register/index.html](../tchap/resources/templates/pages/register/index.html) (registration entry template)
 - [tchap/resources/templates/pages/register/password.html](../tchap/resources/templates/pages/register/password.html) (password registration template)
 - [tchap/resources/templates/pages/register/steps/display_name.html](../tchap/resources/templates/pages/register/steps/display_name.html) (display name step template)
@@ -146,17 +155,30 @@ Files:
 - [crates/handlers/src/views/index.rs](../crates/handlers/src/views/index.rs) (pass Tchap app link to index context)
 - [crates/templates/src/context.rs](../crates/templates/src/context.rs) (ConsentContext.email, IndexContext.tchap_app_link, RegisterStepsEmailInUseContext.is_deactivated)
 - [tchap/resources/templates/pages/consent.html](../tchap/resources/templates/pages/consent.html) (consent page template)
+- [tchap/resources/templates/pages/index.html](../tchap/resources/templates/pages/index.html) (index page with Tchap app links)
 
 ### 9. Branding (templates)
 
 Tchap-specific Jinja2 templates that override or extend the upstream web UI
 with Tchap branding (header, footer, colors, layout). The base template
 includes the La Suite header and footer. Email templates are also customized
-for Tchap's visual identity.
+for Tchap's visual identity. Only the French and English translations are
+kept: all other upstream locales are deleted and must be deleted again after
+each upstream merge.
 
 Files:
 - [tchap/resources/templates/base.html](../tchap/resources/templates/base.html) (La Suite header/footer)
+- [tchap/resources/templates/tchap/header.html](../tchap/resources/templates/tchap/header.html) (La Suite header component)
+- [tchap/resources/templates/tchap/footer.html](../tchap/resources/templates/tchap/footer.html) (La Suite footer component)
 - [tchap/resources/templates/app.html](../tchap/resources/templates/app.html) (app HTML wrapper)
+- [tchap/resources/templates/emails/_mail-base.html](../tchap/resources/templates/emails/_mail-base.html) (email base template)
+- [tchap/resources/templates/emails/recovery.html](../tchap/resources/templates/emails/recovery.html) (account recovery email)
+- [tchap/resources/templates/emails/verification.html](../tchap/resources/templates/emails/verification.html) (email verification template)
+- [tchap/resources/translations/fr.json](../tchap/resources/translations/fr.json) (French translations)
+- [tchap/resources/translations/en.json](../tchap/resources/translations/en.json) (English translations)
+- [translations/en.json](../translations/en.json) (upstream English translations, other locales deleted)
+- [frontend/locales/fr.json](../frontend/locales/fr.json) (French locale with Tchap messages, other locales deleted)
+- [frontend/locales/en.json](../frontend/locales/en.json) (English locale, other locales deleted)
 
 ### 10. Frontend customizations
 
@@ -166,11 +188,16 @@ header and footer components. Custom routes handle password recovery redirect
 (to the MAS welcome page) and cross-signing reset with desktop deep-link
 support. A password complexity utility is included (TODO: French
 dictionaries). Knip configuration excludes Tchap-only files from dead-code
-analysis.
+analysis. A shared React mount helper, a Tchap stylesheet and a dedicated
+build script produce the Tchap frontend bundle.
 
 Files:
 - [frontend/index.html](../frontend/index.html) (title + favicon)
 - [frontend/src/components/Layout/Layout.tsx](../frontend/src/components/Layout/Layout.tsx) (Tchap header/footer)
+- [frontend/src/entrypoints/mount.tsx](../frontend/src/entrypoints/mount.tsx) (shared React mount helper)
+- [frontend/src/entrypoints/shared.css](../frontend/src/entrypoints/shared.css) (shared styles)
+- [frontend/src/entrypoints/vendor.css](../frontend/src/entrypoints/vendor.css) (imports the Tchap stylesheet)
+- [frontend/package.json](../frontend/package.json) (Tchap build script and dependencies)
 - [frontend/src/routes/_account.index.tsx](../frontend/src/routes/_account.index.tsx) (desktop flag for cross-signing reset)
 - [frontend/src/routes/password.recovery.index.tsx](../frontend/src/routes/password.recovery.index.tsx) (redirect to welcome page)
 - [frontend/src/routes/reset-cross-signing.tsx](../frontend/src/routes/reset-cross-signing.tsx) (desktop search param)
@@ -190,7 +217,12 @@ Files:
 
 ### 12. Build and CI
 
-The upstream `build.yaml` workflow is modified for Tchap:
+The Docker image build is self-contained: the Dockerfile builds the frontend
+assets and the Rust binary internally, and adds the Tchap templates,
+translations and stylesheets to the image. The CI workflow skips the Element
+Server Suite (ESS) jobs, which don't apply to the fork.
+
+The upstream `build.yaml` workflow is also modified for Tchap:
 - Triggers on `main_tchap` instead of `main`.
 - Docker image is pushed to `ghcr.io/tchapgouv/matrix-authentication-service`
   instead of `ghcr.io/element-hq/matrix-authentication-service`.
@@ -208,7 +240,9 @@ The previous standalone `build_tchap.yaml` is kept as a disabled backup
 (`workflow_dispatch` only).
 
 Files:
+- [Dockerfile](../Dockerfile) (Tchap resources, internal frontend and binary build)
 - [.github/workflows/build.yaml](../.github/workflows/build.yaml) (Tchap CI modifications)
+- [.github/workflows/ci.yaml](../.github/workflows/ci.yaml) (ESS jobs disabled)
 - [.github/workflows/build_tchap.yaml](../.github/workflows/build_tchap.yaml) (disabled backup)
 
 ### 13. Handler wiring and test state
@@ -220,6 +254,7 @@ state extraction in both production and tests.
 Files:
 - [crates/handlers/src/lib.rs](../crates/handlers/src/lib.rs) (TchapConfig import)
 - [crates/handlers/src/test_utils.rs](../crates/handlers/src/test_utils.rs) (TestState field + FromRef impl)
+- [crates/handlers/Cargo.toml](../crates/handlers/Cargo.toml) (tchap crate dependency)
 
 ### 14. GraphQL user mutations
 
@@ -229,13 +264,61 @@ mutation so that authenticated users can use account recovery.
 Files:
 - [crates/handlers/src/graphql/mutations/user.rs](../crates/handlers/src/graphql/mutations/user.rs) (anonymous-user check disabled)
 
+### 15. OIDC end session (RP-initiated logout)
+
+Adds an OIDC end-session endpoint so that clients can log the user out
+(RP-initiated logout). The request is validated with an ID token hint, the
+current browser session and its tokens are ended, a logout notification is
+sent to the homeserver, and the user is redirected to the post-logout
+redirect URI. The endpoint is advertised in the OIDC discovery document.
+
+Files:
+- [crates/handlers/src/oauth2/end_session.rs](../crates/handlers/src/oauth2/end_session.rs) (endpoint handler)
+- [crates/handlers/src/oauth2/mod.rs](../crates/handlers/src/oauth2/mod.rs) (module registration)
+- [crates/handlers/src/lib.rs](../crates/handlers/src/lib.rs) (route registration)
+- [crates/handlers/src/oauth2/discovery.rs](../crates/handlers/src/oauth2/discovery.rs) (end session endpoint in discovery document)
+- [crates/router/src/endpoints.rs](../crates/router/src/endpoints.rs) (route path)
+- [crates/router/src/url_builder.rs](../crates/router/src/url_builder.rs) (end session endpoint URL builder)
+- [crates/storage/src/oauth2/session.rs](../crates/storage/src/oauth2/session.rs) (session lookup by browser session)
+- [crates/storage-pg/src/oauth2/session.rs](../crates/storage-pg/src/oauth2/session.rs) (database implementation)
+
+### 16. Client registration policy for Tchap Desktop
+
+Extends the OPA client registration policy so that Tchap Desktop (a Tauri
+application) can register dynamically as an OAuth2 client. Its native
+redirect URLs (`tauri://localhost` on macOS, `http://tauri.localhost` on
+Windows) are accepted as secure, and the `tchap://`, `tchap-preprod://` and
+`tchap-dev://` deep links are valid native redirectors in all environments.
+
+Files:
+- [policies/client_registration/client_registration.rego](../policies/client_registration/client_registration.rego) (Tauri redirect URLs, Tchap deep links)
+- [policies/client_registration/client_registration_test.rego](../policies/client_registration/client_registration_test.rego) (policy tests)
+
+### 17. Password visibility toggle on login page
+
+Adds a show/hide password toggle to the login form. A reusable password
+field component with a visibility button is added to the server-rendered
+templates and used by the login page; the Tchap login page override uses it
+as well. The button reuses the compound-web action stylesheet.
+
+Files:
+- [templates/components/password_field.html](../templates/components/password_field.html) (password field with visibility toggle)
+- [templates/pages/login.html](../templates/pages/login.html) (login page uses the component)
+- [tchap/resources/templates/pages/login.html](../tchap/resources/templates/pages/login.html) (Tchap login page override)
+- [frontend/src/entrypoints/templates.css](../frontend/src/entrypoints/templates.css) (compound-web action stylesheet import)
+
 ## Excluded files (Tchap-only, no upstream counterpart)
 
 These files exist only in the Tchap fork and have no upstream equivalent:
 - `crates/tchap/**` — the Tchap crate
 - `tchap/resources/**` — Tchap templates, emails, and resources
+- `tchap/tmp/` — generated template copies (build output, do not edit)
 - `tchap/start*.sh`, `tchap/docker-compose.yml`, `tchap/build*.sh` — Tchap dev tooling
 - `.github/workflows/build_tchap.yaml` — Tchap CI workflow (disabled backup)
+
+Generated files are not tagged either: lockfiles (`Cargo.lock`,
+`pnpm-lock.yaml`), test snapshots, generated GraphQL and OpenAPI code, and
+the sqlx query cache.
 
 ## Upstream merge procedure
 

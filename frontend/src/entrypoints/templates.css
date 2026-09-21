@@ -19,7 +19,9 @@
 @import "../components/Footer/Footer.module.css";
 @import "../components/PageHeading/PageHeading.module.css";
 
+/* :tchap: action stylesheet for the password visibility toggle */
 @import url("../../node_modules/@vector-im/compound-web/src/components/Form/Controls/Action/Action.module.css");
+/* :tchap: end */
 
 .cpd-text-body-lg-regular {
   font: var(--cpd-font-body-lg-regular);

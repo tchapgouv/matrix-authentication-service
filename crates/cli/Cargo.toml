@@ -90,7 +90,9 @@ mas-templates.workspace = true
 mas-tower.workspace = true
 
 syn2mas.workspace = true
+#:tchap: pin icu_experimental to 0.6.0 to the version that builds on macOS
 icu_experimental = "0.6.0"
+#:tchap:end
 
 [build-dependencies]
 anyhow.workspace = true

@@ -610,6 +610,7 @@ impl OAuth2SessionRepository for PgOAuth2SessionRepository<'_> {
         Ok(session)
     }
 
+    //:tchap: session lookup by browser session (end session feature)
     #[tracing::instrument(
         name = "db.oauth2_session.find_by_browser_session",
         skip_all,
@@ -648,6 +649,7 @@ impl OAuth2SessionRepository for PgOAuth2SessionRepository<'_> {
 
         Ok(Some(session.try_into()?))
     }
+    //:tchap:end
 
     #[tracing::instrument(
         name = "db.oauth2_session.cleanup_finished",
