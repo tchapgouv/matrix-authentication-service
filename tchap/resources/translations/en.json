@@ -333,7 +333,7 @@
       "@description": {
         "context": "pages/register/steps/email_in_use.html:22:13-46"
       },
-      "deactivated_description": "Please contact Tchap user support: support@tchap.beta.gouv.fr",
+      "deactivated_description": "Please create a new account with Proconnect or contact Tchap user support: support@tchap.beta.gouv.fr",
       "@deactivated_description": {
         "context": "pages/register/steps/email_in_use.html:24:13-65"
       },
