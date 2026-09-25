@@ -333,13 +333,21 @@
       "@description": {
         "context": "pages/register/steps/email_in_use.html:22:13-46"
       },
-      "deactivated_description": "Please create a new account with Proconnect or contact Tchap user support: support@tchap.beta.gouv.fr",
-      "@deactivated_description": {
+      "reactivated_description": "Your account has been re-activated, you can proceed to login",
+      "@reactivated_description": {
         "context": "pages/register/steps/email_in_use.html:24:13-65"
       },
-      "deactivated_title": "Account deactivated: <span>%(email)s</span>",
-      "@deactivated_title": {
+      "reactivated_title": "Account reactivated: <span>%(email)s</span>",
+      "@reactivated_title": {
         "context": "pages/register/steps/email_in_use.html:19:13-53"
+      },
+      "is_deactivated_description": "Your account is deactivated. Please contact Tchap user support: support@tchap.beta.gouv.fr",
+      "@is_deactivated_description": {
+        "context": "pages/register/steps/email_in_use.html:33:13-67"
+      },
+      "is_deactivated_title": "Account deactivated: <span>%(email)s</span>",
+      "@is_deactivated_title": {
+        "context": "pages/register/steps/email_in_use.html:23:13-70"
       },
       "title": "The Tchap account already exists : <span>%(email)s</span>",
       "@title": {

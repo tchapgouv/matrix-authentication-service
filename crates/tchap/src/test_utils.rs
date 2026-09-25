@@ -34,5 +34,6 @@ pub fn test_tchap_config() -> TchapConfig {
             search: "@beta.gouv.fr".to_string(),
         }],
         tchap_app_link: Url::parse("https://test").unwrap(),
+        allow_account_reactivation: true,
     }
 }

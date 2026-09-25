@@ -33,6 +33,7 @@ use mas_policy::Policy;
 use mas_router::UrlBuilder;
 use mas_storage::{
     BoxRepository, Pagination, RepositoryAccess,
+    queue::{ProvisionUserJob, QueueJobRepositoryExt as _},
     upstream_oauth2::{
         UpstreamOAuthLinkFilter, UpstreamOAuthLinkRepository, UpstreamOAuthSessionRepository,
     },
@@ -341,7 +342,7 @@ pub(crate) async fn get(
                 .await?
                 .ok_or(RouteError::UserNotFound(user_id))?;
 
-            //:tchap
+            //:tchap:
             //reactivate user if deactivated
             if user.deactivated_at.is_some() {
                 homeserver
@@ -377,6 +378,10 @@ pub(crate) async fn get(
                         repo.user_email()
                             .add(&mut rng, &clock, &user, email)
                             .await?;
+
+                        let job = ProvisionUserJob::new(&user);
+                        repo.queue_job().schedule_job(&mut rng, &clock, job).await?;
+
                     }
                 }
             }
@@ -824,6 +829,9 @@ pub(crate) async fn get(
                             repo.user_email()
                                 .add(&mut rng, &clock, &existing_user, email)
                                 .await?;
+
+                            let job = ProvisionUserJob::new(&existing_user);
+                            repo.queue_job().schedule_job(&mut rng, &clock, job).await?;
                         }
                     }
                     /*

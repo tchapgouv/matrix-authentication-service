@@ -1196,13 +1196,32 @@ impl TemplateContext for RegisterStepsVerifyEmailContext {
     }
 }
 
+// :tchap:
+/// State of the existing account when the email is already in use
+///
+/// This drives the message shown on the "email in use" page
+#[derive(Serialize, Default, Debug, Clone, Copy, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum ExistingAccountState {
+    /// The account exists and is active
+    #[default]
+    Exists,
+
+    /// The account was deactivated and has been silently reactivated
+    WasReactivated,
+
+    /// The account is deactivated, and its reactivation is not allowed
+    IsDeactivated,
+}
+// :tchap:end
+
 /// Context used by the `pages/register/steps/email_in_use.html` template
 #[derive(Serialize)]
 pub struct RegisterStepsEmailInUseContext {
     email: String,
     action: Option<PostAuthAction>,
     // :tchap:
-    is_deactivated: bool, // :tchap:end
+    existing_account_state: ExistingAccountState, // :tchap:end
 }
 
 impl RegisterStepsEmailInUseContext {
@@ -1213,16 +1232,19 @@ impl RegisterStepsEmailInUseContext {
             email,
             action,
             // :tchap:
-            is_deactivated: false, // :tchap:end
+            existing_account_state: ExistingAccountState::Exists, // :tchap:end
         }
     }
 
     // :tchap:
-    /// Set whether the existing account is deactivated
+    /// Set the state of the existing account
     #[must_use]
-    pub fn with_is_deactivated(self, is_deactivated: bool) -> Self {
+    pub fn with_existing_account_state(
+        self,
+        existing_account_state: ExistingAccountState,
+    ) -> Self {
         Self {
-            is_deactivated,
+            existing_account_state,
             ..self
         }
     }
@@ -1243,7 +1265,10 @@ impl TemplateContext for RegisterStepsEmailInUseContext {
         // :tchap:
         sample_list(vec![
             Self::new(email.clone(), Some(action.clone())),
-            Self::new(email, Some(action)).with_is_deactivated(true),
+            Self::new(email.clone(), Some(action.clone()))
+                .with_existing_account_state(ExistingAccountState::WasReactivated),
+            Self::new(email, Some(action))
+                .with_existing_account_state(ExistingAccountState::IsDeactivated),
         ])
         // :tchap:end
     }
