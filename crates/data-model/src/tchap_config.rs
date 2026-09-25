@@ -36,6 +36,9 @@ pub struct TchapConfig {
 
     /// Tchap Web URL
     pub tchap_app_link: Url,
+
+    /// Whether deactivated accounts can be reactivated
+    pub allow_account_reactivation: bool,
 }
 
 #[derive(PartialEq, Eq, Clone, Debug)]

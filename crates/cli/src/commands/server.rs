@@ -380,6 +380,7 @@ fn tchap_config_from_tchap_app_config(tchap_app_config: &TchapAppConfig) -> Tcha
             })
             .collect(),
         tchap_app_link: tchap_app_config.tchap_app_link.clone(),
+        allow_account_reactivation: tchap_app_config.allow_account_reactivation,
     }
 }
 //:tchap: end

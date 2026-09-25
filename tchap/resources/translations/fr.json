@@ -122,8 +122,10 @@
     },
     "email_in_use": {
       "description": "Si vous avez oublié votre mot de passe, demandez une réinitialisation du mot de passe ou connectez-vous via Proconnect",
-      "deactivated_description": "Veuillez procéder à une nouvelle création de compte en choisissant Proconnect. Si Proconnect est indisponible pour votre administration, contactez le support de Tchap: support@tchap.beta.gouv.fr",
-      "deactivated_title": "Compte désactivé: <span>%(email)s</span>",
+      "reactivated_description": "Votre compte a été réactivé, vous pouvez procéder au login",
+      "reactivated_title": "Compte reactivé: <span>%(email)s</span>",
+      "is_deactivated_description": "Votre compte est désactivé. Veuillez contacter le support de Tchap: support@tchap.beta.gouv.fr",
+      "is_deactivated_title": "Compte désactivé : <span>%(email)s</span>",
       "title": "Le compte Tchap existe déjà: <span>%(email)s</span>"
     },
     "emails": {

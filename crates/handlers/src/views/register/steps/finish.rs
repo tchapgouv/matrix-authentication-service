@@ -13,7 +13,7 @@ use axum::{
 use axum_extra::TypedHeader;
 use chrono::Duration;
 use mas_axum_utils::{InternalError, RecordAsRequester, SessionInfoExt as _, cookies::CookieJar};
-use mas_data_model::{BoxClock, BoxRng, SiteConfig};
+use mas_data_model::{BoxClock, BoxRng, SiteConfig, TchapConfig, User};
 use mas_matrix::HomeserverConnection;
 use mas_router::{PostAuthAction, UrlBuilder};
 use mas_storage::{
@@ -21,7 +21,9 @@ use mas_storage::{
     queue::{ProvisionUserJob, QueueJobRepositoryExt as _},
     user::UserEmailFilter,
 };
-use mas_templates::{RegisterStepsEmailInUseContext, TemplateContext as _, Templates};
+use mas_templates::{
+    ExistingAccountState, RegisterStepsEmailInUseContext, TemplateContext as _, Templates,
+};
 use opentelemetry::metrics::Counter;
 use ulid::Ulid;
 
@@ -53,6 +55,9 @@ pub(crate) async fn get(
     State(homeserver): State<Arc<dyn HomeserverConnection>>,
     State(templates): State<Templates>,
     State(site_config): State<SiteConfig>,
+    //:tchap: add the tchap config extractor
+    State(tchap_config): State<TchapConfig>,
+    //:tchap:end
     PreferredLanguage(lang): PreferredLanguage,
     cookie_jar: CookieJar,
     Path(id): Path<Ulid>,
@@ -99,12 +104,12 @@ pub(crate) async fn get(
     }
 
     //:tchap: deactivate this username existance checks because it happens before
-    //:tchap: the email
-    // is verified which can leak information (username is generated from email)
+    // the email verified which can leak information as username is generated from email
     if false {
         // Let's perform last minute checks on the registration, especially to avoid
         // race conditions where multiple users register with the same username or email
         // address
+
         if repo.user().exists(&registration.username).await? {
             // XXX: this could have a better error message, but as this is unlikely to
             // happen, we're fine with a vague message for now
@@ -203,14 +208,13 @@ pub(crate) async fn get(
             // It is important to do that here, as we we're not checking during the
             // registration, because we don't want to disclose whether an email is
             // already being used or not before we verified it
+            //:tchap: this section is used to manage existing accounts
             if repo
                 .user_email()
                 .count(UserEmailFilter::new().for_email(&email_authentication.email))
                 .await?
                 > 0
-                // :tchap: different emails can collide to the same username.
-                // Block impersonation attempts at this stage and show a "email in use" 
-                // error page
+                // :tchap: existing accounts can be retrieved by username also
                 || repo.user().exists(&registration.username).await?
             {
                 tracing::info!(
@@ -223,9 +227,8 @@ pub(crate) async fn get(
                     .map(serde_json::from_value)
                     .transpose()?;
 
-                // :tchap: Check if the existing account is deactivated
-                // show a specific message to the user
-                let is_deactivated = is_existing_user_deactivated(
+                // :tchap: Find the existing account matching this email or username
+                let existing_user = find_existing_user(
                     &mut repo,
                     &email_authentication.email,
                     &registration.username,
@@ -233,9 +236,62 @@ pub(crate) async fn get(
                 .await?;
                 // :tchap:end
 
+                // :tchap: If the existing account is deactivated, reactivate it when allowed on this server
+                let existing_account_state =
+                    if let Some(ref user) = existing_user
+                        && user.deactivated_at.is_some()
+                    {
+                        if tchap_config.allow_account_reactivation {
+                            tracing::info!(
+                                user.id = %user.id,
+                                "Existing account was deactivated, reactivate it"
+                            );
+
+                            // Call the homeserver synchronously to reactivate the user
+                            let _ = homeserver.reactivate_user(&user.username).await;
+
+                            // Now reactivate the user in our database
+                            repo.user().reactivate(user.clone()).await?;
+
+                            let existing_email = repo
+                                .user_email()
+                                .find(&user, &email_authentication.email)
+                                .await?;
+                            if existing_email.is_none() {
+                                tracing::info!(
+                                    user.id = %user.id,
+                                    "Restoring email in a previously deactivated account"
+                                );
+                                repo.user_email()
+                                    .add(
+                                        &mut rng,
+                                        &clock,
+                                        &user,
+                                        email_authentication.email.clone(),
+                                    )
+                                    .await?;
+                            }
+
+                            // send email to synapse
+                            let mut job = ProvisionUserJob::new(&user);
+                            if let Some(display_name) = registration.display_name {
+                                job = job.set_display_name(display_name);
+                            }
+                            repo.queue_job().schedule_job(&mut rng, &clock, job).await?;
+
+                            repo.save().await?;
+                            ExistingAccountState::WasReactivated
+                        } else {
+                            ExistingAccountState::IsDeactivated
+                        }
+                    } else {
+                        ExistingAccountState::Exists
+                    };
+                // :tchap:end
+
                 let ctx = RegisterStepsEmailInUseContext::new(email_authentication.email, action)
                     // :tchap:
-                    .with_is_deactivated(is_deactivated)
+                    .with_existing_account_state(existing_account_state)
                     // :tchap:end
                     .with_language(lang);
 
@@ -418,7 +474,7 @@ pub(crate) async fn get(
         .into_response());
 }
 
-/// :tchap: Check if an existing account (matching by email or username) is deactivated.
+/// :tchap: Find the existing account (matching by email or username)
 ///
 /// # Parameters
 ///
@@ -429,11 +485,11 @@ pub(crate) async fn get(
 /// # Errors
 ///
 /// Returns [`InternalError`] if the underlying repository fails
-async fn is_existing_user_deactivated(
+async fn find_existing_user(
     repo: &mut BoxRepository,
     email: &str,
     username: &str,
-) -> Result<bool, InternalError> {
+) -> Result<Option<User>, InternalError> {
     // First try to find the user by email
     let existing_user_id = if let Some(user_email) = repo.user_email().find_by_email(email).await? {
         Some(user_email.user_id)
@@ -442,15 +498,10 @@ async fn is_existing_user_deactivated(
         repo.user().find_by_username(username).await?.map(|user| user.id)
     };
 
-    // Check if the found user is deactivated
+    // Load the found user, if any
     if let Some(user_id) = existing_user_id {
-        Ok(repo
-            .user()
-            .lookup(user_id)
-            .await?
-            .map(|u| u.deactivated_at.is_some())
-            .unwrap_or(false))
+        Ok(repo.user().lookup(user_id).await?)
     } else {
-        Ok(false)
+        Ok(None)
     }
 }
