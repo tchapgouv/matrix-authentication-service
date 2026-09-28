@@ -16,17 +16,21 @@ Please see LICENSE files in the repository root for full details.
 
       <div class="header">
         <h1 class="title">
-          {#- :tchap: show a specific title when the existing account is deactivated -#}
-          {%- if is_deactivated -%}
-            {{ _("mas.email_in_use.deactivated_title", email=email) }}
+          {#- :tchap: show a specific title depending on the state of the existing account -#}
+          {%- if existing_account_state == "was_reactivated" -%}
+            {{ _("mas.email_in_use.reactivated_title", email=email) }}
+          {%- elif existing_account_state == "is_deactivated" -%}
+            {{ _("mas.email_in_use.is_deactivated_title", email=email) }}
           {%- else -%}
             {{ _("mas.email_in_use.title", email=email) }}
           {%- endif -%}
         </h1>
         <p class="text">
-          {#- :tchap: show a specific message when the existing account is deactivated -#}
-          {%- if is_deactivated -%}
-            {{ _("mas.email_in_use.deactivated_description") }}
+          {#- :tchap: show a specific message depending on the state of the existing account -#}
+          {%- if existing_account_state == "was_reactivated" -%}
+            {{ _("mas.email_in_use.reactivated_description") }}
+          {%- elif existing_account_state == "is_deactivated" -%}
+            {{ _("mas.email_in_use.is_deactivated_description") }}
           {%- else -%}
             {{ _("mas.email_in_use.description") }}
           {%- endif -%}

@@ -48,6 +48,10 @@ pub struct TchapAppConfig {
 
     /// Tchap Web Url
     pub tchap_app_link: Url,
+
+    /// Whether deactivated accounts can be reactivated
+    #[serde(default)]
+    pub allow_account_reactivation: bool,
 }
 
 /// When linking the localpart, the email can be used to find the correct

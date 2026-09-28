@@ -26,7 +26,7 @@ pub mod authorization;
 pub mod device;
 pub mod discovery;
 //:tchap:
-pub mod end_session;//:tchap:end
+pub mod end_session; //:tchap:end
 pub mod introspection;
 pub mod keys;
 pub mod registration;
