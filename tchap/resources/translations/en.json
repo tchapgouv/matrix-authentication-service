@@ -114,7 +114,7 @@
   "mas": {
     "account": {
       "deactivated": {
-        "description": "This account (<em>%(mxid)s</em>) has been deleted. If this is not expected, contact your server administrator.",
+        "description": "This account (<em>%(mxid)s</em>) has been deleted. If this is not expected, contact Tchap support: support@tchap.beta.gouv.fr",
         "@description": {
           "context": "pages/account/deactivated.html:21:27-78"
         },
@@ -124,7 +124,7 @@
         }
       },
       "locked": {
-        "description": "This account (<em>%(mxid)s</em>) has been locked. If this is not expected, contact your server administrator.",
+        "description": "This account (<em>%(mxid)s</em>) has been locked. If this is not expected, contact Tchap support: support@tchap.beta.gouv.fr",
         "@description": {
           "context": "pages/account/locked.html:21:27-73"
         },

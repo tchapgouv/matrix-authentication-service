@@ -40,11 +40,11 @@
   "mas": {
     "account": {
       "deactivated": {
-        "description": "Ce compte (<em>%(mxid)s</em>) a été supprimé. Si vous ne vous attendez pas à cela, contactez l'administrateur de votre serveur.",
+        "description": "Ce compte (<em>%(mxid)s</em>) a été supprimé. Si vous ne vous attendez pas à cela, contactez le support de Tchap: support@tchap.beta.gouv.fr",
         "heading": "Compte supprimé"
       },
       "locked": {
-        "description": "Ce compte (<em>%(mxid)s</em>) a été verrouillé. Si vous ne vous attendez pas à cela, contactez l'administrateur de votre serveur.",
+        "description": "Ce compte (<em>%(mxid)s</em>) a été verrouillé. Si vous ne vous attendez pas à cela, contactez le support de Tchap: support@tchap.beta.gouv.fr",
         "heading": "Compte bloqué"
       },
       "logged_out": {
