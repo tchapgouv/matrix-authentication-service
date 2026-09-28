@@ -294,7 +294,8 @@ jobs:
 
   test:
     name: Run test suite with Rust stable
-    needs: [rustfmt, opa-lint, compile-test-artifacts]
+    #:tchap: remove rustfmt from needs[]
+    needs: [opa-lint, compile-test-artifacts]
     runs-on: ubuntu-24.04
 
     permissions:
