@@ -104,7 +104,8 @@ pub(crate) async fn get(
     }
 
     //:tchap: deactivate this username existance checks because it happens before
-    // the email verified which can leak information as username is generated from email
+    // the email verified which can leak information as username is generated from
+    // email
     if false {
         // Let's perform last minute checks on the registration, especially to avoid
         // race conditions where multiple users register with the same username or email
@@ -236,57 +237,52 @@ pub(crate) async fn get(
                 .await?;
                 // :tchap:end
 
-                // :tchap: If the existing account is deactivated, reactivate it when allowed on this server
-                let existing_account_state =
-                    if let Some(ref user) = existing_user
-                        && user.deactivated_at.is_some()
-                    {
-                        if tchap_config.allow_account_reactivation {
+                // :tchap: If the existing account is deactivated, reactivate it when allowed on
+                // this server
+                let existing_account_state = if let Some(ref user) = existing_user
+                    && user.deactivated_at.is_some()
+                {
+                    if tchap_config.allow_account_reactivation {
+                        tracing::info!(
+                            user.id = %user.id,
+                            "Existing account was deactivated, reactivate it"
+                        );
+
+                        // Call the homeserver synchronously to reactivate the user
+                        let _ = homeserver.reactivate_user(&user.username).await;
+
+                        // Now reactivate the user in our database
+                        repo.user().reactivate(user.clone()).await?;
+
+                        let existing_email = repo
+                            .user_email()
+                            .find(&user, &email_authentication.email)
+                            .await?;
+                        if existing_email.is_none() {
                             tracing::info!(
                                 user.id = %user.id,
-                                "Existing account was deactivated, reactivate it"
+                                "Restoring email in a previously deactivated account"
                             );
-
-                            // Call the homeserver synchronously to reactivate the user
-                            let _ = homeserver.reactivate_user(&user.username).await;
-
-                            // Now reactivate the user in our database
-                            repo.user().reactivate(user.clone()).await?;
-
-                            let existing_email = repo
-                                .user_email()
-                                .find(&user, &email_authentication.email)
+                            repo.user_email()
+                                .add(&mut rng, &clock, &user, email_authentication.email.clone())
                                 .await?;
-                            if existing_email.is_none() {
-                                tracing::info!(
-                                    user.id = %user.id,
-                                    "Restoring email in a previously deactivated account"
-                                );
-                                repo.user_email()
-                                    .add(
-                                        &mut rng,
-                                        &clock,
-                                        &user,
-                                        email_authentication.email.clone(),
-                                    )
-                                    .await?;
-                            }
-
-                            // send email to synapse
-                            let mut job = ProvisionUserJob::new(&user);
-                            if let Some(display_name) = registration.display_name {
-                                job = job.set_display_name(display_name);
-                            }
-                            repo.queue_job().schedule_job(&mut rng, &clock, job).await?;
-
-                            repo.save().await?;
-                            ExistingAccountState::WasReactivated
-                        } else {
-                            ExistingAccountState::IsDeactivated
                         }
+
+                        // send email to synapse
+                        let mut job = ProvisionUserJob::new(&user);
+                        if let Some(display_name) = registration.display_name {
+                            job = job.set_display_name(display_name);
+                        }
+                        repo.queue_job().schedule_job(&mut rng, &clock, job).await?;
+
+                        repo.save().await?;
+                        ExistingAccountState::WasReactivated
                     } else {
-                        ExistingAccountState::Exists
-                    };
+                        ExistingAccountState::IsDeactivated
+                    }
+                } else {
+                    ExistingAccountState::Exists
+                };
                 // :tchap:end
 
                 let ctx = RegisterStepsEmailInUseContext::new(email_authentication.email, action)
@@ -495,7 +491,10 @@ async fn find_existing_user(
         Some(user_email.user_id)
     } else {
         // If no email match, try to find by username
-        repo.user().find_by_username(username).await?.map(|user| user.id)
+        repo.user()
+            .find_by_username(username)
+            .await?
+            .map(|user| user.id)
     };
 
     // Load the found user, if any

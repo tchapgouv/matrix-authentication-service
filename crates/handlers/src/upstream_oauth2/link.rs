@@ -381,7 +381,6 @@ pub(crate) async fn get(
 
                         let job = ProvisionUserJob::new(&user);
                         repo.queue_job().schedule_job(&mut rng, &clock, job).await?;
-
                     }
                 }
             }

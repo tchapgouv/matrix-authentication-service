@@ -1239,10 +1239,7 @@ impl RegisterStepsEmailInUseContext {
     // :tchap:
     /// Set the state of the existing account
     #[must_use]
-    pub fn with_existing_account_state(
-        self,
-        existing_account_state: ExistingAccountState,
-    ) -> Self {
+    pub fn with_existing_account_state(self, existing_account_state: ExistingAccountState) -> Self {
         Self {
             existing_account_state,
             ..self
