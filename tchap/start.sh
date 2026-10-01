@@ -70,6 +70,7 @@ if ! docker compose -f $DOCKER_COMPOSE_FILE ps postgres | grep -q "Up"; then
         sleep 5
         WAITED=$((WAITED + 5))
     done
+    set -e
     echo "PostgreSQL is ready!"
 else
     echo "PostgreSQL is already running."

@@ -39,6 +39,11 @@ pub struct TchapConfig {
 
     /// Whether deactivated accounts can be reactivated
     pub allow_account_reactivation: bool,
+
+    // :tchap:
+    /// Email domains for which password login is disabled (IdP-only)
+    pub password_login_disabled_domains: Vec<String>,
+    // :tchap: end
 }
 
 #[derive(PartialEq, Eq, Clone, Debug)]

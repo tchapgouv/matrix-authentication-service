@@ -12,7 +12,9 @@ export MAS_HOME="$(dirname "$SCRIPT_DIR")"
 # fmt
 cd $MAS_HOME
 sh ./misc/update.sh
-cargo +nightly fmt
+#cargo +nightly fmt
+# update only staged files
+git diff --name-only --cached -- '*.rs' | xargs rustfmt +nightly --edition 2024
 
 # unit tests
 #export DATABASE_URL=postgresql://postgres:postgres@localhost:5439/postgres
