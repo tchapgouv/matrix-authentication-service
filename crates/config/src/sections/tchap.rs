@@ -34,6 +34,12 @@ fn default_identity_server_url() -> Url {
     Url::parse("http://localhost:8090/").unwrap()
 }
 
+// :tchap:
+fn default_password_login_disabled_domains() -> Vec<String> {
+    vec!["gouv.fr".to_string()]
+}
+// :tchap: end
+
 /// Tchap specific configuration
 #[serde_as]
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
@@ -52,6 +58,12 @@ pub struct TchapAppConfig {
     /// Whether deactivated accounts can be reactivated
     #[serde(default)]
     pub allow_account_reactivation: bool,
+
+    // :tchap:
+    /// Email domains for which password login is disabled (IdP-only)
+    #[serde(default = "default_password_login_disabled_domains")]
+    pub password_login_disabled_domains: Vec<String>,
+    // :tchap: end
 }
 
 /// When linking the localpart, the email can be used to find the correct
@@ -128,7 +140,45 @@ mod tests {
                 "http://localhost:9999/"
             );
 
+            // :tchap:
+            // Default value when not specified
+            assert_eq!(
+                config.password_login_disabled_domains,
+                vec!["gouv.fr".to_string()]
+            );
+            // :tchap: end
+
             Ok(())
         });
     }
+
+    // :tchap:
+    #[test]
+    fn load_config_with_password_login_disabled_domains() {
+        Jail::expect_with(|jail| {
+            jail.create_file(
+                "config.yaml",
+                r"
+                    tchap:
+                      identity_server_url: http://localhost:8091
+                      tchap_app_link: http://localhost:9999
+                      password_login_disabled_domains:
+                        - gouv.fr
+                        - example.org
+                ",
+            )?;
+
+            let config = Figment::new()
+                .merge(Yaml::file("config.yaml"))
+                .extract_inner::<TchapAppConfig>("tchap")?;
+
+            assert_eq!(
+                config.password_login_disabled_domains,
+                vec!["gouv.fr".to_string(), "example.org".to_string()]
+            );
+
+            Ok(())
+        });
+    }
+    // :tchap: end
 }

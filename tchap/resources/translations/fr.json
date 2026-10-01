@@ -37,6 +37,11 @@
   "error": {
     "unexpected": "Une erreur est survenue"
   },
+  "tchap": {
+    "login": {
+      "password_disabled_use_idp": "Les comptes de ce domaine doivent utiliser ProConnect."
+    }
+  },
   "mas": {
     "account": {
       "deactivated": {

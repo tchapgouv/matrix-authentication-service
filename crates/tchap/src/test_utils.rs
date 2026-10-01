@@ -35,5 +35,6 @@ pub fn test_tchap_config() -> TchapConfig {
         }],
         tchap_app_link: Url::parse("https://test").unwrap(),
         allow_account_reactivation: true,
+        password_login_disabled_domains: vec!["gouv.fr".to_string()],
     }
 }

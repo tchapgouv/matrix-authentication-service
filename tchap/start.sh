@@ -19,17 +19,18 @@ DOCKER_COMPOSE_FILE="$MAS_TCHAP_HOME/docker-compose.yml"
 echo "Step 1/7: Checking PostgreSQL service status..."
 
 # Check if postgres container is running
-if ! docker compose ps postgres | grep -q "Up"; then
+if ! docker compose -f "$DOCKER_COMPOSE_FILE" ps postgres 2>/dev/null | grep -q "Up"; then
     echo "PostgreSQL is not running. Starting docker-compose services..."
-    docker compose -f $DOCKER_COMPOSE_FILE up -d postgres 
-    
-    # Wait for PostgreSQL to be ready
+    docker compose -f "$DOCKER_COMPOSE_FILE" up -d postgres
+
+    # Wait for PostgreSQL to be ready (disable set -e for the polling loop)
     echo "Waiting for PostgreSQL to be ready..."
-    docker compose -f $DOCKER_COMPOSE_FILE exec postgres pg_isready -U postgres 
-    while [ $? -ne 0 ]; do
-        sleep 10
-        docker compose -f $DOCKER_COMPOSE_FILE exec postgres pg_isready -U postgres
+    set +e
+    until docker compose -f "$DOCKER_COMPOSE_FILE" exec -T postgres pg_isready -U postgres; do
+        echo "  PostgreSQL not ready yet, retrying in 2s..."
+        sleep 2
     done
+    set -e
     echo "PostgreSQL is ready!"
 else
     echo "PostgreSQL is already running."

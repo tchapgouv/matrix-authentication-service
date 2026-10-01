@@ -558,6 +558,12 @@ pub struct LoginContext {
     form: FormState<LoginFormField>,
     next: Option<PostAuthContext>,
     providers: Vec<UpstreamOAuthProvider>,
+    //:tchap:
+    /// Whether password login is disabled for this request (based on the
+    /// `login_hint` email domain)
+    #[serde(default)]
+    password_login_disabled: bool,
+    //:tchap: end
 }
 
 impl TemplateContext for LoginContext {
@@ -575,11 +581,17 @@ impl TemplateContext for LoginContext {
                 form: FormState::default(),
                 next: None,
                 providers: Vec::new(),
+                //:tchap:
+                password_login_disabled: false,
+                //:tchap: end
             },
             LoginContext {
                 form: FormState::default(),
                 next: None,
                 providers: Vec::new(),
+                //:tchap:
+                password_login_disabled: false,
+                //:tchap: end
             },
             LoginContext {
                 form: FormState::default()
@@ -593,13 +605,28 @@ impl TemplateContext for LoginContext {
                     ),
                 next: None,
                 providers: Vec::new(),
+                //:tchap:
+                password_login_disabled: false,
+                //:tchap: end
             },
             LoginContext {
                 form: FormState::default()
                     .with_error_on_field(LoginFormField::Username, FieldError::Exists),
                 next: None,
                 providers: Vec::new(),
+                //:tchap:
+                password_login_disabled: false,
+                //:tchap: end
             },
+            //:tchap:
+            // Sample showing the password-disabled state
+            LoginContext {
+                form: FormState::default(),
+                next: None,
+                providers: Vec::new(),
+                password_login_disabled: true,
+            },
+            //:tchap: end
         ])
     }
 }
@@ -630,6 +657,17 @@ impl LoginContext {
             ..self
         }
     }
+
+    //:tchap:
+    /// Set whether password login is disabled for this request
+    #[must_use]
+    pub fn with_password_login_disabled(self, disabled: bool) -> Self {
+        Self {
+            password_login_disabled: disabled,
+            ..self
+        }
+    }
+    //:tchap: end
 }
 
 /// Fields of the registration form
@@ -1993,8 +2031,9 @@ impl TemplateContext for AccountInactiveContext {
             User::samples(now, rng)
                 .into_iter()
                 .flat_map(|user| {
-                    // Cover both the "no continuation" and "with continuation" render
-                    // paths so the template gallery exercises the hidden inputs.
+                    // Cover both the "no continuation" and "with continuation"
+                    // render paths so the template gallery
+                    // exercises the hidden inputs.
                     [
                         AccountInactiveContext::new(user.clone()),
                         AccountInactiveContext::new(user)

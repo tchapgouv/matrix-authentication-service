@@ -34,6 +34,7 @@ do not need tags.
 | 12 | Build and CI | `.github/workflows/build_tchap.yaml` |
 | 13 | Handler wiring and test state | `crates/handlers/src/lib.rs`, `crates/handlers/src/test_utils.rs` |
 | 14 | GraphQL user mutations | `crates/handlers/src/graphql/mutations/user.rs` |
+| 15 | Password login disabled by email domain | `crates/tchap/src/lib.rs`, `crates/handlers/src/views/login.rs` |
 
 ## Detail sections
 
@@ -42,12 +43,13 @@ do not need tags.
 A dedicated crate containing Tchap-specific business logic: email-to-MXID
 conversion, email-to-display-name generation, email server validation (checks
 whether an email is allowed on the current server by querying the identity
-server), user search by email with configurable fallback rules, and the
-identity server HTTP client. Test helpers provide a default configuration for
-unit tests.
+server), user search by email with configurable fallback rules, domain-based
+password login gating (checks whether the email domain requires IdP-only
+authentication), and the identity server HTTP client. Test helpers provide a
+default configuration for unit tests.
 
 Files:
-- [crates/tchap/src/lib.rs](../crates/tchap/src/lib.rs) (email conversion, server validation, user search)
+- [crates/tchap/src/lib.rs](../crates/tchap/src/lib.rs) (email conversion, server validation, user search, password login gating)
 - [crates/tchap/src/identity_client.rs](../crates/tchap/src/identity_client.rs) (identity server HTTP client)
 - [crates/tchap/src/test_utils.rs](../crates/tchap/src/test_utils.rs) (test configuration)
 
@@ -55,12 +57,15 @@ Files:
 
 Adds a Tchap-specific configuration section to the MAS configuration system.
 The runtime `TchapConfig` type holds the identity server URL, email lookup
-fallback rules, and a link to the Tchap web app. It is injected into the
-application state and made available as an axum extractor for handlers.
+fallback rules, a link to the Tchap web app, and the list of email domains for
+which password login is disabled. It is injected into the application state
+and made available as an axum extractor for handlers.
 
 Files:
 - [crates/config/src/sections/mod.rs](../crates/config/src/sections/mod.rs) (tchap config submodule registration)
+- [crates/config/src/sections/tchap.rs](../crates/config/src/sections/tchap.rs) (config section definition, password_login_disabled_domains)
 - [crates/data-model/src/lib.rs](../crates/data-model/src/lib.rs) (TchapConfig type and re-exports)
+- [crates/data-model/src/tchap_config.rs](../crates/data-model/src/tchap_config.rs) (TchapConfig struct, password_login_disabled_domains field)
 - [crates/cli/src/app_state.rs](../crates/cli/src/app_state.rs) (AppState field + FromRef impl)
 - [crates/cli/src/commands/server.rs](../crates/cli/src/commands/server.rs) (config extraction + injection)
 
@@ -90,10 +95,14 @@ Blocks login and password recovery attempts when the user's email is mapped
 to a different Matrix server. Before processing the login form or recovery
 form, the handler queries the identity server to check whether the email
 belongs to the current server. If not, a French error message is displayed
-without revealing whether the account exists.
+without revealing whether the account exists. Additionally, password login
+is disabled for specific email domains (configured via
+`password_login_disabled_domains`): the login page hides the password form
+and shows a message directing the user to the upstream IdP, and the POST
+handler rejects submissions from those domains as defense in depth.
 
 Files:
-- [crates/handlers/src/views/login.rs](../crates/handlers/src/views/login.rs) (pre-login email server check)
+- [crates/handlers/src/views/login.rs](../crates/handlers/src/views/login.rs) (pre-login email server check, password login domain gating)
 - [crates/handlers/src/views/recovery/start.rs](../crates/handlers/src/views/recovery/start.rs) (pre-recovery email server check)
 
 ### 5. SSO account reactivation
@@ -144,7 +153,7 @@ customized to render a link to the Tchap web application.
 Files:
 - [crates/handlers/src/oauth2/authorization/consent.rs](../crates/handlers/src/oauth2/authorization/consent.rs) (fetch user email, pass to consent context)
 - [crates/handlers/src/views/index.rs](../crates/handlers/src/views/index.rs) (pass Tchap app link to index context)
-- [crates/templates/src/context.rs](../crates/templates/src/context.rs) (ConsentContext.email, IndexContext.tchap_app_link, RegisterStepsEmailInUseContext.is_deactivated)
+- [crates/templates/src/context.rs](../crates/templates/src/context.rs) (ConsentContext.email, IndexContext.tchap_app_link, RegisterStepsEmailInUseContext.is_deactivated, LoginContext.password_login_disabled)
 - [tchap/resources/templates/pages/consent.html](../tchap/resources/templates/pages/consent.html) (consent page template)
 
 ### 9. Branding (templates)
@@ -152,11 +161,18 @@ Files:
 Tchap-specific Jinja2 templates that override or extend the upstream web UI
 with Tchap branding (header, footer, colors, layout). The base template
 includes the La Suite header and footer. Email templates are also customized
-for Tchap's visual identity.
+for Tchap's visual identity. The login page template hides the password form
+when the email domain requires IdP-only authentication and shows a message
+directing the user to ProConnect. French and English translations are
+maintained as full copies of the upstream translation set with Tchap-specific
+additions.
 
 Files:
 - [tchap/resources/templates/base.html](../tchap/resources/templates/base.html) (La Suite header/footer)
 - [tchap/resources/templates/app.html](../tchap/resources/templates/app.html) (app HTML wrapper)
+- [tchap/resources/templates/pages/login.html](../tchap/resources/templates/pages/login.html) (login page: ProConnect button, password-disabled message)
+- [tchap/resources/translations/fr.json](../tchap/resources/translations/fr.json) (French translations)
+- [tchap/resources/translations/en.json](../tchap/resources/translations/en.json) (English translations)
 
 ### 10. Frontend customizations
 
@@ -228,6 +244,29 @@ mutation so that authenticated users can use account recovery.
 
 Files:
 - [crates/handlers/src/graphql/mutations/user.rs](../crates/handlers/src/graphql/mutations/user.rs) (anonymous-user check disabled)
+
+### 15. Password login disabled by email domain
+
+Hides the password login form and rejects password submissions for email
+domains that should authenticate exclusively via the upstream identity
+provider (e.g. ProConnect). When a user arrives on the login page with a
+`login_hint` email whose domain matches the configured disabled list, the
+password field and submit button are hidden and an informational message is
+shown instead. The POST handler also rejects password submissions from
+those domains as defense in depth. The domain match is a case-insensitive
+suffix match, so subdomains are covered (e.g. `gouv.fr` matches
+`@interieur.gouv.fr`).
+
+Files:
+- [crates/tchap/src/lib.rs](../crates/tchap/src/lib.rs) (`is_password_login_allowed_for_email` function)
+- [crates/config/src/sections/tchap.rs](../crates/config/src/sections/tchap.rs) (`password_login_disabled_domains` config field)
+- [crates/data-model/src/tchap_config.rs](../crates/data-model/src/tchap_config.rs) (`password_login_disabled_domains` field on TchapConfig)
+- [crates/cli/src/commands/server.rs](../crates/cli/src/commands/server.rs) (config mapping)
+- [crates/templates/src/context.rs](../crates/templates/src/context.rs) (`LoginContext.password_login_disabled` field + builder)
+- [crates/handlers/src/views/login.rs](../crates/handlers/src/views/login.rs) (GET: hide password, POST: reject submission)
+- [tchap/resources/templates/pages/login.html](../tchap/resources/templates/pages/login.html) (password-disabled UI + message)
+- [tchap/resources/translations/fr.json](../tchap/resources/translations/fr.json) (French message)
+- [tchap/resources/translations/en.json](../tchap/resources/translations/en.json) (English message)
 
 ## Excluded files (Tchap-only, no upstream counterpart)
 

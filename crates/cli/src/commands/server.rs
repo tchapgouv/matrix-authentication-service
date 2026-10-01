@@ -178,6 +178,14 @@ impl Options {
 
         //:tchap:
         let tchap_config = tchap_config_from_tchap_app_config(&tchap_app_config);
+        if tchap_config.password_login_disabled_domains.is_empty() {
+            info!(":tchap: - no password login disabled domains configured");
+        } else {
+            info!(
+                ":tchap: - password login disabled for domains: {:?}",
+                tchap_config.password_login_disabled_domains
+            );
+        }
         //:tchap: end
 
         // Load and compile the templates
@@ -381,6 +389,9 @@ fn tchap_config_from_tchap_app_config(tchap_app_config: &TchapAppConfig) -> Tcha
             .collect(),
         tchap_app_link: tchap_app_config.tchap_app_link.clone(),
         allow_account_reactivation: tchap_app_config.allow_account_reactivation,
+        //:tchap:
+        password_login_disabled_domains: tchap_app_config.password_login_disabled_domains.clone(),
+        //:tchap: end
     }
 }
 //:tchap: end

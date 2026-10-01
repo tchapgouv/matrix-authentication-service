@@ -111,6 +111,11 @@
       "description": "Error message displayed when an unexpected error occurs"
     }
   },
+  "tchap": {
+    "login": {
+      "password_disabled_use_idp": "Accounts from this domain must sign in with ProConnect."
+    }
+  },
   "mas": {
     "account": {
       "deactivated": {

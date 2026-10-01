@@ -381,6 +381,16 @@ tchap:
   {% endif %}
   tchap_app_link: "https://{{webapp_domain}}"
   allow_account_reactivation: {{mas_allow_account_reactivation}}
+  # :tchap:
+  # Email domains for which password login is disabled (IdP-only).
+  # Users with these domains must authenticate via the upstream IdP (ProConnect).
+  password_login_disabled_domains:
+  {% if mas_password_login_disabled_domains is defined %}
+  {% for domain in mas_password_login_disabled_domains %}
+    - "{{ domain }}"
+  {% endfor %}
+  {% endif %}
+  # :tchap: end
 
 {% endif %}
 

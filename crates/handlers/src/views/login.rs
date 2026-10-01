@@ -74,6 +74,9 @@ pub(crate) async fn get(
     State(url_builder): State<UrlBuilder>,
     State(site_config): State<SiteConfig>,
     State(homeserver): State<Arc<dyn HomeserverConnection>>,
+    //:tchap:
+    State(tchap_config): State<TchapConfig>,
+    //:tchap: end
     mut repo: BoxRepository,
     activity_tracker: BoundActivityTracker,
     Query(query): Query<OptionalPostAuthAction>,
@@ -136,6 +139,9 @@ pub(crate) async fn get(
         &homeserver,
         &site_config,
         query_login_hint,
+        //:tchap:
+        &tchap_config,
+        //:tchap: end
     )
     .await
 }
@@ -196,6 +202,9 @@ pub(crate) async fn post(
             &homeserver,
             &site_config,
             query_login_hint,
+            //:tchap:
+            &tchap_config,
+            //:tchap: end
         )
         .await;
     }
@@ -242,9 +251,46 @@ pub(crate) async fn post(
                 &homeserver,
                 &site_config,
                 query_login_hint,
+                //:tchap:
+                &tchap_config,
+                //:tchap: end
             )
             .await;
         }
+    }
+    //:tchap: end
+
+    //:tchap:
+    // Reject password login for domains where only upstream IdP login is
+    // allowed (the form is hidden in the UI; this is defense in depth).
+    if form.username.contains('@')
+        && !tchap::is_password_login_allowed_for_email(
+            &form.username,
+            &tchap_config.password_login_disabled_domains,
+        )
+    {
+        PASSWORD_LOGIN_COUNTER.add(1, &[KeyValue::new(RESULT, "error")]);
+        let form_state = form_state.with_error_on_form(FormError::Policy {
+            code: None,
+            message:
+                "password_login_disabled: utilisez la connexion via votre fournisseur d'identité"
+                    .to_owned(),
+        });
+        return render(
+            locale,
+            cookie_jar,
+            form_state,
+            query,
+            &mut repo,
+            &clock,
+            &mut rng,
+            &templates,
+            &homeserver,
+            &site_config,
+            query_login_hint,
+            &tchap_config,
+        )
+        .await;
     }
     //:tchap: end
 
@@ -271,6 +317,9 @@ pub(crate) async fn post(
             &homeserver,
             &site_config,
             query_login_hint,
+            //:tchap:
+            &tchap_config,
+            //:tchap: end
         )
         .await;
     };
@@ -292,6 +341,9 @@ pub(crate) async fn post(
             &homeserver,
             &site_config,
             query_login_hint,
+            //:tchap:
+            &tchap_config,
+            //:tchap: end
         )
         .await;
     }
@@ -315,6 +367,9 @@ pub(crate) async fn post(
             &homeserver,
             &site_config,
             query_login_hint,
+            //:tchap:
+            &tchap_config,
+            //:tchap: end
         )
         .await;
     };
@@ -361,6 +416,9 @@ pub(crate) async fn post(
                 &homeserver,
                 &site_config,
                 query_login_hint,
+                //:tchap:
+                &tchap_config,
+                //:tchap: end
             )
             .await;
         }
@@ -400,8 +458,8 @@ pub(crate) async fn post(
         return Ok((cookie_jar, response).into_response());
     }
 
-    // At this point, we should have a 'valid' user. In case we missed something, we
-    // want it to crash in tests/debug builds
+    // At this point, we should have a 'valid' user. In case we missed
+    // something, we want it to crash in tests/debug builds
     debug_assert!(user.is_valid());
 
     // Start a new session
@@ -489,6 +547,9 @@ async fn render(
     homeserver: &dyn HomeserverConnection,
     site_config: &SiteConfig,
     query_login_hint: QueryLoginHint,
+    //:tchap:
+    tchap_config: &TchapConfig,
+    //:tchap: end
 ) -> Result<Response, InternalError> {
     let (csrf_token, cookie_jar) = cookie_jar.csrf_token(clock, rng);
     let providers = repo.upstream_oauth_provider().all_enabled().await?;
@@ -498,6 +559,17 @@ async fn render(
         .with_upstream_providers(providers);
 
     let ctx = handle_login_hint(ctx, &query_login_hint, homeserver, site_config);
+
+    //:tchap:
+    let password_login_disabled = match query_login_hint.parse_login_hint(homeserver.homeserver()) {
+        LoginHint::Email(email) => !tchap::is_password_login_allowed_for_email(
+            email.as_ref(),
+            &tchap_config.password_login_disabled_domains,
+        ),
+        _ => false,
+    };
+    let ctx = ctx.with_password_login_disabled(password_login_disabled);
+    //:tchap: end
 
     let next = action
         .load_context(repo)
@@ -1423,4 +1495,169 @@ mod test {
             response.body()
         );
     }
+    //:tchap: end
+
+    //:tchap:
+    /// Provision a single upstream OAuth2 provider for tests.
+    async fn add_upstream_provider(state: &TestState) -> mas_data_model::UpstreamOAuthProvider {
+        let mut rng = state.rng();
+        let mut repo = state.repository().await.unwrap();
+        let provider = repo
+            .upstream_oauth_provider()
+            .add(
+                &mut rng,
+                &state.clock,
+                UpstreamOAuthProviderParams {
+                    issuer: Some("https://proconnect.gouv.fr/".to_owned()),
+                    human_name: Some("ProConnect".to_owned()),
+                    brand_name: None,
+                    scope: [OPENID].into_iter().collect(),
+                    token_endpoint_auth_method: UpstreamOAuthProviderTokenAuthMethod::None,
+                    token_endpoint_signing_alg: None,
+                    id_token_signed_response_alg: JsonWebSignatureAlg::Rs256,
+                    fetch_userinfo: false,
+                    userinfo_signed_response_alg: None,
+                    client_id: "client".to_owned(),
+                    encrypted_client_secret: None,
+                    claims_imports: UpstreamOAuthProviderClaimsImports::default(),
+                    authorization_endpoint_override: None,
+                    token_endpoint_override: None,
+                    userinfo_endpoint_override: None,
+                    jwks_uri_override: None,
+                    discovery_mode: mas_data_model::UpstreamOAuthProviderDiscoveryMode::Oidc,
+                    pkce_mode: mas_data_model::UpstreamOAuthProviderPkceMode::Auto,
+                    response_mode: None,
+                    additional_authorization_parameters: Vec::new(),
+                    forward_login_hint: false,
+                    ui_order: 0,
+                    on_backchannel_logout: UpstreamOAuthProviderOnBackchannelLogout::DoNothing,
+                    registration_token_required: false,
+                },
+            )
+            .await
+            .unwrap();
+        repo.save().await.unwrap();
+        provider
+    }
+
+    /// GET /login?login_hint=user@gouv.fr should hide the password field and
+    /// show the ProConnect message instead.
+    #[sqlx::test(migrator = "mas_storage_pg::MIGRATOR")]
+    async fn test_login_hint_gouv_fr_hides_password(pool: PgPool) {
+        setup();
+        let state = TestState::from_pool(pool).await.unwrap();
+
+        // Add an upstream provider so the page renders with IdP options
+        add_upstream_provider(&state).await;
+
+        let response = state
+            .request(Request::get("/login?login_hint=user@gouv.fr").empty())
+            .await;
+        response.assert_status(StatusCode::OK);
+        response.assert_header_value(CONTENT_TYPE, "text/html; charset=utf-8");
+
+        let body = response.body();
+        // Password field should NOT be present
+        assert!(
+            !body.contains(r#"name="password""#),
+            "password field should be hidden for gouv.fr domain, body: {body}"
+        );
+        // The ProConnect provider button should be present
+        assert!(
+            body.contains("ProConnect"),
+            "ProConnect button should be shown, body: {body}"
+        );
+        // The info message should be present
+        assert!(
+            body.contains("ProConnect"),
+            "ProConnect message should be shown, body: {body}"
+        );
+        // The username field should be pre-filled with the email
+        assert!(
+            body.contains("user@gouv.fr"),
+            "username should be pre-filled with the login_hint email, body: {body}"
+        );
+    }
+
+    /// GET /login?login_hint=user@example.com should show the password field.
+    #[sqlx::test(migrator = "mas_storage_pg::MIGRATOR")]
+    async fn test_login_hint_other_domain_shows_password(pool: PgPool) {
+        setup();
+        let state = TestState::from_pool(pool).await.unwrap();
+
+        add_upstream_provider(&state).await;
+
+        let response = state
+            .request(Request::get("/login?login_hint=user@example.com").empty())
+            .await;
+        response.assert_status(StatusCode::OK);
+
+        let body = response.body();
+        assert!(
+            body.contains(r#"name="password""#),
+            "password field should be shown for example.com domain, body: {body}"
+        );
+    }
+
+    /// GET /login (no hint) should show the password field (regression check).
+    #[sqlx::test(migrator = "mas_storage_pg::MIGRATOR")]
+    async fn test_login_no_hint_shows_password(pool: PgPool) {
+        setup();
+        let state = TestState::from_pool(pool).await.unwrap();
+
+        add_upstream_provider(&state).await;
+
+        let response = state.request(Request::get("/login").empty()).await;
+        response.assert_status(StatusCode::OK);
+
+        let body = response.body();
+        assert!(
+            body.contains(r#"name="password""#),
+            "password field should be shown when no login_hint, body: {body}"
+        );
+    }
+
+    /// POST /login with username=user@gouv.fr should be rejected with a Policy
+    /// error (defense in depth).
+    #[sqlx::test(migrator = "mas_storage_pg::MIGRATOR")]
+    async fn test_password_login_post_rejected_for_disabled_domain(pool: PgPool) {
+        setup();
+        let state = TestState::from_pool(pool).await.unwrap();
+        let cookies = CookieHelper::new();
+
+        add_upstream_provider(&state).await;
+
+        // Render the login page to get a CSRF token
+        let request = Request::get("/login").empty();
+        let request = cookies.with_cookies(request);
+        let response = state.request(request).await;
+        cookies.save_cookies(&response);
+        response.assert_status(StatusCode::OK);
+        let csrf_token = response
+            .body()
+            .split("name=\"csrf\" value=\"")
+            .nth(1)
+            .unwrap()
+            .split('\"')
+            .next()
+            .unwrap();
+
+        // Submit the login form with a gouv.fr email
+        let request = Request::post("/login").form(serde_json::json!({
+            "csrf": csrf_token,
+            "username": "user@gouv.fr",
+            "password": "hunter2",
+        }));
+        let request = cookies.with_cookies(request);
+        let response = state.request(request).await;
+
+        // Should be back on the login page with the policy error
+        response.assert_status(StatusCode::OK);
+        assert!(
+            response.body().contains("password_login_disabled"),
+            "expected password_login_disabled error in body: {}",
+            response.body()
+        );
+    }
+    //:tchap: end
 }

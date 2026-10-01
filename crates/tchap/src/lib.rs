@@ -326,7 +326,27 @@ pub async fn search_user_by_email(
 
     Ok(None)
 }
-//:tchap: end
+
+/// Checks if password-based login should be offered for the given email
+/// address, based on its domain.
+///
+/// Returns `false` if the email domain matches one of the
+/// `disabled_domains` (suffix match, case-insensitive), meaning only
+/// upstream IdP login should be proposed.
+#[must_use]
+pub fn is_password_login_allowed_for_email(email: &str, disabled_domains: &[String]) -> bool {
+    let Some(domain) = email.rsplit('@').next() else {
+        return true; // not an email → allowed
+    };
+    if !email.contains('@') {
+        return true;
+    }
+    let domain = domain.to_lowercase();
+    !disabled_domains.iter().any(|d| {
+        let d = d.to_lowercase();
+        domain == d || domain.ends_with(&format!(".{d}"))
+    })
+}
 
 pub use self::test_utils::*;
 
@@ -441,6 +461,7 @@ mod tests {
             email_lookup_fallback_rules: vec![],
             tchap_app_link: Url::parse("https://test").unwrap(),
             allow_account_reactivation: true,
+            password_login_disabled_domains: vec![],
         };
 
         let result = is_email_allowed(email, server_name, &config).await;
@@ -479,6 +500,7 @@ mod tests {
             email_lookup_fallback_rules: vec![],
             tchap_app_link: Url::parse("https://test").unwrap(),
             allow_account_reactivation: true,
+            password_login_disabled_domains: vec![],
         };
 
         let result = is_email_allowed(email, server_name, &config).await;
@@ -517,6 +539,7 @@ mod tests {
             email_lookup_fallback_rules: vec![],
             tchap_app_link: Url::parse("https://test").unwrap(),
             allow_account_reactivation: true,
+            password_login_disabled_domains: vec![],
         };
 
         let result = is_email_allowed(email, server_name, &config).await;
@@ -561,10 +584,53 @@ mod tests {
             email_lookup_fallback_rules: vec![],
             tchap_app_link: Url::parse("https://test").unwrap(),
             allow_account_reactivation: true,
+            password_login_disabled_domains: vec![],
         };
 
         let result = is_email_allowed(email, server_name, &config).await;
 
         assert_eq!(result.unwrap(), EmailAllowedResult::Allowed);
+    }
+
+    #[test]
+    fn test_is_password_login_allowed_for_email() {
+        let disabled = vec!["gouv.fr".to_string()];
+
+        // Nominal: non-gouv domain → allowed
+        assert!(is_password_login_allowed_for_email(
+            "user@example.com",
+            &disabled
+        ));
+
+        // Exact domain match → disabled
+        assert!(!is_password_login_allowed_for_email(
+            "user@gouv.fr",
+            &disabled
+        ));
+
+        // Subdomain match → disabled
+        assert!(!is_password_login_allowed_for_email(
+            "user@interieur.gouv.fr",
+            &disabled
+        ));
+
+        // Case-insensitive
+        assert!(!is_password_login_allowed_for_email(
+            "user@GOUV.FR",
+            &disabled
+        ));
+        assert!(!is_password_login_allowed_for_email(
+            "user@Interieur.GOUV.FR",
+            &disabled
+        ));
+
+        // Not an email → allowed
+        assert!(is_password_login_allowed_for_email(
+            "not-an-email",
+            &disabled
+        ));
+
+        // Empty disabled list → always allowed
+        assert!(is_password_login_allowed_for_email("user@gouv.fr", &[]));
     }
 }
