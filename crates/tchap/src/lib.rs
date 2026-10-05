@@ -326,6 +326,26 @@ pub async fn search_user_by_email(
 
     Ok(None)
 }
+
+/// Checks whether the `login_hint` sent by the downstream OAuth client matches
+/// the email returned by the upstream OIDC provider.
+///
+/// # Parameters
+///
+/// * `login_hint`: The login hint sent by the downstream OAuth client
+/// * `email`: The email returned by the upstream OIDC provider
+pub fn login_hint_matches_email(login_hint: &str, email: &str) -> bool {
+    let login_hint = login_hint.trim();
+
+    // A Matrix ID starts with '@' (e.g. `@user:example.com`), while an email
+    // address contains '@' but doesn't start with it
+    if !login_hint.contains('@') || login_hint.starts_with('@') {
+        // Not an email address: nothing to compare
+        return true;
+    }
+
+    login_hint.to_lowercase() == email.trim().to_lowercase()
+}
 //:tchap: end
 
 pub use self::test_utils::*;
@@ -408,6 +428,27 @@ mod tests {
             email_to_mxid_localpart("user!#$%^&*()@domain.com"),
             "user-domain.com"
         );
+    }
+
+    #[test]
+    fn test_login_hint_matches_email() {
+        // Nominal: the login_hint equals the upstream email
+        assert!(login_hint_matches_email(
+            "john@example.com",
+            "john@example.com"
+        ));
+
+        // Comparison is case-insensitive
+        assert!(login_hint_matches_email(
+            "John@Example.com",
+            "john@example.com"
+        ));
+
+        // Surrounding whitespace is ignored
+        assert!(login_hint_matches_email(
+            " john@example.com ",
+            "john@example.com"
+        ));
     }
 
     #[tokio::test]
