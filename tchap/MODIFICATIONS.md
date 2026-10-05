@@ -6,7 +6,7 @@ This file documents all Tchap-specific modifications to the upstream
 - **Upstream**: https://github.com/element-hq/matrix-authentication-service
 - **Fork**: https://github.com/tchapgouv/matrix-authentication-service
 - **Branch**: `main_tchap`
-- **tag**: v1.24.0-1.22.0
+- **tag**: v1.25.1-1.22.0
 
 ## How Tchap modifications are tagged
 
@@ -20,7 +20,7 @@ do not need tags.
 
 | # | Feature | Main files |
 |---|---|---|
-| 1 | Tchap core library | `crates/tchap/src/lib.rs`, `crates/tchap/src/identity_client.rs`, `crates/tchap/src/test_utils.rs` |
+| 1 | Tchap core library | `crates/tchap/src/lib.rs`, `crates/tchap/src/identity_client.rs`, `crates/tchap/src/test_utils.rs`, `Cargo.toml` |
 | 2 | Tchap configuration | `crates/config/src/sections/mod.rs`, `crates/cli/src/app_state.rs`, `crates/cli/src/commands/server.rs`, `crates/data-model/src/lib.rs` |
 | 3 | Email-based registration | `crates/handlers/src/views/register/password.rs`, `crates/handlers/src/views/register/steps/finish.rs`, `frontend/src/entrypoints/register/PasswordCreationDoubleInput.tsx`, `tchap/resources/templates/pages/register/**` |
 | 4 | Email gating on login and recovery | `crates/handlers/src/views/login.rs`, `crates/handlers/src/views/recovery/start.rs` |
@@ -31,9 +31,10 @@ do not need tags.
 | 9 | Branding (templates) | `tchap/resources/templates/base.html`, `tchap/resources/templates/app.html`, `tchap/resources/templates/pages/**` |
 | 10 | Frontend customizations | `frontend/index.html`, `frontend/src/components/Layout/Layout.tsx`, `frontend/src/routes/_account.index.tsx`, `frontend/src/routes/password.recovery.index.tsx`, `frontend/src/routes/reset-cross-signing.tsx`, `frontend/src/routes/reset-cross-signing.index.tsx`, `frontend/src/utils/password_complexity/index.ts`, `frontend/knip.config.ts`, `frontend/tests/routes/reset-cross-signing.test.tsx` |
 | 11 | Cookies | `crates/axum-utils/src/cookies.rs` |
-| 12 | Build and CI | `.github/workflows/build_tchap.yaml` |
+| 12 | Build and CI | `.github/workflows/build_tchap.yaml`, `.github/workflows/build.yaml`, `.github/workflows/ci.yaml`, `Dockerfile` |
 | 13 | Handler wiring and test state | `crates/handlers/src/lib.rs`, `crates/handlers/src/test_utils.rs` |
 | 14 | GraphQL user mutations | `crates/handlers/src/graphql/mutations/user.rs` |
+| 15 | OIDC end session endpoint | `crates/handlers/src/oauth2/end_session.rs`, `crates/handlers/src/oauth2/mod.rs`, `crates/handlers/src/oauth2/discovery.rs`, `crates/router/src/endpoints.rs`, `crates/handlers/src/lib.rs` |
 
 ## Detail sections
 
@@ -50,6 +51,7 @@ Files:
 - [crates/tchap/src/lib.rs](../crates/tchap/src/lib.rs) (email conversion, server validation, user search)
 - [crates/tchap/src/identity_client.rs](../crates/tchap/src/identity_client.rs) (identity server HTTP client)
 - [crates/tchap/src/test_utils.rs](../crates/tchap/src/test_utils.rs) (test configuration)
+- [Cargo.toml](../Cargo.toml) (tchap crate registration + dependency pin)
 
 ### 2. Tchap configuration
 
@@ -210,6 +212,8 @@ The previous standalone `build_tchap.yaml` is kept as a disabled backup
 Files:
 - [.github/workflows/build.yaml](../.github/workflows/build.yaml) (Tchap CI modifications)
 - [.github/workflows/build_tchap.yaml](../.github/workflows/build_tchap.yaml) (disabled backup)
+- [.github/workflows/ci.yaml](../.github/workflows/ci.yaml) (rustfmt and ESS disabled in test job)
+- [Dockerfile](../Dockerfile) (Tchap-specific build steps)
 
 ### 13. Handler wiring and test state
 
@@ -229,10 +233,26 @@ mutation so that authenticated users can use account recovery.
 Files:
 - [crates/handlers/src/graphql/mutations/user.rs](../crates/handlers/src/graphql/mutations/user.rs) (anonymous-user check disabled)
 
+### 15. OIDC end session endpoint
+
+Implements the OIDC `end_session_endpoint` so that clients can trigger user
+logout via a redirect. The endpoint validates the `id_token_hint`, terminates
+the OAuth2 and browser sessions, syncs devices with the homeserver, and
+redirects to the `post_logout_redirect_uri`. The discovery endpoint exposes
+the `end_session_endpoint` URL in its metadata.
+
+Files:
+- [crates/handlers/src/oauth2/end_session.rs](../crates/handlers/src/oauth2/end_session.rs) (endpoint handler + tests)
+- [crates/handlers/src/oauth2/mod.rs](../crates/handlers/src/oauth2/mod.rs) (module registration)
+- [crates/handlers/src/oauth2/discovery.rs](../crates/handlers/src/oauth2/discovery.rs) (end_session_endpoint in discovery metadata)
+- [crates/router/src/endpoints.rs](../crates/router/src/endpoints.rs) (route definition)
+- [crates/handlers/src/lib.rs](../crates/handlers/src/lib.rs) (route wiring)
+
 ## Excluded files (Tchap-only, no upstream counterpart)
 
 These files exist only in the Tchap fork and have no upstream equivalent:
 - `crates/tchap/**` — the Tchap crate
+- `crates/handlers/src/oauth2/end_session.rs` — Tchap-only end session handler
 - `tchap/resources/**` — Tchap templates, emails, and resources
 - `tchap/start*.sh`, `tchap/docker-compose.yml`, `tchap/build*.sh` — Tchap dev tooling
 - `.github/workflows/build_tchap.yaml` — Tchap CI workflow (disabled backup)
