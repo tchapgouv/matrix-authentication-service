@@ -92,6 +92,9 @@ mas-tower.workspace = true
 syn2mas.workspace = true
 icu_experimental = "0.6.0"
 
+[dev-dependencies]
+tempfile = "3"
+
 [build-dependencies]
 anyhow.workspace = true
 vergen-gitcl.workspace = true
