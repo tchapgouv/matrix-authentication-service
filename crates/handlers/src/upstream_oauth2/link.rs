@@ -278,6 +278,20 @@ pub(crate) async fn get(
         return Err(RouteError::SessionConsumed(session_id));
     }
 
+    //:tchap:
+    // Compare the upstream OIDC email with the login_hint sent by the
+    // downstream OAuth client, and log a warning when they differ
+    check_login_hint_match_oidc_email(
+        &mut repo,
+        post_auth_action,
+        &link,
+        &upstream_session,
+        &homeserver,
+        &tchap_config,
+    )
+    .await;
+    //:tchap: end
+
     let (user_session_info, cookie_jar) = cookie_jar.session_info();
     let (csrf_token, mut cookie_jar) = cookie_jar.csrf_token(&clock, &mut rng);
     let maybe_user_session = user_session_info.load_active_session(&mut repo).await?;
@@ -1510,7 +1524,9 @@ async fn validate_email_for_server(
         }
     }
 }
+//:tchap:end
 
+//:tchap:
 /// Extracts an email from an OAuth upstream session
 ///
 /// # Returns
@@ -1552,7 +1568,150 @@ fn extract_email_from_oauth_session(
         provider.claims_imports.email.is_required(),
     )
 }
+//:tchap:end
 
+//:tchap:
+/// Outcome of comparing the `login_hint` email sent by the downstream OAuth
+/// client with the email returned by the upstream OIDC provider
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum LoginHintEmailMatch {
+    /// Both addresses are the same
+    Identical,
+    /// The addresses differ, but both belong to the same homeserver
+    SameHomeserver,
+    /// The addresses differ and belong to different homeservers
+    DifferentHomeserver,
+    /// The addresses differ, but the homeserver of at least one of them could
+    /// not be resolved (identity server error)
+    HomeserverUnknown,
+}
+
+/// Resolves the homeserver an email address belongs to, by asking the identity
+/// server
+///
+/// # Returns
+/// - `Some(homeserver)` - The homeserver the email maps to
+/// - `None` - The identity server could not be reached
+async fn resolve_email_homeserver(
+    email: &str,
+    server_name: &str,
+    tchap_config: &TchapConfig,
+) -> Option<String> {
+    match check_email_allowed(email, server_name, tchap_config).await {
+        Ok(EmailAllowedResult::Allowed) | Ok(EmailAllowedResult::InvitationMissing) => {
+            Some(server_name.to_owned())
+        }
+        Ok(EmailAllowedResult::WrongServer {
+            correct_server_name,
+            ..
+        }) => Some(correct_server_name),
+        Err(_) => None,
+    }
+}
+
+/// Compares the email returned by the upstream OIDC provider with the
+/// `login_hint` sent by the downstream OAuth client, and logs a warning when
+/// they differ. The homeserver of each address is resolved through the
+/// identity server to qualify the mismatch.
+///
+/// This check is informational only: it never blocks the login flow, and
+/// missing data (no downstream authorization grant, no login_hint, no
+/// extractable email) is silently ignored.
+///
+/// # Returns
+/// - `None` - No comparison was possible
+/// - `Some(outcome)` - How the two addresses compare
+async fn check_login_hint_match_oidc_email(
+    repo: &mut BoxRepository,
+    post_auth_action: Option<&mas_router::PostAuthAction>,
+    link: &mas_data_model::UpstreamOAuthLink,
+    upstream_session: &UpstreamOAuthAuthorizationSession,
+    homeserver: &Arc<dyn HomeserverConnection>,
+    tchap_config: &TchapConfig,
+) -> Option<LoginHintEmailMatch> {
+    // The login_hint sent by the downstream OAuth client is only known when the
+    // upstream flow continues a downstream authorization grant
+    let Some(mas_router::PostAuthAction::ContinueAuthorizationGrant { id }) = post_auth_action
+    else {
+        return None;
+    };
+
+    let Ok(Some(grant)) = repo.oauth2_authorization_grant().lookup(*id).await else {
+        return None;
+    };
+
+    let Some(login_hint) = grant.login_hint else {
+        return None;
+    };
+
+    let Ok(Some(provider)) = repo
+        .upstream_oauth_provider()
+        .lookup(link.provider_id)
+        .await
+    else {
+        return None;
+    };
+
+    let Ok(Some(upstream_email)) =
+        extract_email_from_oauth_session(&environment(), upstream_session, &provider)
+    else {
+        return None;
+    };
+
+    if tchap::login_hint_matches_email(&login_hint, &upstream_email) {
+        return Some(LoginHintEmailMatch::Identical);
+    }
+
+    // The addresses differ: resolve the homeserver of each of them through the
+    // identity server to qualify the mismatch
+    let server_name = homeserver.homeserver();
+    let login_hint_homeserver =
+        resolve_email_homeserver(&login_hint, server_name, tchap_config).await;
+    let upstream_email_homeserver =
+        resolve_email_homeserver(&upstream_email, server_name, tchap_config).await;
+
+    let outcome = match (
+        login_hint_homeserver.as_deref(),
+        upstream_email_homeserver.as_deref(),
+    ) {
+        (Some(login_hint_hs), Some(upstream_hs))
+            if login_hint_hs.eq_ignore_ascii_case(upstream_hs) =>
+        {
+            tracing::warn!(
+                upstream_oauth_provider.id = %provider.id,
+                upstream_oauth_link.id = %link.id,
+                login_hint = %login_hint,
+                upstream.email = %upstream_email,
+                "Email returned by the upstream OIDC provider differs from the login_hint sent by the downstream OAuth client, but both addresses belong to the same homeserver"
+            );
+            LoginHintEmailMatch::SameHomeserver
+        }
+        (Some(_), Some(_)) => {
+            tracing::warn!(
+                upstream_oauth_provider.id = %provider.id,
+                upstream_oauth_link.id = %link.id,
+                login_hint = %login_hint,
+                login_hint.homeserver = ?login_hint_homeserver,
+                upstream.email = %upstream_email,
+                upstream.homeserver = ?upstream_email_homeserver,
+                "Email returned by the upstream OIDC provider differs from the login_hint sent by the downstream OAuth client, and both addresses belong to different homeservers"
+            );
+            LoginHintEmailMatch::DifferentHomeserver
+        }
+        _ => {
+            tracing::warn!(
+                upstream_oauth_provider.id = %provider.id,
+                upstream_oauth_link.id = %link.id,
+                login_hint = %login_hint,
+                upstream.email = %upstream_email,
+                "Email returned by the upstream OIDC provider differs from the login_hint sent by the downstream OAuth client, and the homeserver of at least one of them could not be resolved"
+            );
+            LoginHintEmailMatch::HomeserverUnknown
+        }
+    };
+
+    Some(outcome)
+}
 //:tchap: end
 
 //:tchap:
