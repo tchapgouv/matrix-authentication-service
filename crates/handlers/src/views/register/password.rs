@@ -288,7 +288,7 @@ pub(crate) async fn post(
                 std::io::Error::other("L'adresse email est obligatoire pour créer un compte Tchap")
                     .into(),
             ));
-        };
+        }
         //:tchap: end
 
         let mut homeserver_denied_username = false;

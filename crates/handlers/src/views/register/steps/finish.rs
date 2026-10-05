@@ -256,7 +256,7 @@ pub(crate) async fn get(
 
                         let existing_email = repo
                             .user_email()
-                            .find(&user, &email_authentication.email)
+                            .find(user, &email_authentication.email)
                             .await?;
                         if existing_email.is_none() {
                             tracing::info!(
@@ -264,12 +264,12 @@ pub(crate) async fn get(
                                 "Restoring email in a previously deactivated account"
                             );
                             repo.user_email()
-                                .add(&mut rng, &clock, &user, email_authentication.email.clone())
+                                .add(&mut rng, &clock, user, email_authentication.email.clone())
                                 .await?;
                         }
 
                         // send email to synapse
-                        let mut job = ProvisionUserJob::new(&user);
+                        let mut job = ProvisionUserJob::new(user);
                         if let Some(display_name) = registration.display_name {
                             job = job.set_display_name(display_name);
                         }
