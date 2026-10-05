@@ -771,24 +771,6 @@ impl TemplateContext for ConsentContext {
         sample_list(
             Client::samples(now, rng)
                 .into_iter()
-<<<<<<< HEAD
-                .map(|client| {
-                    let mut grant = AuthorizationGrant::sample(now, rng);
-                    let action = PostAuthAction::continue_grant(grant.id);
-                    // XXX
-                    grant.client_id = client.id;
-                    Self {
-                        grant,
-                        client,
-                        action,
-                        // :tchap:
-                        email: None, // :tchap: end
-                        matrix_user: MatrixUser {
-                            mxid: "@alice:example.com".to_owned(),
-                            display_name: Some("Alice".to_owned()),
-                        },
-                    }
-=======
                 .flat_map(|client| {
                     [
                         (None, ResponseMode::Query),
@@ -809,13 +791,14 @@ impl TemplateContext for ConsentContext {
                             grant,
                             client: client.clone(),
                             action,
+                            // :tchap:
+                            email: None, // :tchap: end
                             matrix_user: MatrixUser {
                                 mxid: "@alice:example.com".to_owned(),
                                 display_name: Some("Alice".to_owned()),
                             },
                         }
                     })
->>>>>>> v1.25.1
                 })
                 .collect(),
         )

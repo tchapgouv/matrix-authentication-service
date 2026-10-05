@@ -10,11 +10,7 @@
     },
     "continue": "Continue",
     "@continue": {
-<<<<<<< HEAD
-      "context": "form_post.html:26:28-48, pages/consent.html:71:28-48, pages/device_link.html:42:28-48, pages/login.html:69:30-50, pages/reauth.html:32:28-48, pages/recovery/start.html:38:26-46, pages/register/password.html:77:26-46, pages/register/steps/display_name.html:43:28-48, pages/register/steps/registration_token.html:41:28-48, pages/register/steps/verify_email.html:51:26-46, pages/sso.html:52:28-48"
-=======
       "context": "form_post.html:26:28-48, pages/consent.html:71:28-48, pages/device_link.html:42:28-48, pages/login.html:68:30-50, pages/reauth.html:32:28-48, pages/recovery/start.html:38:26-46, pages/register/password.html:78:26-46, pages/register/steps/display_name.html:43:28-48, pages/register/steps/registration_token.html:41:28-48, pages/register/steps/verify_email.html:51:26-46, pages/sso.html:52:28-48"
->>>>>>> v1.25.1
     },
     "create_account": "Create Account",
     "@create_account": {
@@ -95,11 +91,7 @@
     },
     "password": "Password",
     "@password": {
-<<<<<<< HEAD
-      "context": "pages/login.html:57:37-57, pages/reauth.html:28:35-55, pages/register/password.html:45:33-53"
-=======
       "context": "pages/login.html:56:37-57, pages/reauth.html:28:35-55, pages/register/password.html:46:33-53"
->>>>>>> v1.25.1
     },
     "password_confirm": "Confirm password",
     "@password_confirm": {
@@ -107,11 +99,7 @@
     },
     "username": "Username",
     "@username": {
-<<<<<<< HEAD
-      "context": "pages/login.html:52:39-59, pages/register/index.html:30:35-55, pages/register/password.html:34:33-53, pages/upstream_oauth2/do_register.html:101:35-55, pages/upstream_oauth2/do_register.html:107:39-59"
-=======
       "context": "pages/login.html:51:39-59, pages/register/index.html:30:35-55, pages/register/password.html:35:33-53, pages/upstream_oauth2/do_register.html:101:35-55, pages/upstream_oauth2/do_register.html:107:39-59"
->>>>>>> v1.25.1
     }
   },
   "error": {

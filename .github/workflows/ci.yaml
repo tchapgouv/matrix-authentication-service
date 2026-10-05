@@ -265,14 +265,9 @@ jobs:
           path: nextest-archive.tar.zst
 
   test:
-<<<<<<< HEAD
-    name: Run test suite with Rust stable
+    name: Run test suite
     #:tchap: remove rustfmt from needs[]
     needs: [opa-lint, compile-test-artifacts]
-=======
-    name: Run test suite
-    needs: [rustfmt, opa-lint, compile-test-artifacts]
->>>>>>> v1.25.1
     runs-on: ubuntu-24.04
 
     permissions:
