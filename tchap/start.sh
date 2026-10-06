@@ -13,6 +13,8 @@ export MAS_TCHAP_HOME=$SCRIPT_DIR
 export RUST_LOG=info
 echo "MAS_TCHAP_HOME " $MAS_TCHAP_HOME
 
+export ADMIN_USERNAME="admin23"
+
 DOCKER_COMPOSE_FILE="$MAS_TCHAP_HOME/docker-compose.yml"
 
 # start the postgres service if not running already
@@ -58,15 +60,39 @@ else
 fi
 
 echo "Step 5/7: Building configuration..."
-$MAS_TCHAP_HOME/build_conf_jinja.sh
-#$MAS_TCHAP_HOME/build_conf.sh
+if [[ "$*" == *"-w"* ]]; then
+    CONFIG_FILE="config.local.dev-worker.yaml"
+    TCHAP_ENV_YAML="$MAS_TCHAP_HOME/.env.worker.yaml"
+    NO_WORKER_FLAG=""
+    SERVER_COMMAND="worker"
+else
+    CONFIG_FILE="config.local.dev.yaml"
+    TCHAP_ENV_YAML="$MAS_TCHAP_HOME/.env.yaml"
+    NO_WORKER_FLAG="--no-worker"
+    SERVER_COMMAND="server"
+fi
+
+echo "Step 5/7: Building configuration..."
+$MAS_TCHAP_HOME/build_conf_jinja.sh $TCHAP_ENV_YAML $CONFIG_FILE
 
 cd "$MAS_HOME"
 
+cargo run -- manage register-user $ADMIN_USERNAME --admin --yes  \
+    --ignore-password-complexity --password "admin" --email "$ADMIN_USERNAME@tchapgouv.com" \
+    -c $MAS_TCHAP_HOME/tmp/config.local.dev.yaml  \
+    || echo "Warning: register-user failed (user '$ADMIN_USERNAME' may already exist). Continuing anyway..."
+
+# This commands requires the server to be up
+# cargo run -- manage provision-all-users -c $MAS_TCHAP_HOME/tmp/config.local.dev.yaml
+
+# This commands requires the server to be up
+# cargo run -- manage issue-compatibility-token $ADMIN_USERNAME --yes-i-want-to-grant-synapse-admin-privileges -c $MAS_TCHAP_HOME/tmp/config.local.dev.yaml || echo "Warning: issue-compatibility-token failed. Continuing anyway..."
+
+
 echo "Step 6/7: Checking templates..."
-cargo run -- templates check -c $MAS_TCHAP_HOME/tmp/config.local.dev.yaml 
+cargo run -- templates check -c $MAS_TCHAP_HOME/tmp/$CONFIG_FILE
 
 echo "Step 7/7: Starting server..."
-cargo run -- server -c $MAS_TCHAP_HOME/tmp/config.local.dev.yaml
+cargo run -- $SERVER_COMMAND -c $MAS_TCHAP_HOME/tmp/$CONFIG_FILE $NO_WORKER_FLAG
 
 echo "MAS initialization completed successfully!"

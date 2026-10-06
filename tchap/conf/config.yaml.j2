@@ -15,7 +15,7 @@ http:
     - name: adminapi
     {% endif %}
     binds:
-      - address: '[::]:8080'
+      - address: '[::]:{{ port_web }}'
     proxy_protocol: false
   - name: internal
     resources:
@@ -24,8 +24,7 @@ http:
     - name: oauth
     - name: discovery
     binds:
-    - host: localhost
-      port: 8081
+      - address: '[::]:{{ port_internal }}'
     proxy_protocol: false
 {%- if monitoring_ip is defined and monitoring_ip %}
 
@@ -35,7 +34,7 @@ http:
     - name: health
     binds:
     - host: {{ monitoring_ip }}
-      port: 8082
+      port: {{ port_monitoring }}
  {%- endif %}
 
   trusted_proxies:
@@ -246,7 +245,7 @@ upstream_oauth2:
       token_endpoint_auth_method: {{ mas_upstream_provider_auth_method }}
       client_id: "{{ mas_upstream_provider_client_id }}"
       client_secret: "{{ mas_upstream_provider_client_secret }}"
-      scope: "openid profile email acr"
+      scope: "openid profile email acr given_name usual_name uid siret idp_id organization_label roles custom"
       forward_login_hint: true
       #pkce_method: never
       #id_token_signed_response_alg: ES256 #only for proconnect
@@ -364,6 +363,13 @@ experimental:
   # are supported. Defaults to 300, 5 minutes.
   # Tchap client does not use refresh tokens with compat session
   compat_token_ttl: {{mas_access_token_ttl_in_seconds}}
+
+
+  inactive_session_expiration:
+    ttl: 60 #seconds
+    expire_compat_sessions: true
+    expire_oauth_sessions: true
+    expire_user_sessions: false
 
 tchap:
   identity_server_url: "{{ matrix_authentication_identity_server_url }}"
