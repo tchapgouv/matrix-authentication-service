@@ -531,17 +531,15 @@ mod test {
         upstream_oauth2::{UpstreamOAuthProviderParams, UpstreamOAuthProviderRepository},
     };
     use mas_templates::escape_html;
-    use oauth2_types::{
-        registration::ClientRegistrationResponse,
-        requests::ResponseMode,
-        scope::{OPENID, Scope},
-    };
+    use oauth2_types::scope::OPENID;
     use sqlx::PgPool;
+    //:tchap:
     use url::Url;
     use wiremock::{
         Mock, MockServer, ResponseTemplate,
         matchers::{method, path, query_param},
     };
+    //:tchap:end
     use zeroize::Zeroizing;
 
     use crate::{
