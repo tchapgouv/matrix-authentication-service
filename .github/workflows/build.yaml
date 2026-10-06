@@ -23,6 +23,7 @@ on:
       #:tchap:
       - main_tchap
       - "test/**"
+      - upgrade/**
       #:tchap:
       - "release/**"
     tags:
