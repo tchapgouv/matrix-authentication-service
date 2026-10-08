@@ -616,9 +616,9 @@ pub(crate) async fn get(
                 //let maybe_existing_user = repo.user().find_by_username(&localpart).await?;
 
                 //search user by email first
-                let email = maybe_email.unwrap();
+                let oidc_email = maybe_email.unwrap();
                 let mut maybe_existing_user =
-                    tchap::search_user_by_email(&mut repo, &email, &tchap_config).await?;
+                    tchap::search_user_by_email(&mut repo, &oidc_email, &tchap_config).await?;
 
                 // if user was not found by email, search by username
                 if maybe_existing_user.is_none() {
@@ -633,21 +633,21 @@ pub(crate) async fn get(
                             .map(|user_email| user_email.email.clone());
 
                         if email.is_some() {
+
+                            let message = format!("Un compte Tchap existe avec username:{localpart} avec email:{email}. L'email diffère de votre email Proconnect:{oidc_email}. 
+                                    Veuillez contacter le support Tchap: support@tchap.beta.gouv.fr", email=email.as_ref().unwrap());
+
                             tracing::warn!(
                                 upstream_oauth_provider.id = %provider.id,
                                 upstream_oauth_link.id = %link.id,
                                 user.id = %existing_user.id,
-                                "Un compte Tchap existe mais l'email associé diffère de l'email Proconnect, email_tchap:{email:?}, proconnect_username:{localpart}");
+                                message);
 
                             //if email is not None, there is a conflict between the username and
                             // the email we know and the ones from proconnect
                             let ctx = ErrorContext::new()
-                                .with_code("Invalid Data")
-                                .with_description(format!(
-                                    r"Un compte Tchap existe mais l'email associé diffère de votre email Proconnect. 
-                                    Veuillez contacter le support Tchap: support@tchap.beta.gouv.fr. 
-                                    email_tchap:{email:?}, proconnect_username:{localpart}"
-                                ))
+                                .with_code("invalid_data")
+                                .with_description(message)
                                 .with_language(&locale);
 
                             return Ok((
@@ -819,14 +819,14 @@ pub(crate) async fn get(
                         existing_user = repo.user().reactivate(existing_user).await?;
 
                         // Add email if not existing
-                        let existing_email = repo.user_email().find(&existing_user, &email).await?;
+                        let existing_email = repo.user_email().find(&existing_user, &oidc_email).await?;
                         if existing_email.is_none() {
                             tracing::info!(
                                 user.id = %existing_user.id,
                                 "Restore email in a previously deactivated account"
                             );
                             repo.user_email()
-                                .add(&mut rng, &clock, &existing_user, email)
+                                .add(&mut rng, &clock, &existing_user, oidc_email)
                                 .await?;
 
                             let job = ProvisionUserJob::new(&existing_user);
@@ -924,9 +924,17 @@ pub(crate) async fn get(
                     provider.claims_imports.email.is_required(),
                 )?;
 
-                if let Some(error_ctx) =
-                    validate_email_for_server(&email.unwrap(), &homeserver, &tchap_config, &locale)
+                if let Some(error_ctx) = validate_email_for_server(
+                    &email.unwrap(),
+                    &homeserver,
+                    &tchap_config,
+                    &locale,
+                    //:tchap: enrich the message with the client login_hint
+                    tchap::login_hint_from_post_auth_action(&mut repo, post_auth_action)
                         .await?
+                        .as_deref(),
+                )
+                .await?
                 {
                     return Ok((
                         cookie_jar,
@@ -1460,6 +1468,8 @@ async fn validate_email_for_server(
     homeserver: &Arc<dyn HomeserverConnection>,
     tchap_config: &TchapConfig,
     locale: &mas_i18n::DataLocale,
+    //:tchap: login_hint to enrich the error message
+    login_hint: Option<&str>,
 ) -> Result<Option<ErrorContext>, RouteError> {
     let server_name = homeserver.homeserver();
     let email_result = check_email_allowed(email, server_name, tchap_config).await;
@@ -1476,8 +1486,11 @@ async fn validate_email_for_server(
             // Email is mapped to a different server
             let ctx = ErrorContext::new()
                 .with_code("wrong_server")
-                .with_description(format!(
-                    "Votre adresse mail {email} est associée au serveur:{correct_server_name} hors vous êtes sur le serveur:{wrong_server_name}"
+                .with_description(tchap::wrong_server_message(
+                    email,
+                    &correct_server_name,
+                    &wrong_server_name,
+                    login_hint,
                 ))
                 .with_details(
                     "Veuillez-vous contacter le support de Tchap support@tchap.beta.gouv.fr"

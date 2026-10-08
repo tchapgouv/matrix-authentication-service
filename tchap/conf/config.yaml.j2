@@ -245,7 +245,8 @@ upstream_oauth2:
       token_endpoint_auth_method: {{ mas_upstream_provider_auth_method }}
       client_id: "{{ mas_upstream_provider_client_id }}"
       client_secret: "{{ mas_upstream_provider_client_secret }}"
-      scope: "openid profile email acr given_name usual_name uid siret idp_id organization_label roles custom"
+      #scope: "openid profile email acr given_name usual_name uid siret idp_id organization_label roles custom"
+      scope: "openid profile email acr"
       forward_login_hint: true
       #pkce_method: never
       #id_token_signed_response_alg: ES256 #only for proconnect

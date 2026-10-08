@@ -123,6 +123,14 @@ pub(crate) struct QueryLoginHint {
 }
 
 impl QueryLoginHint {
+    //:tchap:
+    /// Raw `login_hint` as provided by the client, used to enrich error
+    /// messages
+    pub fn raw_login_hint(&self) -> Option<&str> {
+        self.login_hint.as_deref()
+    }
+    //:tchap: end
+
     /// Parse a `login_hint`
     ///
     /// Returns `LoginHint::MXID` for valid mxid 'mxid:@john.doe:example.com'

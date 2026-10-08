@@ -92,9 +92,18 @@ form, the handler queries the identity server to check whether the email
 belongs to the current server. If not, a French error message is displayed
 without revealing whether the account exists.
 
+The "wrong server" error message is enriched with the OAuth2 `login_hint`
+provided by the client (Tchap clients always send one): when available, the
+checked email and the client login_hint are shown side by side, and a
+specific note is added when they diverge. 
+
 Files:
+- [crates/tchap/src/lib.rs](../crates/tchap/src/lib.rs) (`wrong_server_message`, `login_hint_from_post_auth_action`)
 - [crates/handlers/src/views/login.rs](../crates/handlers/src/views/login.rs) (pre-login email server check)
 - [crates/handlers/src/views/recovery/start.rs](../crates/handlers/src/views/recovery/start.rs) (pre-recovery email server check)
+- [crates/handlers/src/views/register/password.rs](../crates/handlers/src/views/register/password.rs) (pre-registration email server check)
+- [crates/handlers/src/upstream_oauth2/link.rs](../crates/handlers/src/upstream_oauth2/link.rs) (`validate_email_for_server` on SSO account creation)
+- [crates/handlers/src/views/shared.rs](../crates/handlers/src/views/shared.rs) (`QueryLoginHint::raw_login_hint` accessor)
 
 ### 5. SSO account reactivation
 
@@ -248,3 +257,5 @@ When merging a new upstream tag:
 5. Adapt `:tchap:` code if the upstream API has changed.
 6. Update the `tag:` line at the top of this file.
 7. Run `cargo check --workspace` and fix any compilation errors.
+8. Prefix all commit messages with `:tchap:` (e.g. `:tchap: fix merge conflict
+   for v1.25.1`).

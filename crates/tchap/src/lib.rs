@@ -254,6 +254,68 @@ pub async fn is_email_allowed(
     }
 }
 
+/// Builds the "wrong server" error message shown to the user when their email
+/// is mapped to another Tchap server.
+///
+/// When available, the message is enriched with the OAuth2 `login_hint`
+/// provided by the client, as it helps diagnosing mismatches between the
+/// client-provided login_hint and the email actually checked.
+pub fn wrong_server_message(
+    email: &str,
+    correct_server_name: &str,
+    wrong_server_name: &str,
+    login_hint: Option<&str>,
+) -> String {
+    let mut message =  format!("");
+    if let Some(login_hint) = login_hint {
+        if login_hint != email {
+            message.push_str(&format!(
+                "⚠️⚠️ Attention, les emails saisis sont différents, vérifiez votre saisie initiale ⚠️⚠️ \n"
+            ));
+        }
+        message.push_str(&format!(
+            "Tentative de connexion avec l'email:{email} associée au serveur:{correct_server_name} \
+            hors vous êtes sur le serveur:{wrong_server_name} avec l'email saisi initialement {login_hint}. \
+            Veuillez contacter le support: support@tchap.beta.gouv.fr", 
+                wrong_server_name=server_name_to_instance(wrong_server_name),
+                correct_server_name=server_name_to_instance(correct_server_name)
+        ));
+    }else {
+         message.push_str(&format!(
+                "Login hint absent\n"
+            ));
+    }
+    message
+}
+
+/// Fetches the `login_hint` attached to the OAuth2 authorization grant
+/// referenced by the given post-auth action, if any.
+pub async fn login_hint_from_post_auth_action(
+    repo: &mut BoxRepository,
+    action: Option<&mas_router::PostAuthAction>,
+) -> Result<Option<String>, mas_storage::RepositoryError> {
+    use mas_storage::RepositoryAccess;
+
+    let Some(mas_router::PostAuthAction::ContinueAuthorizationGrant { id }) = action else {
+        return Ok(None);
+    };
+
+    let Some(grant) = repo.oauth2_authorization_grant().lookup(*id).await? else {
+        return Ok(None);
+    };
+
+    Ok(grant.login_hint)
+}
+
+/// Extract the Tchap instance name from a homeserver server name (only for prod)
+#[must_use]
+pub fn server_name_to_instance(server_name: &str) -> &str {
+    server_name
+        .strip_prefix("agent.")
+        .and_then(|rest| rest.strip_suffix(".tchap.gouv.fr"))
+        .unwrap_or(server_name)
+}
+
 /// Search for a user by email with fallback rules
 ///
 /// # Parameters
