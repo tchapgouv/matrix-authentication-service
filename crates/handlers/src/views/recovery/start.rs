@@ -11,6 +11,9 @@ use axum::{
     extract::State,
     response::{Html, IntoResponse, Response},
 };
+//:tchap: use axum_extra Query to retrieve the login_hint
+use axum_extra::extract::Query;
+//:tchap: end
 use axum_extra::typed_header::TypedHeader;
 use lettre::Address;
 use mas_axum_utils::{
@@ -34,6 +37,8 @@ use mas_templates::{
 use serde::{Deserialize, Serialize};
 use tchap::EmailAllowedResult;
 
+//:tchap: import OptionalPostAuthAction to retrieve the login_hint
+use crate::views::shared::OptionalPostAuthAction;
 use crate::{BoundActivityTracker, Limiter, PreferredLanguage, RequesterFingerprint};
 
 #[derive(Deserialize, Serialize)]
@@ -90,6 +95,7 @@ pub(crate) async fn post(
     //:tchap: add homeserver and tchap_config to check the email server
     State(homeserver): State<Arc<dyn HomeserverConnection>>,
     State(tchap_config): State<TchapConfig>,
+    Query(query): Query<OptionalPostAuthAction>,
     //:tchap: end
     PreferredLanguage(locale): PreferredLanguage,
     cookie_jar: CookieJar,
@@ -141,12 +147,19 @@ pub(crate) async fn post(
                 correct_server_name,
                 wrong_server_name
             );
+            // enrich the message with the client login_hint
+            let login_hint =
+                tchap::login_hint_from_post_auth_action(&mut repo, query.post_auth_action.as_ref())
+                    .await?;
             form_state.add_error_on_field(
                 RecoveryStartFormField::Email,
                 FieldError::Policy {
                     code: None,
-                    message: format!(
-                        "Adresse mail {email} associée au serveur:{correct_server_name} hors vous êtes sur le serveur:{wrong_server_name}. Veuillez contacter le support: support@tchap.beta.gouv.fr", email=form.email
+                    message: tchap::wrong_server_message(
+                        &form.email,
+                        correct_server_name,
+                        wrong_server_name,
+                        login_hint.as_deref(),
                     ),
                 },
             );

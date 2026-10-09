@@ -248,12 +248,21 @@ pub(crate) async fn post(
                     wrong_server_name,
                     correct_server_name,
                 }) => {
+                    // enrich the message with the client login_hint
+                    let login_hint = tchap::login_hint_from_post_auth_action(
+                        &mut repo,
+                        query.post_auth_action.as_ref(),
+                    )
+                    .await?;
                     state.add_error_on_field(
                         RegisterFormField::Email,
                         FieldError::Policy {
                             code: None,
-                            message: format!(
-                                "Adresse mail {email} associée au serveur:{correct_server_name} hors vous êtes sur le serveur:{wrong_server_name}. Veuillez contacter le support: support@tchap.beta.gouv.fr"
+                            message: tchap::wrong_server_message(
+                                email,
+                                &correct_server_name,
+                                &wrong_server_name,
+                                login_hint.as_deref(),
                             ),
                         },
                     );

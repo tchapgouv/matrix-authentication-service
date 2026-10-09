@@ -6405,6 +6405,7 @@ dependencies = [
  "anyhow",
  "mas-data-model",
  "mas-http",
+ "mas-router",
  "mas-storage",
  "reqwest",
  "rustls",

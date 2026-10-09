@@ -16,6 +16,7 @@ url.workspace = true
 serde.workspace = true
 
 mas-data-model.workspace = true
+mas-router.workspace = true
 mas-storage.workspace = true
 mas-http.workspace = true
 
