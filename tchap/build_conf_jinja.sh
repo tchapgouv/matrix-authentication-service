@@ -10,8 +10,23 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # Set paths relative to script location
 TCHAP_HOME="$SCRIPT_DIR"
 MAS_HOME="$(dirname "$TCHAP_HOME")"
-TCHAP_ENV_YAML="$TCHAP_HOME/.env.yaml"
-MAS_TCHAP_DATA="$MAS_TCHAP_HOME/tmp"
+
+if [ -z "$1" ]; then
+  echo "Usage: $0 <chemin_du_env_yaml> <chemin_output>"
+  exit 1
+fi
+TCHAP_ENV_YAML="$1"
+
+if [ -z "$2" ]; then
+  echo "Usage: $0 <chemin_du_env_yaml> <chemin_output>"
+  exit 1
+fi
+OUPUT_FILE_NAME="$2"
+
+
+
+MAS_TCHAP_DATA="$TCHAP_HOME/tmp"
+
 
 echo "Step 1: Checking requirements..."
 # Check if Docker is available
@@ -30,7 +45,6 @@ if [ ! -f "$TCHAP_ENV_YAML" ]; then
 fi
 
 # Create tmp directory if needed
-MAS_TCHAP_DATA="$TCHAP_HOME/tmp"
 if [ ! -d "$MAS_TCHAP_DATA" ]; then
   mkdir -p "$MAS_TCHAP_DATA"
 fi
@@ -48,11 +62,11 @@ docker run --rm \
   -e MAS_TCHAP_TRANSLATIONS=$MAS_TCHAP_TRANSLATIONS \
   -e MAS_TCHAP_TEMPLATES=$MAS_TCHAP_TEMPLATES \
   ghcr.io/mattrobenolt/jinja2:main \
-  /template.j2 /.env.yaml -o /output/config.local.dev.yaml
+  /template.j2 /.env.yaml -o /output/$OUPUT_FILE_NAME
 
-if [ -f "$MAS_TCHAP_DATA/config.local.dev.yaml" ]; then
+if [ -f "$MAS_TCHAP_DATA/$OUPUT_FILE_NAME" ]; then
   echo "✓ Configuration file generated successfully!"
-  echo "  Output: $MAS_TCHAP_DATA/config.local.dev.yaml"
+  echo "  Output: $MAS_TCHAP_DATA/$OUPUT_FILE_NAME"
 else
   echo "Error: Failed to generate configuration file."
   exit 1
