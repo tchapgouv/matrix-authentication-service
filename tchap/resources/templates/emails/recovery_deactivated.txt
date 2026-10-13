@@ -1,0 +1,7 @@
+Bonjour,
+
+Une demande de réinitialisation de mot de passe a été reçue pour votre compte Tchap.
+
+Votre compte est désactivé, merci de procéder à une nouvelle création de compte avec la même adresse mail profesionnelle.
+
+Si vous n'êtes pas à l'origine de cette demande, vous pouvez ignorer cet email.

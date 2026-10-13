@@ -44,3 +44,4 @@ mas-router.workspace = true
 mas-storage-pg.workspace = true
 mas-storage.workspace = true
 mas-templates.workspace = true
+tchap.workspace = true #:tchap:

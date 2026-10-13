@@ -71,6 +71,30 @@ impl RunnableJob for SendAccountRecoveryEmailsJob {
                 .await
                 .map_err(JobError::retry)?;
 
+            //:tchap:
+            // If no UserEmail is found in database, try to find a deactivated
+            // user by its generated username
+            if page.edges.is_empty() {
+                // a deactivated account does not get a recovery ticket: it
+                // receives a specific "account deactivated" email instead.
+                // search by generated username
+                let user = repo
+                    .user()
+                    .find_by_username(&tchap::email_to_mxid_localpart(&session.email))
+                    .await
+                    .map_err(JobError::retry)?;
+
+                // only a deactivated user gets the "account deactivated" email
+                if let Some(user) = user.filter(|user| user.deactivated_at.is_some()) {
+                    info!(user.id = %user.id, "User is deactivated");
+
+                    tchap::send_deactivated_recovery_email(mailer, &user, &session.email, lang)
+                        .await;
+                    break;
+                }
+            }
+            //:tchap: end
+
             for edge in page.edges {
                 let ticket = Alphanumeric.sample_string(&mut rng, 32);
 

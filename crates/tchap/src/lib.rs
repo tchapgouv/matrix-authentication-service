@@ -31,7 +31,10 @@ use mas_storage::BoxRepository;
 use tracing::{info, warn};
 
 mod identity_client;
+pub mod recovery_email;
 mod test_utils;
+
+pub use recovery_email::send_deactivated_recovery_email;
 
 /// Capitalise parts of a name containing different words, including those
 /// separated by hyphens.
@@ -266,12 +269,12 @@ pub fn wrong_server_message(
     wrong_server_name: &str,
     login_hint: Option<&str>,
 ) -> String {
-    let mut message =  format!("");
+    let mut message = String::new();
     if let Some(login_hint) = login_hint {
         if login_hint != email {
-            message.push_str(&format!(
+            message.push_str(
                 "⚠️⚠️ Attention, les emails saisis sont différents, vérifiez votre saisie initiale ⚠️⚠️ \n"
-            ));
+            );
         }
         message.push_str(&format!(
             "Tentative de connexion avec l'email:{email} associée au serveur:{correct_server_name} \
@@ -280,13 +283,13 @@ pub fn wrong_server_message(
                 wrong_server_name=server_name_to_instance(wrong_server_name),
                 correct_server_name=server_name_to_instance(correct_server_name)
         ));
-    }else {
-         message.push_str(&format!(
+    } else {
+        message.push_str(&format!(
             "Tentative de connexion avec l'email:{email} associée au serveur:{correct_server_name} \
             hors vous êtes sur le serveur:{wrong_server_name}. \
-            Veuillez contacter le support: support@tchap.beta.gouv.fr", 
-                wrong_server_name=server_name_to_instance(wrong_server_name),
-                correct_server_name=server_name_to_instance(correct_server_name)
+            Veuillez contacter le support: support@tchap.beta.gouv.fr",
+            wrong_server_name = server_name_to_instance(wrong_server_name),
+            correct_server_name = server_name_to_instance(correct_server_name)
         ));
     }
     message
