@@ -38,20 +38,61 @@ mod macros;
 
 pub use self::{
     context::{
-        AccountInactiveContext, ApiDocContext, AppContext, CompatLoginPolicyViolationContext,
-        CompatSsoContext, ConsentContext, DeviceConsentContext, DeviceLinkContext,
-        DeviceLinkFormField, DeviceNameContext, EmailRecoveryContext, EmailVerificationContext,
-        EmptyContext, ErrorContext, ExistingAccountState, FormPostContext, IndexContext,
-        LoginContext, LoginFormField, NotFoundContext, PasswordRegisterContext,
-        PolicyViolationContext, PostAuthContext, PostAuthContextInner, RecoveryExpiredContext,
-        RecoveryFinishContext, RecoveryFinishFormField, RecoveryProgressContext,
-        RecoveryStartContext, RecoveryStartFormField, RegisterContext, RegisterFormField,
-        RegisterStepsDisplayNameContext, RegisterStepsDisplayNameFormField,
-        RegisterStepsEmailInUseContext, RegisterStepsRegistrationTokenContext,
-        RegisterStepsRegistrationTokenFormField, RegisterStepsVerifyEmailContext,
-        RegisterStepsVerifyEmailFormField, SiteBranding, SiteConfigExt, SiteFeatures,
-        TemplateContext, UpstreamExistingLinkContext, UpstreamRegister, UpstreamRegisterFormField,
-        UpstreamSuggestLink, WithCaptcha, WithCsrf, WithLanguage, WithOptionalSession, WithSession,
+        AccountInactiveContext,
+        ApiDocContext,
+        AppContext,
+        CompatLoginPolicyViolationContext,
+        CompatSsoContext,
+        ConsentContext,
+        DeviceConsentContext,
+        DeviceLinkContext,
+        //:tchap:
+        DeviceLinkFormField,
+        DeviceNameContext,
+        EmailRecoveryContext,
+        EmailRecoveryDeactivatedContext,
+        EmailVerificationContext,
+        //:tchap: end
+        EmptyContext,
+        ErrorContext,
+        ExistingAccountState,
+        FormPostContext,
+        IndexContext,
+        LoginContext,
+        LoginFormField,
+        NotFoundContext,
+        PasswordRegisterContext,
+        PolicyViolationContext,
+        PostAuthContext,
+        PostAuthContextInner,
+        RecoveryExpiredContext,
+        RecoveryFinishContext,
+        RecoveryFinishFormField,
+        RecoveryProgressContext,
+        RecoveryStartContext,
+        RecoveryStartFormField,
+        RegisterContext,
+        RegisterFormField,
+        RegisterStepsDisplayNameContext,
+        RegisterStepsDisplayNameFormField,
+        RegisterStepsEmailInUseContext,
+        RegisterStepsRegistrationTokenContext,
+        RegisterStepsRegistrationTokenFormField,
+        RegisterStepsVerifyEmailContext,
+        RegisterStepsVerifyEmailFormField,
+        SiteBranding,
+        SiteConfigExt,
+        SiteFeatures,
+        TemplateContext,
+        UpstreamExistingLinkContext,
+        UpstreamRegister,
+        UpstreamRegisterFormField,
+        UpstreamSuggestLink,
+        WithCaptcha,
+        WithCsrf,
+        WithLanguage,
+        WithOptionalSession,
+        WithSession,
     },
     forms::{FieldError, FormError, FormField, FormState, ToFormState},
 };
@@ -436,6 +477,17 @@ register_templates! {
 
     /// Render the email recovery subject
     pub fn render_email_recovery_subject(WithLanguage<EmailRecoveryContext>) { "emails/recovery.subject" }
+
+    //:tchap:
+    /// Render the deactivated-account recovery email (plain text variant)
+    pub fn render_email_recovery_deactivated_txt(WithLanguage<EmailRecoveryDeactivatedContext>) { "emails/recovery_deactivated.txt" }
+
+    /// Render the deactivated-account recovery email (HTML variant)
+    pub fn render_email_recovery_deactivated_html(WithLanguage<EmailRecoveryDeactivatedContext>) { "emails/recovery_deactivated.html" }
+
+    /// Render the deactivated-account recovery email subject
+    pub fn render_email_recovery_deactivated_subject(WithLanguage<EmailRecoveryDeactivatedContext>) { "emails/recovery_deactivated.subject" }
+    //:tchap: end
 
     /// Render the email verification email (plain text variant)
     pub fn render_email_verification_txt(WithLanguage<EmailVerificationContext>) { "emails/verification.txt" }

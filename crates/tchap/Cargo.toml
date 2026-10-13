@@ -19,6 +19,9 @@ mas-data-model.workspace = true
 mas-router.workspace = true
 mas-storage.workspace = true
 mas-http.workspace = true
+mas-email.workspace = true
+mas-i18n.workspace = true
+mas-templates.workspace = true
 
 [dev-dependencies]
 wiremock.workspace = true

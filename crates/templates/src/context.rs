@@ -1127,6 +1127,42 @@ impl TemplateContext for EmailRecoveryContext {
     }
 }
 
+//:tchap:
+/// Context used by the `emails/recovery_deactivated.{txt,html,subject}` templates,
+/// sent instead of the standard recovery email when the account is deactivated.
+#[derive(Serialize)]
+pub struct EmailRecoveryDeactivatedContext {
+    user: User,
+}
+
+impl EmailRecoveryDeactivatedContext {
+    /// Constructs a context for the deactivated-account recovery email
+    #[must_use]
+    pub fn new(user: User) -> Self {
+        Self { user }
+    }
+
+    /// Returns the user associated with the deactivated-account email
+    #[must_use]
+    pub fn user(&self) -> &User {
+        &self.user
+    }
+}
+
+impl TemplateContext for EmailRecoveryDeactivatedContext {
+    fn sample<R: Rng>(
+        now: chrono::DateTime<Utc>,
+        rng: &mut R,
+        _locales: &[DataLocale],
+    ) -> BTreeMap<SampleIdentifier, Self>
+    where
+        Self: Sized,
+    {
+        sample_list(User::samples(now, rng).into_iter().map(Self::new).collect())
+    }
+}
+//:tchap: end
+
 /// Context used by the `emails/verification.{txt,html,subject}` templates
 #[derive(Serialize)]
 pub struct EmailVerificationContext {

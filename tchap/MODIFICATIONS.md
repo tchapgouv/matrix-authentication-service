@@ -35,6 +35,7 @@ do not need tags.
 | 13 | Handler wiring and test state | `crates/handlers/src/lib.rs`, `crates/handlers/src/test_utils.rs` |
 | 14 | GraphQL user mutations | `crates/handlers/src/graphql/mutations/user.rs` |
 | 15 | OIDC end session endpoint | `crates/handlers/src/oauth2/end_session.rs`, `crates/handlers/src/oauth2/mod.rs`, `crates/handlers/src/oauth2/discovery.rs`, `crates/router/src/endpoints.rs`, `crates/handlers/src/lib.rs` |
+| 16 | Deactivated account recovery email | `crates/tasks/src/recovery.rs`, `crates/tchap/src/recovery_email.rs`, `crates/templates/src/lib.rs`, `crates/templates/src/context.rs`, `crates/email/src/mailer.rs`, `templates/emails/recovery_deactivated.*`, `tchap/resources/templates/emails/recovery_deactivated.*` |
 
 ## Detail sections
 
@@ -257,11 +258,51 @@ Files:
 - [crates/router/src/endpoints.rs](../crates/router/src/endpoints.rs) (route definition)
 - [crates/handlers/src/lib.rs](../crates/handlers/src/lib.rs) (route wiring)
 
+### 16. Deactivated account recovery email
+
+When a user requests a password reset but their account is deactivated
+(`deactivated_at` is set), the recovery email job sends a specific
+"account deactivated" email instead of the standard recovery email with a
+reset link. No recovery ticket is created for deactivated accounts, so no
+valid reset credential is emitted for them. The HTTP recovery flow is
+unchanged (same "check your email" progress page) to avoid user enumeration.
+
+The branching happens in the `SendAccountRecoveryEmailsJob` worker. When no
+`UserEmail` matches the recovery session email (a deactivated account has its
+emails removed from the database), the worker searches for a deactivated user
+by the MXID localpart generated from the session email
+(`tchap::email_to_mxid_localpart` + `repo.user().find_by_username`). If found
+and deactivated, the "account deactivated" email is sent to the session email
+address. This covers all three recovery entry points (start form, resend from
+progress page, GraphQL mutation). The actual email-sending logic lives in a
+dedicated function in the `tchap` crate
+(`send_deactivated_recovery_email`) to minimize the diff in the upstream
+worker file. A new template context (`EmailRecoveryDeactivatedContext`),
+three registered template render functions, and a new `Mailer` method are
+introduced (all tagged `:tchap:`). Template files exist both as fallbacks in
+`templates/emails/` (for the template loader and `templates check`) and as
+branded overrides in `tchap/resources/templates/emails/`.
+
+Files:
+- [crates/tasks/src/recovery.rs](../crates/tasks/src/recovery.rs) (deactivated-user branch in the recovery email job)
+- [crates/tchap/src/recovery_email.rs](../crates/tchap/src/recovery_email.rs) (`send_deactivated_recovery_email` helper)
+- [crates/templates/src/context.rs](../crates/templates/src/context.rs) (`EmailRecoveryDeactivatedContext`)
+- [crates/templates/src/lib.rs](../crates/templates/src/lib.rs) (render function registration + export)
+- [crates/email/src/mailer.rs](../crates/email/src/mailer.rs) (`send_recovery_deactivated_email`)
+- [templates/emails/recovery_deactivated.html](../templates/emails/recovery_deactivated.html) (fallback HTML template)
+- [templates/emails/recovery_deactivated.txt](../templates/emails/recovery_deactivated.txt) (fallback plain-text template)
+- [templates/emails/recovery_deactivated.subject](../templates/emails/recovery_deactivated.subject) (fallback subject template)
+- [tchap/resources/templates/emails/recovery_deactivated.html](../tchap/resources/templates/emails/recovery_deactivated.html) (Tchap-branded HTML template)
+- [tchap/resources/templates/emails/recovery_deactivated.txt](../tchap/resources/templates/emails/recovery_deactivated.txt) (Tchap-branded plain-text template)
+- [tchap/resources/templates/emails/recovery_deactivated.subject](../tchap/resources/templates/emails/recovery_deactivated.subject) (Tchap-branded subject template)
+
 ## Excluded files (Tchap-only, no upstream counterpart)
 
 These files exist only in the Tchap fork and have no upstream equivalent:
 - `crates/tchap/**` — the Tchap crate
 - `crates/handlers/src/oauth2/end_session.rs` — Tchap-only end session handler
+- `templates/emails/recovery_deactivated.{html,txt,subject}` — deactivated-account recovery email fallback templates
+- `tchap/resources/templates/emails/recovery_deactivated.{html,txt,subject}` — deactivated-account recovery email branded templates
 - `tchap/resources/**` — Tchap templates, emails, and resources
 - `tchap/start*.sh`, `tchap/docker-compose.yml`, `tchap/build*.sh` — Tchap dev tooling
 - `.github/workflows/build_tchap.yaml` — Tchap CI workflow (disabled backup)
