@@ -265,23 +265,7 @@ When a user requests a password reset but their account is deactivated
 "account deactivated" email instead of the standard recovery email with a
 reset link. No recovery ticket is created for deactivated accounts, so no
 valid reset credential is emitted for them. The HTTP recovery flow is
-unchanged (same "check your email" progress page) to avoid user enumeration.
-
-The branching happens in the `SendAccountRecoveryEmailsJob` worker. When no
-`UserEmail` matches the recovery session email (a deactivated account has its
-emails removed from the database), the worker searches for a deactivated user
-by the MXID localpart generated from the session email
-(`tchap::email_to_mxid_localpart` + `repo.user().find_by_username`). If found
-and deactivated, the "account deactivated" email is sent to the session email
-address. This covers all three recovery entry points (start form, resend from
-progress page, GraphQL mutation). The actual email-sending logic lives in a
-dedicated function in the `tchap` crate
-(`send_deactivated_recovery_email`) to minimize the diff in the upstream
-worker file. A new template context (`EmailRecoveryDeactivatedContext`),
-three registered template render functions, and a new `Mailer` method are
-introduced (all tagged `:tchap:`). Template files exist both as fallbacks in
-`templates/emails/` (for the template loader and `templates check`) and as
-branded overrides in `tchap/resources/templates/emails/`.
+unchanged (same "check your email" progress page).
 
 Files:
 - [crates/tasks/src/recovery.rs](../crates/tasks/src/recovery.rs) (deactivated-user branch in the recovery email job)
