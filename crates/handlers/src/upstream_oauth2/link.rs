@@ -633,7 +633,6 @@ pub(crate) async fn get(
                             .map(|user_email| user_email.email.clone());
 
                         if email.is_some() {
-
                             let message = format!("Un compte Tchap existe avec username:{localpart} avec email:{email}. L'email diffère de votre email Proconnect:{oidc_email}. 
                                     Veuillez contacter le support Tchap: support@tchap.beta.gouv.fr", email=email.as_ref().unwrap());
 
@@ -819,7 +818,8 @@ pub(crate) async fn get(
                         existing_user = repo.user().reactivate(existing_user).await?;
 
                         // Add email if not existing
-                        let existing_email = repo.user_email().find(&existing_user, &oidc_email).await?;
+                        let existing_email =
+                            repo.user_email().find(&existing_user, &oidc_email).await?;
                         if existing_email.is_none() {
                             tracing::info!(
                                 user.id = %existing_user.id,
