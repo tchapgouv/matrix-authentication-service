@@ -316,6 +316,20 @@ impl PolicyFactory {
         self.instantiate_with_data(&data.merged).await
     }
 
+    //:tchap:
+    /// Returns the current merged policy data (static config merged with
+    /// dynamic data from the database). This is a lock-free read via
+    /// `ArcSwap::load()`.
+    ///
+    /// This allows Tchap handlers to read custom keys stored in the
+    /// policy-data JSON (e.g. `tchap.password_disabled_domains`) without
+    /// instantiating a WASM policy instance.
+    #[must_use]
+    pub fn merged_data(&self) -> serde_json::Value {
+        self.dynamic_data.load().merged.clone()
+    }
+    //:tchap: end
+
     async fn instantiate_with_data(
         &self,
         data: &serde_json::Value,

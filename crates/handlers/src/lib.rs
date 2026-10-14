@@ -357,6 +357,7 @@ where
     Policy: FromRequestParts<S>,
     //:tchap:
     TchapConfig: FromRef<S>,
+    Arc<mas_policy::PolicyFactory>: FromRef<S>,
     //:tchap:end
 {
     Router::new()

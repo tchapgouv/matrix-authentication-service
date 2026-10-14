@@ -396,14 +396,14 @@ pub async fn search_user_by_email(
     Ok(None)
 }
 
-/// Checks if password-based login should be offered for the given email
-/// address, based on its domain.
+/// Checks if password-based authentication should be offered for the given
+/// email address, based on its domain.
 ///
 /// Returns `false` if the email domain matches one of the
 /// `disabled_domains` (suffix match, case-insensitive), meaning only
-/// upstream IdP login should be proposed.
+/// upstream IdP authentication should be proposed.
 #[must_use]
-pub fn is_password_login_allowed_for_email(email: &str, disabled_domains: &[String]) -> bool {
+pub fn is_allowed_for_email(email: &str, disabled_domains: &[String]) -> bool {
     let Some(domain) = email.rsplit('@').next() else {
         return true; // not an email → allowed
     };
@@ -415,6 +415,25 @@ pub fn is_password_login_allowed_for_email(email: &str, disabled_domains: &[Stri
         let d = d.to_lowercase();
         domain == d || domain.ends_with(&format!(".{d}"))
     })
+}
+
+/// Extract the `tchap.password_disabled_domains` list from the merged
+/// policy-data JSON.
+///
+/// Returns an empty vec if the key is absent, not an array, or contains
+/// non-string values.
+#[must_use]
+pub fn get_password_disabled_domains(merged_data: &serde_json::Value) -> Vec<String> {
+    merged_data
+        .get("tchap")
+        .and_then(|t| t.get("password_disabled_domains"))
+        .and_then(|d| d.as_array())
+        .map(|arr| {
+            arr.iter()
+                .filter_map(|v| v.as_str().map(|s| s.to_owned()))
+                .collect()
+        })
+        .unwrap_or_default()
 }
 
 pub use self::test_utils::*;
@@ -662,44 +681,67 @@ mod tests {
     }
 
     #[test]
-    fn test_is_password_login_allowed_for_email() {
+    fn test_is_allowed_for_email() {
         let disabled = vec!["gouv.fr".to_string()];
 
         // Nominal: non-gouv domain → allowed
-        assert!(is_password_login_allowed_for_email(
-            "user@example.com",
-            &disabled
-        ));
+        assert!(is_allowed_for_email("user@example.com", &disabled));
 
         // Exact domain match → disabled
-        assert!(!is_password_login_allowed_for_email(
-            "user@gouv.fr",
-            &disabled
-        ));
+        assert!(!is_allowed_for_email("user@gouv.fr", &disabled));
 
         // Subdomain match → disabled
-        assert!(!is_password_login_allowed_for_email(
+        assert!(!is_allowed_for_email(
             "user@interieur.gouv.fr",
             &disabled
         ));
 
         // Case-insensitive
-        assert!(!is_password_login_allowed_for_email(
-            "user@GOUV.FR",
-            &disabled
-        ));
-        assert!(!is_password_login_allowed_for_email(
+        assert!(!is_allowed_for_email("user@GOUV.FR", &disabled));
+        assert!(!is_allowed_for_email(
             "user@Interieur.GOUV.FR",
             &disabled
         ));
 
         // Not an email → allowed
-        assert!(is_password_login_allowed_for_email(
-            "not-an-email",
-            &disabled
-        ));
+        assert!(is_allowed_for_email("not-an-email", &disabled));
 
         // Empty disabled list → always allowed
-        assert!(is_password_login_allowed_for_email("user@gouv.fr", &[]));
+        assert!(is_allowed_for_email("user@gouv.fr", &[]));
+    }
+
+    #[test]
+    fn test_get_password_disabled_domains() {
+        use serde_json::json;
+
+        // Present and non-empty
+        let data = json!({
+            "tchap": {
+                "password_disabled_domains": ["gouv.fr", "example.org"]
+            }
+        });
+        let domains = get_password_disabled_domains(&data);
+        assert_eq!(domains, vec!["gouv.fr", "example.org"]);
+
+        // Missing key → empty
+        let data = json!({});
+        assert!(get_password_disabled_domains(&data).is_empty());
+
+        // Missing tchap key → empty
+        let data = json!({"other": "value"});
+        assert!(get_password_disabled_domains(&data).is_empty());
+
+        // Empty array → empty
+        let data = json!({"tchap": {"password_disabled_domains": []}});
+        assert!(get_password_disabled_domains(&data).is_empty());
+
+        // Non-array value → empty
+        let data = json!({"tchap": {"password_disabled_domains": "gouv.fr"}});
+        assert!(get_password_disabled_domains(&data).is_empty());
+
+        // Array with non-string values → filtered out
+        let data = json!({"tchap": {"password_disabled_domains": ["gouv.fr", 42, true, "example.org"]}});
+        let domains = get_password_disabled_domains(&data);
+        assert_eq!(domains, vec!["gouv.fr", "example.org"]);
     }
 }

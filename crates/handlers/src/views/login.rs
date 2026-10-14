@@ -21,6 +21,7 @@ use mas_axum_utils::{
 use mas_data_model::{BoxClock, BoxRng, Clock, TchapConfig};
 use mas_i18n::DataLocale;
 use mas_matrix::HomeserverConnection;
+use mas_policy::PolicyFactory;
 use mas_router::{UpstreamOAuth2Authorize, UrlBuilder};
 use mas_storage::{
     BoxRepository, RepositoryAccess,
@@ -76,6 +77,7 @@ pub(crate) async fn get(
     State(homeserver): State<Arc<dyn HomeserverConnection>>,
     //:tchap:
     State(tchap_config): State<TchapConfig>,
+    State(policy_factory): State<Arc<PolicyFactory>>,
     //:tchap: end
     mut repo: BoxRepository,
     activity_tracker: BoundActivityTracker,
@@ -141,6 +143,7 @@ pub(crate) async fn get(
         query_login_hint,
         //:tchap:
         &tchap_config,
+        &policy_factory,
         //:tchap: end
     )
     .await
@@ -156,9 +159,13 @@ pub(crate) async fn post(
     State(url_builder): State<UrlBuilder>,
     State(limiter): State<Limiter>,
     State(homeserver): State<Arc<dyn HomeserverConnection>>,
-    //:tchap: add tchap to the state with site_config as a tuple to stay under the limit of 16
-    //:tchap: arguments
-    (State(site_config), State(tchap_config)): (State<SiteConfig>, State<TchapConfig>),
+    //:tchap: add tchap to the state with site_config and policy_factory as a
+    //:tchap: tuple to stay under the limit of 16 handler arguments
+    (State(site_config), State(tchap_config), State(policy_factory)): (
+        State<SiteConfig>,
+        State<TchapConfig>,
+        State<Arc<PolicyFactory>>,
+    ),
     //:tchap:end
     mut repo: BoxRepository,
     activity_tracker: BoundActivityTracker,
@@ -204,6 +211,7 @@ pub(crate) async fn post(
             query_login_hint,
             //:tchap:
             &tchap_config,
+            &policy_factory,
             //:tchap: end
         )
         .await;
@@ -257,6 +265,7 @@ pub(crate) async fn post(
                 query_login_hint,
                 //:tchap:
                 &tchap_config,
+                &policy_factory,
                 //:tchap: end
             )
             .await;
@@ -267,34 +276,41 @@ pub(crate) async fn post(
     //:tchap:
     // Reject password login for domains where only upstream IdP login is
     // allowed (the form is hidden in the UI; this is defense in depth).
-    if form.username.contains('@')
-        && !tchap::is_password_login_allowed_for_email(
-            &form.username,
-            &tchap_config.password_login_disabled_domains,
-        )
     {
-        PASSWORD_LOGIN_COUNTER.add(1, &[KeyValue::new(RESULT, "error")]);
-        let form_state = form_state.with_error_on_form(FormError::Policy {
-            code: None,
-            message:
-                "password_login_disabled: utilisez la connexion via votre fournisseur d'identité"
-                    .to_owned(),
-        });
-        return render(
-            locale,
-            cookie_jar,
-            form_state,
-            query,
-            &mut repo,
-            &clock,
-            &mut rng,
-            &templates,
-            &homeserver,
-            &site_config,
-            query_login_hint,
-            &tchap_config,
-        )
-        .await;
+        let merged = policy_factory.merged_data();
+        let domains = tchap::get_password_disabled_domains(&merged);
+        let disabled_domains = if domains.is_empty() {
+            &tchap_config.password_login_disabled_domains
+        } else {
+            &domains
+        };
+        if form.username.contains('@')
+            && !tchap::is_allowed_for_email(&form.username, disabled_domains)
+        {
+            PASSWORD_LOGIN_COUNTER.add(1, &[KeyValue::new(RESULT, "error")]);
+            let form_state = form_state.with_error_on_form(FormError::Policy {
+                code: None,
+                message:
+                    "password_login_disabled: utilisez la connexion via votre fournisseur d'identité"
+                        .to_owned(),
+            });
+            return render(
+                locale,
+                cookie_jar,
+                form_state,
+                query,
+                &mut repo,
+                &clock,
+                &mut rng,
+                &templates,
+                &homeserver,
+                &site_config,
+                query_login_hint,
+                &tchap_config,
+                &policy_factory,
+            )
+            .await;
+        }
     }
     //:tchap: end
 
@@ -323,6 +339,7 @@ pub(crate) async fn post(
             query_login_hint,
             //:tchap:
             &tchap_config,
+            &policy_factory,
             //:tchap: end
         )
         .await;
@@ -347,6 +364,7 @@ pub(crate) async fn post(
             query_login_hint,
             //:tchap:
             &tchap_config,
+            &policy_factory,
             //:tchap: end
         )
         .await;
@@ -373,6 +391,7 @@ pub(crate) async fn post(
             query_login_hint,
             //:tchap:
             &tchap_config,
+            &policy_factory,
             //:tchap: end
         )
         .await;
@@ -422,6 +441,7 @@ pub(crate) async fn post(
                 query_login_hint,
                 //:tchap:
                 &tchap_config,
+                &policy_factory,
                 //:tchap: end
             )
             .await;
@@ -553,6 +573,7 @@ async fn render(
     query_login_hint: QueryLoginHint,
     //:tchap:
     tchap_config: &TchapConfig,
+    policy_factory: &Arc<PolicyFactory>,
     //:tchap: end
 ) -> Result<Response, InternalError> {
     let (csrf_token, cookie_jar) = cookie_jar.csrf_token(clock, rng);
@@ -565,11 +586,17 @@ async fn render(
     let ctx = handle_login_hint(ctx, &query_login_hint, homeserver, site_config);
 
     //:tchap:
+    let disabled_domains = {
+        let merged = policy_factory.merged_data();
+        let domains = tchap::get_password_disabled_domains(&merged);
+        if domains.is_empty() {
+            tchap_config.password_login_disabled_domains.clone()
+        } else {
+            domains
+        }
+    };
     let password_login_disabled = match query_login_hint.parse_login_hint(homeserver.homeserver()) {
-        LoginHint::Email(email) => !tchap::is_password_login_allowed_for_email(
-            email.as_ref(),
-            &tchap_config.password_login_disabled_domains,
-        ),
+        LoginHint::Email(email) => !tchap::is_allowed_for_email(email.as_ref(), &disabled_domains),
         _ => false,
     };
     let ctx = ctx.with_password_login_disabled(password_login_disabled);
@@ -597,7 +624,7 @@ mod test {
         header::{CONTENT_TYPE, LOCATION, X_FRAME_OPTIONS},
     };
     use mas_data_model::{
-        UpstreamOAuthProviderClaimsImports, UpstreamOAuthProviderOnBackchannelLogout,
+        Clock, UpstreamOAuthProviderClaimsImports, UpstreamOAuthProviderOnBackchannelLogout,
         UpstreamOAuthProviderTokenAuthMethod,
     };
     use mas_iana::jose::JsonWebSignatureAlg;
@@ -1658,6 +1685,56 @@ mod test {
         assert!(
             response.body().contains("password_login_disabled"),
             "expected password_login_disabled error in body: {}",
+            response.body()
+        );
+    }
+
+    /// When policy-data contains `tchap.password_disabled_domains`,
+    /// it overrides the config fallback. Here we set only "example.org"
+    /// as disabled, so gouv.fr should be allowed (password shown) and
+    /// example.org should be rejected.
+    #[sqlx::test(migrator = "mas_storage_pg::MIGRATOR")]
+    async fn test_login_policy_data_overrides_config(pool: PgPool) {
+        setup();
+        let state = TestState::from_pool(pool).await.unwrap();
+
+        add_upstream_provider(&state).await;
+
+        // Push policy-data that only disables "example.org"
+        let policy_data = mas_data_model::PolicyData {
+            id: ulid::Ulid::new(),
+            created_at: state.clock.now(),
+            data: serde_json::json!({
+                "tchap": {
+                    "password_disabled_domains": ["example.org"]
+                }
+            }),
+        };
+        state
+            .policy_factory
+            .set_dynamic_data(policy_data)
+            .await
+            .unwrap();
+
+        // gouv.fr is no longer disabled → password should be shown
+        let response = state
+            .request(Request::get("/login?login_hint=user@gouv.fr").empty())
+            .await;
+        response.assert_status(StatusCode::OK);
+        assert!(
+            response.body().contains(r#"name="password""#),
+            "password should be shown for gouv.fr when policy-data only disables example.org: {}",
+            response.body()
+        );
+
+        // example.org is disabled via policy-data → password should be hidden
+        let response = state
+            .request(Request::get("/login?login_hint=user@example.org").empty())
+            .await;
+        response.assert_status(StatusCode::OK);
+        assert!(
+            !response.body().contains(r#"name="password""#),
+            "password should be hidden for example.org when disabled via policy-data: {}",
             response.body()
         );
     }
