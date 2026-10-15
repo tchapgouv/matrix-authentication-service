@@ -11,10 +11,16 @@ OPA_DOCKER_IMAGE := docker.io/openpolicyagent/opa:1.13.1
 # Keep in sync with .github/workflows/ci.yaml
 REGAL_DOCKER_IMAGE := ghcr.io/open-policy-agent/regal:0.38.1
 
+# :tchap:
+TCHAP_INPUTS := register/register_proconnect.rego
+TCHAP_ENTRYPOINT := -e "register/proconnect_only"
+# :tchap:end
+
 INPUTS := \
 	common/common.rego \
 	client_registration/client_registration.rego \
 	register/register.rego \
+	$(TCHAP_INPUTS) \
 	authorization_grant/authorization_grant.rego \
 	compat_login/compat_login.rego \
 	email/email.rego
@@ -38,10 +44,11 @@ policy.wasm: $(INPUTS)
 	$(OPA_RW) build -t wasm \
 		-e "client_registration/violation" \
 		-e "register/violation" \
+		$(TCHAP_ENTRYPOINT) \
 		-e "authorization_grant/violation" \
 		-e "compat_login/violation" \
 		-e "email/violation" \
-		$^
+		$(INPUTS)
 	tar xzf bundle.tar.gz /policy.wasm
 	$(RM) bundle.tar.gz
 	touch $@
