@@ -153,6 +153,9 @@ pub async fn policy_factory_from_config(
         authorization_grant: config.authorization_grant_entrypoint.clone(),
         compat_login: config.compat_login_entrypoint.clone(),
         email: config.email_entrypoint.clone(),
+        //:tchap:
+        register_proconnect_only: "register/proconnect_only".to_owned(),
+        //:tchap:end
     };
 
     let session_limit_config =

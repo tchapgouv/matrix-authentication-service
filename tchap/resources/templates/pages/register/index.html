@@ -71,7 +71,9 @@ Please see LICENSE files in the repository root for full details.
         <input type="hidden" name="{{ key }}" value="{{ value }}" />
       {% endfor %}
 
-      {% if features.password_registration %}
+      <!-- :tchap: hide the "continue with email" button when the email domain
+           is ProConnect-only (register/proconnect_only policy) -->
+      {% if features.password_registration and not proconnect_only %}
         {{ button.button(text=_("mas.register.continue_with_email"), kind="secondary") }}
       {% endif %}
         <!-- :tchap: no providers
