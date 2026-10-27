@@ -672,6 +672,8 @@ pub struct RegisterContext {
     //:tchap: whether the email domain of the login hint is ProConnect-only,
     // in which case the "continue with email" button is hidden
     proconnect_only: bool,
+    //:tchap: the login hint email, displayed when `ProConnect` is enforced
+    proconnect_login_hint: Option<String>,
 }
 
 impl TemplateContext for RegisterContext {
@@ -688,6 +690,7 @@ impl TemplateContext for RegisterContext {
             next: None,
             //:tchap:
             proconnect_only: false,
+            proconnect_login_hint: None,
             //:tchap:end
         }])
     }
@@ -702,6 +705,7 @@ impl RegisterContext {
             next: None,
             //:tchap:
             proconnect_only: false,
+            proconnect_login_hint: None,
             //:tchap:end
         }
     }
@@ -721,6 +725,15 @@ impl RegisterContext {
     pub fn with_proconnect_only(self, proconnect_only: bool) -> Self {
         Self {
             proconnect_only,
+            ..self
+        }
+    }
+
+    /// Set the login hint email, displayed when `ProConnect` is enforced
+    #[must_use]
+    pub fn with_proconnect_login_hint(self, proconnect_login_hint: Option<String>) -> Self {
+        Self {
+            proconnect_login_hint,
             ..self
         }
     }

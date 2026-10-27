@@ -85,20 +85,23 @@ pub(crate) async fn get(
     //:tchap: hide the "continue with email" button when the email domain is
     // ProConnect-only (register/proconnect_only policy entrypoint). The email
     // comes from the login_hint attached to the OAuth2 authorization grant.
-    let proconnect_only =
-        match tchap::login_hint_from_post_auth_action(&mut repo, query.post_auth_action.as_ref())
-            .await?
-        {
-            Some(email) => {
-                policy
-                    .evaluate_register_proconnect_only(mas_policy::RegisterProconnectOnlyInput {
-                        email: email.as_str(),
-                    })
-                    .await?
-            }
-            None => false,
-        };
-    ctx = ctx.with_proconnect_only(proconnect_only);
+    let login_hint =
+        tchap::login_hint_from_post_auth_action(&mut repo, query.post_auth_action.as_ref()).await?;
+    let proconnect_only = match login_hint.as_deref() {
+        Some(email) => {
+            policy
+                .evaluate_register_proconnect_only(mas_policy::RegisterProconnectOnlyInput {
+                    email,
+                })
+                .await?
+        }
+        None => false,
+    };
+    //:tchap: pass the login hint email to the template so it can display an
+    // explanatory message above the ProConnect button
+    ctx = ctx
+        .with_proconnect_only(proconnect_only)
+        .with_proconnect_login_hint(login_hint);
     //:tchap:end
     let post_action = query
         .load_context(&mut repo)
