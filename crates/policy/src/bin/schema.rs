@@ -12,7 +12,14 @@
 use std::path::{Path, PathBuf};
 
 use mas_policy::model::{
-    AuthorizationGrantInput, ClientRegistrationInput, CompatLoginInput, EmailInput, RegisterInput,
+    AuthorizationGrantInput,
+    ClientRegistrationInput,
+    CompatLoginInput,
+    EmailInput,
+    RegisterInput,
+    //:tchap:
+    RegisterProconnectOnlyInput,
+    //:tchap:end
 };
 use schemars::{JsonSchema, generate::SchemaSettings};
 
@@ -44,4 +51,7 @@ fn main() {
     write_schema::<AuthorizationGrantInput>(output_root, "authorization_grant_input.json");
     write_schema::<CompatLoginInput>(output_root, "compat_login_input.json");
     write_schema::<EmailInput>(output_root, "email_input.json");
+    //:tchap:
+    write_schema::<RegisterProconnectOnlyInput>(output_root, "register_proconnect_only_input.json");
+    //:tchap:end
 }

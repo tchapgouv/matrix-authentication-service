@@ -87,6 +87,9 @@ pub(crate) async fn policy_factory(
         authorization_grant: "authorization_grant/violation".to_owned(),
         compat_login: "compat_login/violation".to_owned(),
         email: "email/violation".to_owned(),
+        //:tchap:
+        register_proconnect_only: "register/proconnect_only".to_owned(),
+        //:tchap:end
     };
 
     let data = mas_policy::Data::new(base_data).with_rest(data);

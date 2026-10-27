@@ -36,6 +36,7 @@ do not need tags.
 | 14 | GraphQL user mutations | `crates/handlers/src/graphql/mutations/user.rs` |
 | 15 | OIDC end session endpoint | `crates/handlers/src/oauth2/end_session.rs`, `crates/handlers/src/oauth2/mod.rs`, `crates/handlers/src/oauth2/discovery.rs`, `crates/router/src/endpoints.rs`, `crates/handlers/src/lib.rs` |
 | 16 | Deactivated account recovery email | `crates/tasks/src/recovery.rs`, `crates/tchap/src/recovery_email.rs`, `crates/templates/src/lib.rs`, `crates/templates/src/context.rs`, `crates/email/src/mailer.rs`, `templates/emails/recovery_deactivated.*`, `tchap/resources/templates/emails/recovery_deactivated.*` |
+| 17 | ProConnect-only registration | `policies/register/register_proconnect.rego`, `crates/policy/src/lib.rs`, `crates/handlers/src/views/register/mod.rs`, `crates/templates/src/context.rs`, `tchap/resources/templates/pages/register/index.html`, `tchap/resources/translations/{fr,en}.json` |
 
 ## Detail sections
 
@@ -279,6 +280,23 @@ Files:
 - [tchap/resources/templates/emails/recovery_deactivated.html](../tchap/resources/templates/emails/recovery_deactivated.html) (Tchap-branded HTML template)
 - [tchap/resources/templates/emails/recovery_deactivated.txt](../tchap/resources/templates/emails/recovery_deactivated.txt) (Tchap-branded plain-text template)
 - [tchap/resources/templates/emails/recovery_deactivated.subject](../tchap/resources/templates/emails/recovery_deactivated.subject) (Tchap-branded subject template)
+
+### 17. ProConnect-only registration
+
+When the email from the OAuth2 `login_hint` belongs to a domain listed in the
+`register_proconnect_only_domains` policy data, the `register/proconnect_only`
+policy entrypoint forces ProConnect on the registration page: the "continue
+with email" button is hidden, and an explanatory block is shown above the
+ProConnect button ("Se connecter avec ProConnect" title, the email address,
+and the matched domain in a centered box).
+
+Files:
+- [policies/register/register_proconnect.rego](../policies/register/register_proconnect.rego) (`register/proconnect_only` policy entrypoint)
+- [crates/policy/src/lib.rs](../crates/policy/src/lib.rs) (`evaluate_register_proconnect_only`)
+- [crates/handlers/src/views/register/mod.rs](../crates/handlers/src/views/register/mod.rs) (policy evaluation, login hint passed to the template)
+- [crates/templates/src/context.rs](../crates/templates/src/context.rs) (`RegisterContext.proconnect_only`, `RegisterContext.proconnect_login_hint`)
+- [tchap/resources/templates/pages/register/index.html](../tchap/resources/templates/pages/register/index.html) (hide email button, explanatory block)
+- [tchap/resources/translations/fr.json](../tchap/resources/translations/fr.json) / [en.json](../tchap/resources/translations/en.json) (`mas.register.proconnect_only.*`)
 
 ## Excluded files (Tchap-only, no upstream counterpart)
 

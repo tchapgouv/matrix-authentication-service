@@ -251,3 +251,19 @@ pub struct EmailInput<'a> {
 
     pub requester: Requester,
 }
+
+//:tchap:
+/// Input for the ProConnect-only registration policy.
+#[derive(Serialize, Debug, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub struct RegisterProconnectOnlyInput<'a> {
+    pub email: &'a str,
+}
+
+/// Output of a boolean-returning policy entrypoint.
+#[derive(Deserialize, Debug)]
+pub struct BooleanEvaluationResult {
+    #[serde(rename = "result")]
+    pub value: bool,
+}
+//:tchap:end
