@@ -39,6 +39,9 @@ pub struct TchapConfig {
 
     /// Whether deactivated accounts can be reactivated
     pub allow_account_reactivation: bool,
+
+    /// When set, only this upstream provider gets a button on the login page.
+    pub login_button_provider_id: String,
 }
 
 #[derive(PartialEq, Eq, Clone, Debug)]

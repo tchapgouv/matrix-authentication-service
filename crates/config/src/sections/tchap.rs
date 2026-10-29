@@ -52,6 +52,10 @@ pub struct TchapAppConfig {
     /// Whether deactivated accounts can be reactivated
     #[serde(default)]
     pub allow_account_reactivation: bool,
+
+    /// When set, only this upstream provider gets a button on the login page.
+    #[serde(default)]
+    pub login_button_provider_id: String,
 }
 
 /// When linking the localpart, the email can be used to find the correct
