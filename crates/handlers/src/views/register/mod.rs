@@ -9,7 +9,7 @@ use axum::{
 };
 use axum_extra::extract::Query;
 use mas_axum_utils::{InternalError, SessionInfoExt, cookies::CookieJar, csrf::CsrfExt as _};
-use mas_data_model::{BoxClock, BoxRng, SiteConfig};
+use mas_data_model::{BoxClock, BoxRng, SiteConfig, TchapConfig};
 use mas_router::{PasswordRegister, UpstreamOAuth2Authorize, UrlBuilder};
 use mas_storage::BoxRepository;
 use mas_templates::{RegisterContext, TemplateContext, Templates};
@@ -31,6 +31,9 @@ pub(crate) async fn get(
     State(templates): State<Templates>,
     State(url_builder): State<UrlBuilder>,
     State(site_config): State<SiteConfig>,
+    //:tchap: Tchap config, used to filter the upstream providers shown on the registration page
+    State(tchap_config): State<TchapConfig>,
+    //:tchap:end
     mut repo: BoxRepository,
     activity_tracker: BoundActivityTracker,
     Query(query): Query<OptionalPostAuthAction>,
@@ -51,6 +54,9 @@ pub(crate) async fn get(
     }
 
     let providers = repo.upstream_oauth_provider().all_enabled().await?;
+    //:tchap: only show the button of the provider selected in the Tchap config
+    let providers = tchap::filter_login_button_providers(providers, &tchap_config);
+    //:tchap:end
 
     // If password-based login is disabled, and there is only one upstream provider,
     // we can directly start an authorization flow

@@ -26,7 +26,7 @@
 //! Tchap-specific functionality for Matrix Authentication Service
 
 extern crate tracing;
-use mas_data_model::TchapConfig;
+use mas_data_model::{TchapConfig, UpstreamOAuthProvider};
 use mas_storage::BoxRepository;
 use tracing::{info, warn};
 
@@ -323,6 +323,39 @@ pub fn server_name_to_instance(server_name: &str) -> &str {
         .unwrap_or(server_name)
 }
 
+/// Filter the upstream providers shown on the login page.
+///
+/// # Parameters
+/// * `providers` - The enabled upstream providers
+/// * `tchap_config` - The Tchap configuration
+///
+/// # Returns
+/// Vec<`UpstreamOAuthProvider`> - The providers to show on the login page
+pub fn filter_login_button_providers(
+    providers: Vec<UpstreamOAuthProvider>,
+    tchap_config: &TchapConfig,
+) -> Vec<UpstreamOAuthProvider> {
+    let provider_id = tchap_config.login_button_provider_id.as_str();
+    if provider_id.is_empty() {
+        return providers;
+    }
+
+    let filtered: Vec<_> = providers
+        .into_iter()
+        .filter(|provider| provider.id.to_string() == provider_id)
+        .collect();
+
+    if filtered.is_empty() {
+        tracing::warn!(
+            provider_id = %provider_id,
+            "tchap.login_button_provider_id does not match any enabled upstream provider, \
+             no SSO button will be shown on the login page"
+        );
+    }
+
+    filtered
+}
+
 /// Search for a user by email with fallback rules
 ///
 /// # Parameters
@@ -510,6 +543,7 @@ mod tests {
             email_lookup_fallback_rules: vec![],
             tchap_app_link: Url::parse("https://test").unwrap(),
             allow_account_reactivation: true,
+            login_button_provider_id: String::new(),
         };
 
         let result = is_email_allowed(email, server_name, &config).await;
@@ -548,6 +582,7 @@ mod tests {
             email_lookup_fallback_rules: vec![],
             tchap_app_link: Url::parse("https://test").unwrap(),
             allow_account_reactivation: true,
+            login_button_provider_id: String::new(),
         };
 
         let result = is_email_allowed(email, server_name, &config).await;
@@ -586,6 +621,7 @@ mod tests {
             email_lookup_fallback_rules: vec![],
             tchap_app_link: Url::parse("https://test").unwrap(),
             allow_account_reactivation: true,
+            login_button_provider_id: String::new(),
         };
 
         let result = is_email_allowed(email, server_name, &config).await;
@@ -630,6 +666,7 @@ mod tests {
             email_lookup_fallback_rules: vec![],
             tchap_app_link: Url::parse("https://test").unwrap(),
             allow_account_reactivation: true,
+            login_button_provider_id: String::new(),
         };
 
         let result = is_email_allowed(email, server_name, &config).await;
