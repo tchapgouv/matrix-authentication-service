@@ -36,6 +36,7 @@ do not need tags.
 | 14 | GraphQL user mutations | `crates/handlers/src/graphql/mutations/user.rs` |
 | 15 | OIDC end session endpoint | `crates/handlers/src/oauth2/end_session.rs`, `crates/handlers/src/oauth2/mod.rs`, `crates/handlers/src/oauth2/discovery.rs`, `crates/router/src/endpoints.rs`, `crates/handlers/src/lib.rs` |
 | 16 | Deactivated account recovery email | `crates/tasks/src/recovery.rs`, `crates/tchap/src/recovery_email.rs`, `crates/templates/src/lib.rs`, `crates/templates/src/context.rs`, `crates/email/src/mailer.rs`, `templates/emails/recovery_deactivated.*`, `tchap/resources/templates/emails/recovery_deactivated.*` |
+| 17 | Optional policy data reload kill switch | `crates/cli/src/util.rs` |
 
 ## Detail sections
 
@@ -127,11 +128,16 @@ existing Tchap account by email (with configurable fallback rules, e.g.
 `@numerique.gouv.fr` -> `@beta.gouv.fr`). If the ProConnect email differs
 from the stored Tchap email, an error page is shown to prevent account
 hijacking. New accounts are only created after validating the email is
-allowed on the current server. Custom minijinja template filters are
-registered for email-to-display-name and email-to-MXID conversion.
+allowed on the current server. The matching is provider-agnostic: when two
+upstream providers are configured side by side (e.g. during the transition
+from ProConnect to its replacement), a user logging in through the second
+provider with the same email address is reconciled to their existing
+account, and no duplicate account is created. Custom minijinja template
+filters are registered for email-to-display-name and email-to-MXID
+conversion.
 
 Files:
-- [crates/handlers/src/upstream_oauth2/link.rs](../crates/handlers/src/upstream_oauth2/link.rs) (email matching, server validation, fallback rules)
+- [crates/handlers/src/upstream_oauth2/link.rs](../crates/handlers/src/upstream_oauth2/link.rs) (email matching, server validation, fallback rules, cross-provider reconciliation tests)
 - [crates/handlers/src/upstream_oauth2/template.rs](../crates/handlers/src/upstream_oauth2/template.rs) (minijinja template filters)
 - [tchap/resources/templates/pages/sso.html](../tchap/resources/templates/pages/sso.html) (SSO page template)
 - [tchap/resources/templates/pages/upstream_oauth2/do_register.html](../tchap/resources/templates/pages/upstream_oauth2/do_register.html) (upstream OAuth registration template)
@@ -279,6 +285,20 @@ Files:
 - [tchap/resources/templates/emails/recovery_deactivated.html](../tchap/resources/templates/emails/recovery_deactivated.html) (Tchap-branded HTML template)
 - [tchap/resources/templates/emails/recovery_deactivated.txt](../tchap/resources/templates/emails/recovery_deactivated.txt) (Tchap-branded plain-text template)
 - [tchap/resources/templates/emails/recovery_deactivated.subject](../tchap/resources/templates/emails/recovery_deactivated.subject) (Tchap-branded subject template)
+
+### 17. Optional policy data reload kill switch
+
+Upstream, the background task that reloads the OPA policy dynamic data every
+minute cancels the shutdown token on a single transient database error, which
+takes down the whole process. Under heavy load (e.g. an introspection-only
+worker with a saturated connection pool), this turns a transient `PoolTimedOut`
+into a restart loop. Setting the `MAS_TCHAP_DISABLE_POLICY_RELOAD` environment
+variable skips the periodic reload entirely; the initial load at startup still
+happens and fails loudly if the database is unavailable. Meant for workers that
+never update dynamic policy data at runtime.
+
+Files:
+- [crates/cli/src/util.rs](../crates/cli/src/util.rs) (env-var gate in `load_policy_factory_dynamic_data_continuously`)
 
 ## Excluded files (Tchap-only, no upstream counterpart)
 
