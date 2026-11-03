@@ -479,9 +479,7 @@ pub async fn load_policy_factory_dynamic_data_continuously(
     //:tchap: allow disabling the periodic policy data reload, because a single
     // transient database error in that task shuts down the whole process.
     if std::env::var_os("MAS_TCHAP_DISABLE_POLICY_RELOAD").is_some() {
-        tracing::warn!(
-            "Periodic policy data reload disabled by MAS_TCHAP_DISABLE_POLICY_RELOAD"
-        );
+        tracing::warn!("Periodic policy data reload disabled by MAS_TCHAP_DISABLE_POLICY_RELOAD");
         return Ok(());
     }
     //:tchap: end
