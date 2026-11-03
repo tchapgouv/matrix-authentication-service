@@ -476,6 +476,16 @@ pub async fn load_policy_factory_dynamic_data_continuously(
 
     load_policy_factory_dynamic_data(&policy_factory, &*repository_factory).await?;
 
+    //:tchap: allow disabling the periodic policy data reload, because a single
+    // transient database error in that task shuts down the whole process.
+    if std::env::var_os("MAS_TCHAP_DISABLE_POLICY_RELOAD").is_some() {
+        tracing::warn!(
+            "Periodic policy data reload disabled by MAS_TCHAP_DISABLE_POLICY_RELOAD"
+        );
+        return Ok(());
+    }
+    //:tchap: end
+
     task_tracker.spawn(async move {
         let mut interval = tokio::time::interval(Duration::from_mins(1));
 
