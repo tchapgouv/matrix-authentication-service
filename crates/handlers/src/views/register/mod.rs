@@ -31,6 +31,9 @@ pub(crate) async fn get(
     State(templates): State<Templates>,
     State(url_builder): State<UrlBuilder>,
     State(site_config): State<SiteConfig>,
+    //:tchap: the register page evaluates the ProConnect-only policy
+    mut policy: mas_policy::Policy,
+    //:tchap:end
     mut repo: BoxRepository,
     activity_tracker: BoundActivityTracker,
     Query(query): Query<OptionalPostAuthAction>,
@@ -79,6 +82,27 @@ pub(crate) async fn get(
     }
 
     let mut ctx = RegisterContext::new(providers);
+    //:tchap: hide the "continue with email" button when the email domain is
+    // ProConnect-only (register/proconnect_only policy entrypoint). The email
+    // comes from the login_hint attached to the OAuth2 authorization grant.
+    let login_hint =
+        tchap::login_hint_from_post_auth_action(&mut repo, query.post_auth_action.as_ref()).await?;
+    let proconnect_only = match login_hint.as_deref() {
+        Some(email) => {
+            policy
+                .evaluate_register_proconnect_only(mas_policy::RegisterProconnectOnlyInput {
+                    email,
+                })
+                .await?
+        }
+        None => false,
+    };
+    //:tchap: pass the login hint email to the template so it can display an
+    // explanatory message above the ProConnect button
+    ctx = ctx
+        .with_proconnect_only(proconnect_only)
+        .with_proconnect_login_hint(login_hint);
+    //:tchap:end
     let post_action = query
         .load_context(&mut repo)
         .await

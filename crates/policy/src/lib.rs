@@ -19,8 +19,22 @@ use thiserror::Error;
 use tokio::io::{AsyncRead, AsyncReadExt};
 
 pub use self::model::{
-    AuthorizationGrantInput, ClientRegistrationInput, CompatLoginInput, EmailInput,
-    EvaluationResult, GrantType, RegisterInput, RegistrationMethod, Requester, Violation,
+    AuthorizationGrantInput,
+    //:tchap:
+    BooleanEvaluationResult,
+    //:tchap:end
+    ClientRegistrationInput,
+    CompatLoginInput,
+    EmailInput,
+    EvaluationResult,
+    GrantType,
+    RegisterInput,
+    //:tchap:
+    RegisterProconnectOnlyInput,
+    //:tchap:end
+    RegistrationMethod,
+    Requester,
+    Violation,
     ViolationVariant,
 };
 
@@ -75,16 +89,23 @@ pub struct Entrypoints {
     pub authorization_grant: String,
     pub compat_login: String,
     pub email: String,
+    //:tchap:
+    pub register_proconnect_only: String,
+    //:tchap:end
 }
 
 impl Entrypoints {
-    fn all(&self) -> [&str; 5] {
+    //:tchap: 6 entrypoints with the Tchap one
+    fn all(&self) -> [&str; 6] {
         [
             self.register.as_str(),
             self.client_registration.as_str(),
             self.authorization_grant.as_str(),
             self.compat_login.as_str(),
             self.email.as_str(),
+            //:tchap:
+            self.register_proconnect_only.as_str(),
+            //:tchap:end
         ]
     }
 }
@@ -414,6 +435,37 @@ impl Policy {
         Ok(res)
     }
 
+    //:tchap:
+    /// Evaluate the `register/proconnect_only` entrypoint.
+    ///
+    /// Returns `true` when the email domain matches one of the regexes in the
+    /// dynamic `register_proconnect_only_domains` policy data.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the policy engine fails to evaluate the entrypoint.
+    #[tracing::instrument(
+        name = "policy.evaluate.register_proconnect_only",
+        skip_all,
+        fields(%input.email),
+    )]
+    pub async fn evaluate_register_proconnect_only(
+        &mut self,
+        input: RegisterProconnectOnlyInput<'_>,
+    ) -> Result<bool, EvaluationError> {
+        let [res]: [BooleanEvaluationResult; 1] = self
+            .instance
+            .evaluate(
+                &mut self.store,
+                &self.entrypoints.register_proconnect_only,
+                &input,
+            )
+            .await?;
+
+        Ok(res.value)
+    }
+    //:tchap:end
+
     /// Evaluate the `client_registration` entrypoint.
     ///
     /// # Errors
@@ -504,6 +556,9 @@ mod tests {
             authorization_grant: "authorization_grant/violation".to_owned(),
             compat_login: "compat_login/violation".to_owned(),
             email: "email/violation".to_owned(),
+            //:tchap:
+            register_proconnect_only: "register/proconnect_only".to_owned(),
+            //:tchap:end
         }
     }
 
@@ -575,6 +630,89 @@ mod tests {
             .unwrap();
         assert!(!res.valid());
     }
+
+    //:tchap:
+    #[tokio::test]
+    async fn test_register_proconnect_only() {
+        let data = Data::new(BaseData {
+            server_name: "example.com".to_owned(),
+            session_limit: None,
+        });
+
+        #[expect(clippy::disallowed_types)]
+        let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("..")
+            .join("..")
+            .join("policies")
+            .join("policy.wasm");
+
+        let file = tokio::fs::File::open(path).await.unwrap();
+
+        let factory = PolicyFactory::load(file, data, make_entrypoints())
+            .await
+            .unwrap();
+
+        // No dynamic data: the rule defaults to false
+        let mut policy = factory.instantiate().await.unwrap();
+        let res = policy
+            .evaluate_register_proconnect_only(RegisterProconnectOnlyInput {
+                email: "user@ac-versailles.fr",
+            })
+            .await
+            .unwrap();
+        assert!(!res);
+
+        // Set the dynamic data with the proconnect-only domain list
+        factory
+            .set_dynamic_data(mas_data_model::PolicyData {
+                id: Ulid::nil(),
+                created_at: SystemTime::now().into(),
+                data: serde_json::json!({
+                    "register_proconnect_only_domains": ["ac-versailles\\.fr"]
+                }),
+            })
+            .await
+            .unwrap();
+
+        let mut policy = factory.instantiate().await.unwrap();
+
+        // Matching domain
+        let res = policy
+            .evaluate_register_proconnect_only(RegisterProconnectOnlyInput {
+                email: "user@ac-versailles.fr",
+            })
+            .await
+            .unwrap();
+        assert!(res);
+
+        // Non-matching domain
+        let res = policy
+            .evaluate_register_proconnect_only(RegisterProconnectOnlyInput {
+                email: "user@example.com",
+            })
+            .await
+            .unwrap();
+        assert!(!res);
+
+        // Matching is case-insensitive on the domain
+        let res = policy
+            .evaluate_register_proconnect_only(RegisterProconnectOnlyInput {
+                email: "user@AC-VERSAILLES.FR",
+            })
+            .await
+            .unwrap();
+        assert!(res);
+
+        // Invalid email (no @): defaults to false
+        let res = policy
+            .evaluate_register_proconnect_only(RegisterProconnectOnlyInput {
+                email: "not-an-email",
+            })
+            .await
+            .unwrap();
+        assert!(!res);
+    }
+    //:tchap:end
 
     #[tokio::test]
     async fn test_dynamic_data() {
