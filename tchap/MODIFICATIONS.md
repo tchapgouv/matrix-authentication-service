@@ -283,8 +283,8 @@ Files:
 
 ### 17. ProConnect-only registration
 
-When the email from the OAuth2 `login_hint` belongs to a domain listed in the
-`register_proconnect_only_domains` policy data, the `register/proconnect_only`
+When the email from the OAuth2 `login_hint` belongs to a domain that matches regexp listed 
+in the `register_proconnect_only_domains` policy data, the `register/proconnect_only`
 policy entrypoint forces ProConnect on the registration page: the "continue
 with email" button is hidden, and an explanatory block is shown above the
 ProConnect button ("Se connecter avec ProConnect" title, the email address,
