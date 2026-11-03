@@ -89,7 +89,7 @@ Please see LICENSE files in the repository root for full details.
 
       {% set params = next["params"] | default({}) | to_params(prefix="?") %}
       {{ button.link_tertiary(text=_("mas.register.call_to_login"), href="/login" ~ params) }}
-    </div>
-  </form>
+</div>
 {% endif %}
+</form>
 {% endblock content %}
