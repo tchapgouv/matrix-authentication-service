@@ -19,7 +19,7 @@ test_proconnect_only_no_match if {
 		with data.register_proconnect_only_domains as [`^ac-versailles\.fr`]
 }
 
-test_proconnect_only_no_match if {
+test_proconnect_only_no_strict_match if {
 	not register.proconnect_only with input as {"email": "a@example.com"}
 		with data.register_proconnect_only_domains as [`ac-versailles\.fr`]
 }
