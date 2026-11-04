@@ -252,9 +252,13 @@ pub(crate) async fn get(
 ) -> Result<impl IntoResponse, RouteError> {
     let user_agent = user_agent.map(|ua| ua.as_str().to_owned());
     let sessions_cookie = UpstreamSessionsCookie::load(&cookie_jar);
-    let (session_id, post_auth_action) = sessions_cookie
+    let (session_id, post_auth_action, username) = sessions_cookie
         .lookup_link(link_id)
         .map_err(|_| RouteError::MissingCookie)?;
+
+    // Owned copy of the username the user typed on the registration page before
+    // starting the flow, if any, so we can consume the cookie later.
+    let carried_username = username.map(ToOwned::to_owned);
 
     let link = repo
         .upstream_oauth_link()
@@ -518,31 +522,45 @@ pub(crate) async fn get(
                 )?
             };
 
+            let forced_or_required = provider.claims_imports.localpart.is_forced_or_required();
+
+            let carried_username = if forced_or_required {
+                // The provider picks the localpart, not the user
+                None
+            } else {
+                carried_username
+            };
+
             // We do a bunch of checks for the localpart. Instead of using nested ifs all
             // the way, we use a labelled block, and use `break` for 'exiting' early when
             // needed
             let localpart = 'localpart: {
-                if provider.claims_imports.localpart.ignore() {
+                let localpart = if let Some(username) = carried_username {
+                    username
+                } else if provider.claims_imports.localpart.ignore() {
                     break 'localpart None;
-                }
+                } else {
+                    let template = provider
+                        .claims_imports
+                        .localpart
+                        .template
+                        .as_deref()
+                        .unwrap_or(DEFAULT_LOCALPART_TEMPLATE);
 
-                let template = provider
-                    .claims_imports
-                    .localpart
-                    .template
-                    .as_deref()
-                    .unwrap_or(DEFAULT_LOCALPART_TEMPLATE);
+                    let Some(localpart) = render_attribute_template(
+                        &env,
+                        template,
+                        &context,
+                        provider.claims_imports.localpart.is_required(),
+                    )?
+                    else {
+                        break 'localpart None;
+                    };
 
-                let Some(localpart) = render_attribute_template(
-                    &env,
-                    template,
-                    &context,
-                    provider.claims_imports.localpart.is_required(),
-                )?
-                else {
-                    break 'localpart None;
+                    localpart
                 };
 
+<<<<<<< HEAD
                 let forced_or_required = provider.claims_imports.localpart.is_forced_or_required();
 
                 // We've got a localpart from the template. Let's run the policy
@@ -596,6 +614,9 @@ pub(crate) async fn get(
                 // matching is done by email so we search users by email and not username
 
                 // We got a localpart from the template. We need to check if it's
+=======
+                // We got a localpart candidate. We need to check if it's
+>>>>>>> v1.28.0
                 // available, and if it's not apply the conflict resolution setup in
                 // the config
 
@@ -664,7 +685,7 @@ pub(crate) async fn get(
                             upstream_oauth_provider.id = %provider.id,
                             upstream_oauth_link.id = %link.id,
                             user.id = %existing_user.id,
-                            "Upstream provider returned a localpart {localpart:?} which is already used by another user. As the username is just a suggestion, it was ignored."
+                            "Localpart {localpart:?} is already used by another user. As the username is just a suggestion, it was ignored."
                         );
                         break 'localpart None;
                     }
@@ -936,6 +957,28 @@ pub(crate) async fn get(
                 )
                 .await?
                 {
+<<<<<<< HEAD
+=======
+                    if !forced_or_required {
+                        tracing::warn!(
+                            upstream_oauth_provider.id = %provider.id,
+                            upstream_oauth_link.id = %link.id,
+                            "Localpart {localpart:?} was denied by the policy ({res}). As the username is just a suggestion, it was ignored."
+                        );
+                        break 'localpart None;
+                    }
+
+                    // If the username policy check fails, we display an error message.
+                    // TODO: translate
+                    let ctx = ErrorContext::new()
+                        .with_code("Policy error")
+                        .with_description(format!(
+                            r"Upstream account provider returned {localpart:?} as username,
+                            which does not pass the policy check: {res}"
+                        ))
+                        .with_language(&locale);
+
+>>>>>>> v1.28.0
                     return Ok((
                         cookie_jar,
                         Html(templates.render_error(&error_ctx)?).into_response(),
@@ -956,7 +999,7 @@ pub(crate) async fn get(
                         tracing::warn!(
                             upstream_oauth_provider.id = %provider.id,
                             upstream_oauth_link.id = %link.id,
-                            "Upstream provider returned a localpart {localpart:?} which isn't available on the homeserver. As the username is just a suggestion, it was ignored."
+                            "Localpart {localpart:?} isn't available on the homeserver. As the username is just a suggestion, it was ignored."
                         );
                         break 'localpart None;
                     }
@@ -1077,7 +1120,9 @@ pub(crate) async fn post(
     let form = cookie_jar.verify_form(&clock, form)?;
 
     let sessions_cookie = UpstreamSessionsCookie::load(&cookie_jar);
-    let (session_id, post_auth_action) = sessions_cookie
+    // The carried username doesn't matter here: the username the user picked,
+    // if they were allowed to pick one, comes from the form
+    let (session_id, post_auth_action, _username) = sessions_cookie
         .lookup_link(link_id)
         .map_err(|_| RouteError::MissingCookie)?;
 
@@ -1598,7 +1643,7 @@ async fn check_email_allowed(
 
 #[cfg(test)]
 mod tests {
-    use hyper::{Request, StatusCode, header::CONTENT_TYPE};
+    use hyper::{Request, Response, StatusCode, header::CONTENT_TYPE};
     use mas_data_model::{
         UpstreamOAuthAuthorizationSession, UpstreamOAuthLink, UpstreamOAuthProviderClaimsImports,
         UpstreamOAuthProviderImportPreference, UpstreamOAuthProviderLocalpartPreference,
@@ -1745,7 +1790,7 @@ mod tests {
 
         let cookie_jar = state.cookie_jar();
         let upstream_sessions = UpstreamSessionsCookie::default()
-            .add(session.id, provider.id, "state".to_owned(), None)
+            .add(session.id, provider.id, "state".to_owned(), None, None)
             .add_link_to_session(session.id, link.id)
             .unwrap();
         let cookie_jar = upstream_sessions.save(cookie_jar, &state.clock);
@@ -2084,7 +2129,7 @@ mod tests {
 
         let cookie_jar = state.cookie_jar();
         let upstream_sessions = UpstreamSessionsCookie::default()
-            .add(session.id, provider.id, "state".to_owned(), None)
+            .add(session.id, provider.id, "state".to_owned(), None, None)
             .add_link_to_session(session.id, link.id)
             .unwrap();
         let cookie_jar = upstream_sessions.save(cookie_jar, &state.clock);
@@ -2219,7 +2264,7 @@ mod tests {
 
         let cookie_jar = state.cookie_jar();
         let upstream_sessions = UpstreamSessionsCookie::default()
-            .add(session.id, provider.id, "state".to_owned(), None)
+            .add(session.id, provider.id, "state".to_owned(), None, None)
             .add_link_to_session(session.id, link.id)
             .unwrap();
         let cookie_jar = upstream_sessions.save(cookie_jar, &state.clock);
@@ -2351,7 +2396,7 @@ mod tests {
 
         let cookie_jar = state.cookie_jar();
         let upstream_sessions = UpstreamSessionsCookie::default()
-            .add(session.id, provider.id, "state".to_owned(), None)
+            .add(session.id, provider.id, "state".to_owned(), None, None)
             .add_link_to_session(session.id, link.id)
             .unwrap();
         let cookie_jar = upstream_sessions.save(cookie_jar, &state.clock);
@@ -2827,7 +2872,7 @@ mod tests {
 
         let cookie_jar = state.cookie_jar();
         let upstream_sessions = UpstreamSessionsCookie::default()
-            .add(session.id, provider.id, "state".to_owned(), None)
+            .add(session.id, provider.id, "state".to_owned(), None, None)
             .add_link_to_session(session.id, link.id)
             .unwrap();
         let cookie_jar = upstream_sessions.save(cookie_jar, &state.clock);
@@ -2966,7 +3011,7 @@ mod tests {
 
         let cookie_jar = state.cookie_jar();
         let upstream_sessions = UpstreamSessionsCookie::default()
-            .add(session.id, provider.id, "state".to_owned(), None)
+            .add(session.id, provider.id, "state".to_owned(), None, None)
             .add_link_to_session(session.id, link.id)
             .unwrap();
         let cookie_jar = upstream_sessions.save(cookie_jar, &state.clock);
@@ -3112,7 +3157,7 @@ mod tests {
 
         let cookie_jar = state.cookie_jar();
         let upstream_sessions = UpstreamSessionsCookie::default()
-            .add(session.id, provider.id, "state".to_owned(), None)
+            .add(session.id, provider.id, "state".to_owned(), None, None)
             .add_link_to_session(session.id, link.id)
             .unwrap();
         let cookie_jar = upstream_sessions.save(cookie_jar, &state.clock);
@@ -3156,6 +3201,7 @@ mod tests {
         assert_eq!(old_link_result.unwrap().user_id, Some(user.id));
     }
 
+<<<<<<< HEAD
     //:tchap:
     #[sqlx::test(migrator = "mas_storage_pg::MIGRATOR")]
     async fn test_link_existing_account_when_emails_do_not_match(pool: PgPool) {
@@ -3190,6 +3236,36 @@ mod tests {
         let id_token = sign_token(&mut rng, &state.key_store, id_token_claims.clone()).unwrap();
 
         // Provision a provider and a link
+=======
+    /// Provision a provider with the given claims imports, along with a
+    /// completed upstream authorization session and its link, and load the
+    /// upstream sessions cookie carrying the given username in the given cookie
+    /// jar
+    async fn carried_username_setup(
+        state: &TestState,
+        cookies: &CookieHelper,
+        localpart: mas_data_model::UpstreamOAuthProviderImportAction,
+        carried_username: &str,
+        skip_confirmation: bool,
+    ) -> UpstreamOAuthLink {
+        let mut rng = state.rng();
+
+        let claims_imports = UpstreamOAuthProviderClaimsImports {
+            localpart: UpstreamOAuthProviderLocalpartPreference {
+                action: localpart,
+                template: None,
+                on_conflict: mas_data_model::UpstreamOAuthProviderOnConflict::default(),
+            },
+            skip_confirmation,
+            ..UpstreamOAuthProviderClaimsImports::default()
+        };
+
+        let id_token_claims = serde_json::json!({
+            "preferred_username": "john",
+        });
+        let id_token = sign_token(&mut rng, &state.key_store, id_token_claims.clone()).unwrap();
+
+>>>>>>> v1.28.0
         let mut repo = state.repository().await.unwrap();
         let provider = repo
             .upstream_oauth_provider()
@@ -3218,28 +3294,42 @@ mod tests {
                     response_mode: None,
                     additional_authorization_parameters: Vec::new(),
                     forward_login_hint: false,
+<<<<<<< HEAD
                     on_backchannel_logout:
                         mas_data_model::UpstreamOAuthProviderOnBackchannelLogout::DoNothing,
                     ui_order: 0,
+=======
+                    ui_order: 0,
+                    on_backchannel_logout:
+                        mas_data_model::UpstreamOAuthProviderOnBackchannelLogout::DoNothing,
+>>>>>>> v1.28.0
                     registration_token_required: false,
                 },
             )
             .await
             .unwrap();
 
+<<<<<<< HEAD
         //provision upstream authorization session to setup cookies
+=======
+>>>>>>> v1.28.0
         let (link, session) = add_linked_upstream_session(
             &mut rng,
             &state.clock,
             &mut repo,
             &provider,
+<<<<<<< HEAD
             subject,
+=======
+            "subject",
+>>>>>>> v1.28.0
             &id_token.into_string(),
             id_token_claims,
         )
         .await
         .unwrap();
 
+<<<<<<< HEAD
         let cookie_jar = state.cookie_jar();
         let upstream_sessions = UpstreamSessionsCookie::default()
             .add(session.id, provider.id, "state".to_owned(), None)
@@ -3277,4 +3367,199 @@ mod tests {
         assert!(response.body().contains("Unexpected error"));
     }
     //:tchap: end
+=======
+        repo.save().await.unwrap();
+
+        let upstream_sessions = UpstreamSessionsCookie::default()
+            .add(
+                session.id,
+                provider.id,
+                "state".to_owned(),
+                None,
+                Some(carried_username.to_owned()),
+            )
+            .add_link_to_session(session.id, link.id)
+            .unwrap();
+        cookies.import(upstream_sessions.save(state.cookie_jar(), &state.clock));
+
+        link
+    }
+
+    /// A username carried through the flow prefills the registration form, and
+    /// takes precedence over the username suggested by the provider
+    #[sqlx::test(migrator = "mas_storage_pg::MIGRATOR")]
+    async fn test_register_with_carried_username(pool: PgPool) {
+        setup();
+        let state = TestState::from_pool(pool).await.unwrap();
+        let cookies = CookieHelper::new();
+
+        let link = carried_username_setup(
+            &state,
+            &cookies,
+            mas_data_model::UpstreamOAuthProviderImportAction::Suggest,
+            "alice",
+            false,
+        )
+        .await;
+
+        let request = Request::get(&*mas_router::UpstreamOAuth2Link::new(link.id).path()).empty();
+        let response = state.request(cookies.with_cookies(request)).await;
+        response.assert_status(StatusCode::OK);
+        assert!(response.body().contains(r#"value="alice""#));
+        assert!(!response.body().contains(r#"value="john""#));
+    }
+
+    /// A carried username prefills the form even when the provider is
+    /// configured to ignore the localpart claim: it isn't a claim, it is what
+    /// the user typed
+    #[sqlx::test(migrator = "mas_storage_pg::MIGRATOR")]
+    async fn test_register_with_carried_username_and_ignored_claim(pool: PgPool) {
+        setup();
+        let state = TestState::from_pool(pool).await.unwrap();
+        let cookies = CookieHelper::new();
+
+        let link = carried_username_setup(
+            &state,
+            &cookies,
+            mas_data_model::UpstreamOAuthProviderImportAction::Ignore,
+            "alice",
+            false,
+        )
+        .await;
+
+        let request = Request::get(&*mas_router::UpstreamOAuth2Link::new(link.id).path()).empty();
+        let response = state.request(cookies.with_cookies(request)).await;
+        response.assert_status(StatusCode::OK);
+        assert!(response.body().contains(r#"value="alice""#));
+    }
+
+    /// Providers which force the localpart ignore the carried username
+    #[sqlx::test(migrator = "mas_storage_pg::MIGRATOR")]
+    async fn test_carried_username_ignored_when_localpart_forced(pool: PgPool) {
+        setup();
+        let state = TestState::from_pool(pool).await.unwrap();
+        let cookies = CookieHelper::new();
+
+        let link = carried_username_setup(
+            &state,
+            &cookies,
+            mas_data_model::UpstreamOAuthProviderImportAction::Force,
+            "alice",
+            false,
+        )
+        .await;
+
+        let request = Request::get(&*mas_router::UpstreamOAuth2Link::new(link.id).path()).empty();
+        let response = state.request(cookies.with_cookies(request)).await;
+        response.assert_status(StatusCode::OK);
+        // The localpart is enforced by the provider, and displayed as a full MXID
+        assert!(response.body().contains(r#"value="@john:"#));
+        assert!(!response.body().contains("alice"));
+    }
+
+    /// A carried username which is already taken is dropped, and the user gets
+    /// to pick another one
+    #[sqlx::test(migrator = "mas_storage_pg::MIGRATOR")]
+    async fn test_carried_username_dropped_when_taken(pool: PgPool) {
+        setup();
+        let state = TestState::from_pool(pool).await.unwrap();
+        let cookies = CookieHelper::new();
+
+        let link = carried_username_setup(
+            &state,
+            &cookies,
+            mas_data_model::UpstreamOAuthProviderImportAction::Suggest,
+            "alice",
+            false,
+        )
+        .await;
+
+        let mut rng = state.rng();
+        let mut repo = state.repository().await.unwrap();
+        repo.user()
+            .add(&mut rng, &state.clock, "alice".to_owned())
+            .await
+            .unwrap();
+        repo.save().await.unwrap();
+
+        let request = Request::get(&*mas_router::UpstreamOAuth2Link::new(link.id).path()).empty();
+        let response = state.request(cookies.with_cookies(request)).await;
+        response.assert_status(StatusCode::OK);
+        assert!(!response.body().contains(r#"value="alice""#));
+        assert!(!response.body().contains(r#"value="john""#));
+    }
+
+    /// Look up the user registration the response redirects to
+    async fn lookup_registration(
+        state: &TestState,
+        response: &Response<String>,
+    ) -> UserRegistration {
+        let location = response.headers().get(hyper::header::LOCATION).unwrap();
+        // The location is /register/steps/{id}/finish
+        let registration_id: Ulid = str::from_utf8(location.as_bytes())
+            .unwrap()
+            .rsplit('/')
+            .nth(1)
+            .expect("Location to have two slashes")
+            .parse()
+            .expect("last segment of location to be a ULID");
+
+        let mut repo = state.repository().await.unwrap();
+        repo.user_registration()
+            .lookup(registration_id)
+            .await
+            .unwrap()
+            .expect("user registration exists")
+    }
+
+    /// A provider which skips the confirmation registers under the carried
+    /// username, without showing the form
+    #[sqlx::test(migrator = "mas_storage_pg::MIGRATOR")]
+    async fn test_carried_username_with_skip_confirmation(pool: PgPool) {
+        setup();
+        let state = TestState::from_pool(pool).await.unwrap();
+        let cookies = CookieHelper::new();
+
+        let link = carried_username_setup(
+            &state,
+            &cookies,
+            mas_data_model::UpstreamOAuthProviderImportAction::Suggest,
+            "alice",
+            true,
+        )
+        .await;
+
+        let request = Request::get(&*mas_router::UpstreamOAuth2Link::new(link.id).path()).empty();
+        let response = state.request(cookies.with_cookies(request)).await;
+        response.assert_status(StatusCode::SEE_OTHER);
+
+        let registration = lookup_registration(&state, &response).await;
+        assert_eq!(registration.username, "alice");
+    }
+
+    /// The carried username is what makes the registration possible when the
+    /// provider ignores the localpart claim and skips the confirmation
+    #[sqlx::test(migrator = "mas_storage_pg::MIGRATOR")]
+    async fn test_carried_username_with_skip_confirmation_and_ignored_claim(pool: PgPool) {
+        setup();
+        let state = TestState::from_pool(pool).await.unwrap();
+        let cookies = CookieHelper::new();
+
+        let link = carried_username_setup(
+            &state,
+            &cookies,
+            mas_data_model::UpstreamOAuthProviderImportAction::Ignore,
+            "alice",
+            true,
+        )
+        .await;
+
+        let request = Request::get(&*mas_router::UpstreamOAuth2Link::new(link.id).path()).empty();
+        let response = state.request(cookies.with_cookies(request)).await;
+        response.assert_status(StatusCode::SEE_OTHER);
+
+        let registration = lookup_registration(&state, &response).await;
+        assert_eq!(registration.username, "alice");
+    }
+>>>>>>> v1.28.0
 }
