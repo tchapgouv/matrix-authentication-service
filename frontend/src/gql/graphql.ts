@@ -356,10 +356,12 @@ export type UserEmailList_SiteConfigFragment = { emailChangeAllowed: boolean, pa
 
 export type BrowserSessionsOverview_UserFragment = { browserSessions: { totalCount: number } } & { ' $fragmentName'?: 'BrowserSessionsOverview_UserFragment' };
 
-export type PasswordChangeQueryVariables = Exact<{ [key: string]: never; }>;
+export type PasswordCreationDoubleInput_SiteConfigFragment = { id: string, minimumPasswordComplexity: number } & { ' $fragmentName'?: 'PasswordCreationDoubleInput_SiteConfigFragment' };
+
+export type PasswordDoubleInputQueryVariables = Exact<{ [key: string]: never; }>;
 
 
-export type PasswordChangeQuery = { viewer:
+export type PasswordDoubleInputQuery = { viewer:
     | { __typename: 'Anonymous', id: string }
     | { __typename: 'User', id: string }
   , siteConfig: { ' $fragmentRefs'?: { 'PasswordCreationDoubleInput_SiteConfigFragment': PasswordCreationDoubleInput_SiteConfigFragment } } };
@@ -508,8 +510,6 @@ export type ChangePasswordMutationVariables = Exact<{
 
 export type ChangePasswordMutation = { setPassword: { status: SetPasswordStatus } };
 
-<<<<<<< HEAD
-=======
 export type PasswordChangeQueryVariables = Exact<{ [key: string]: never; }>;
 
 
@@ -518,7 +518,6 @@ export type PasswordChangeQuery = { viewer:
     | { __typename: 'User', id: string }
   , siteConfig: { minimumPasswordComplexity: number } };
 
->>>>>>> v1.28.0
 export type RecoverPasswordMutationVariables = Exact<{
   ticket: string;
   newPassword: string;
@@ -937,6 +936,12 @@ export const BrowserSessionsOverview_UserFragmentDoc = new TypedDocumentString(`
   }
 }
     `, {"fragmentName":"BrowserSessionsOverview_user"}) as unknown as TypedDocumentString<BrowserSessionsOverview_UserFragment, unknown>;
+export const PasswordCreationDoubleInput_SiteConfigFragmentDoc = new TypedDocumentString(`
+    fragment PasswordCreationDoubleInput_siteConfig on SiteConfig {
+  id
+  minimumPasswordComplexity
+}
+    `, {"fragmentName":"PasswordCreationDoubleInput_siteConfig"}) as unknown as TypedDocumentString<PasswordCreationDoubleInput_SiteConfigFragment, unknown>;
 export const RecoverPassword_UserRecoveryTicketFragmentDoc = new TypedDocumentString(`
     fragment RecoverPassword_userRecoveryTicket on UserRecoveryTicket {
   username
@@ -1082,8 +1087,8 @@ export const UserEmailListDocument = new TypedDocumentString(`
   id
   email
 }`) as unknown as TypedDocumentString<UserEmailListQuery, UserEmailListQueryVariables>;
-export const PasswordChangeDocument = new TypedDocumentString(`
-    query PasswordChange {
+export const PasswordDoubleInputDocument = new TypedDocumentString(`
+    query PasswordDoubleInput {
   viewer {
     __typename
     ... on Node {
@@ -1097,7 +1102,7 @@ export const PasswordChangeDocument = new TypedDocumentString(`
     fragment PasswordCreationDoubleInput_siteConfig on SiteConfig {
   id
   minimumPasswordComplexity
-}`) as unknown as TypedDocumentString<PasswordChangeQuery, PasswordChangeQueryVariables>;
+}`) as unknown as TypedDocumentString<PasswordDoubleInputQuery, PasswordDoubleInputQueryVariables>;
 export const UserProfileDocument = new TypedDocumentString(`
     query UserProfile {
   viewerSession {
@@ -1440,8 +1445,6 @@ export const ChangePasswordDocument = new TypedDocumentString(`
   }
 }
     `) as unknown as TypedDocumentString<ChangePasswordMutation, ChangePasswordMutationVariables>;
-<<<<<<< HEAD
-=======
 export const PasswordChangeDocument = new TypedDocumentString(`
     query PasswordChange {
   viewer {
@@ -1455,7 +1458,6 @@ export const PasswordChangeDocument = new TypedDocumentString(`
   }
 }
     `) as unknown as TypedDocumentString<PasswordChangeQuery, PasswordChangeQueryVariables>;
->>>>>>> v1.28.0
 export const RecoverPasswordDocument = new TypedDocumentString(`
     mutation RecoverPassword($ticket: String!, $newPassword: String!) {
   setPasswordByRecovery(input: {ticket: $ticket, newPassword: $newPassword}) {
@@ -1880,7 +1882,7 @@ export const mockUserEmailListQuery = (resolver: GraphQLResponseResolver<UserEma
  * @param options Options object to customize the behavior of the mock. ([see more](https://mswjs.io/docs/api/graphql#handler-options))
  * @see https://mswjs.io/docs/basics/response-resolver
  * @example
- * mockPasswordChangeQuery(
+ * mockPasswordDoubleInputQuery(
  *   ({ query, variables }) => {
  *     return HttpResponse.json({
  *       data: { viewer, siteConfig }
@@ -1889,9 +1891,9 @@ export const mockUserEmailListQuery = (resolver: GraphQLResponseResolver<UserEma
  *   requestOptions
  * )
  */
-export const mockPasswordChangeQuery = (resolver: GraphQLResponseResolver<PasswordChangeQuery, PasswordChangeQueryVariables>, options?: RequestHandlerOptions) =>
-  graphql.query<PasswordChangeQuery, PasswordChangeQueryVariables>(
-    'PasswordChange',
+export const mockPasswordDoubleInputQuery = (resolver: GraphQLResponseResolver<PasswordDoubleInputQuery, PasswordDoubleInputQueryVariables>, options?: RequestHandlerOptions) =>
+  graphql.query<PasswordDoubleInputQuery, PasswordDoubleInputQueryVariables>(
+    'PasswordDoubleInput',
     resolver,
     options
   )
@@ -2173,6 +2175,27 @@ export const mockResendEmailAuthenticationCodeMutation = (resolver: GraphQLRespo
 export const mockChangePasswordMutation = (resolver: GraphQLResponseResolver<ChangePasswordMutation, ChangePasswordMutationVariables>, options?: RequestHandlerOptions) =>
   graphql.mutation<ChangePasswordMutation, ChangePasswordMutationVariables>(
     'ChangePassword',
+    resolver,
+    options
+  )
+
+/**
+ * @param resolver A function that accepts [resolver arguments](https://mswjs.io/docs/api/graphql#resolver-argument) and must always return the instruction on what to do with the intercepted request. ([see more](https://mswjs.io/docs/concepts/response-resolver#resolver-instructions))
+ * @param options Options object to customize the behavior of the mock. ([see more](https://mswjs.io/docs/api/graphql#handler-options))
+ * @see https://mswjs.io/docs/basics/response-resolver
+ * @example
+ * mockPasswordChangeQuery(
+ *   ({ query, variables }) => {
+ *     return HttpResponse.json({
+ *       data: { viewer, siteConfig }
+ *     })
+ *   },
+ *   requestOptions
+ * )
+ */
+export const mockPasswordChangeQuery = (resolver: GraphQLResponseResolver<PasswordChangeQuery, PasswordChangeQueryVariables>, options?: RequestHandlerOptions) =>
+  graphql.query<PasswordChangeQuery, PasswordChangeQueryVariables>(
+    'PasswordChange',
     resolver,
     options
   )

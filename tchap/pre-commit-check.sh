@@ -9,6 +9,9 @@ set -eu
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 export MAS_HOME="$(dirname "$SCRIPT_DIR")"
 
+# tchap translations must be complete with respect to upstream translations
+python3 $MAS_HOME/tchap/check_translations.py
+
 # fmt
 cd $MAS_HOME
 sh ./misc/update.sh

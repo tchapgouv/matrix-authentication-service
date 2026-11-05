@@ -697,20 +697,19 @@ impl RegisterPageProvider {
 /// Context used by the `register/index.html` template
 #[derive(Serialize)]
 pub struct RegisterContext {
-<<<<<<< HEAD
-    providers: Vec<UpstreamOAuthProvider>,
-    next: Option<PostAuthContext>,
-    //:tchap: whether the email domain of the login hint is ProConnect-only,
-    // in which case the "continue with email" button is hidden
-    proconnect_only: bool,
-    //:tchap: the login hint email, displayed when `ProConnect` is enforced
-    proconnect_login_hint: Option<String>,
-=======
     providers: Vec<RegisterPageProvider>,
     login_link: String,
     form: FormState<RegisterFormField>,
     graphql_endpoint: String,
->>>>>>> v1.28.0
+    //:tchap: post-auth context and ProConnect-only registration fields used
+    // by the Tchap register template
+    next: Option<PostAuthContext>,
+    /// whether the email domain of the login hint is ProConnect-only,
+    /// in which case the "continue with email" button is hidden
+    proconnect_only: bool,
+    /// the login hint email, displayed when `ProConnect` is enforced
+    proconnect_login_hint: Option<String>,
+    //:tchap: end
 }
 
 impl TemplateContext for RegisterContext {
@@ -722,20 +721,9 @@ impl TemplateContext for RegisterContext {
     where
         Self: Sized,
     {
-<<<<<<< HEAD
-        sample_list(vec![RegisterContext {
-            providers: Vec::new(),
-            next: None,
-            //:tchap:
-            proconnect_only: false,
-            proconnect_login_hint: None,
-            //:tchap:end
-        }])
-=======
         let url_builder = UrlBuilder::new("https://example.com/".parse().unwrap(), None, None);
         // TODO: samples with errors and with upstream providers
         sample_list(vec![RegisterContext::new(&url_builder, Vec::new(), None)])
->>>>>>> v1.28.0
     }
 }
 
@@ -749,16 +737,28 @@ impl RegisterContext {
         post_auth_action: Option<&PostAuthAction>,
     ) -> Self {
         Self {
-<<<<<<< HEAD
-            providers,
-            next: None,
+            providers: providers
+                .into_iter()
+                .map(RegisterPageProvider::new)
+                .collect(),
+            login_link: url_builder.relative_url_for(&Login::from(post_auth_action.cloned())),
+            form: FormState::default(),
+            graphql_endpoint: url_builder.relative_url_for(&GraphQL),
             //:tchap:
+            next: None,
             proconnect_only: false,
             proconnect_login_hint: None,
-            //:tchap:end
+            //:tchap: end
         }
     }
 
+    /// Set the state of the registration form
+    #[must_use]
+    pub fn with_form_state(self, form: FormState<RegisterFormField>) -> Self {
+        Self { form, ..self }
+    }
+
+    //:tchap:
     /// Add a post authentication action to the context
     #[must_use]
     pub fn with_post_action(self, next: PostAuthContext) -> Self {
@@ -768,7 +768,6 @@ impl RegisterContext {
         }
     }
 
-    //:tchap:
     /// Set whether the email domain of the login hint is ProConnect-only
     #[must_use]
     pub fn with_proconnect_only(self, proconnect_only: bool) -> Self {
@@ -786,44 +785,7 @@ impl RegisterContext {
             ..self
         }
     }
-    //:tchap:end
-}
-
-/// Context used by the `password_register.html` template
-#[derive(Serialize, Default)]
-pub struct PasswordRegisterContext {
-    form: FormState<RegisterFormField>,
-    next: Option<PostAuthContext>,
-}
-
-impl TemplateContext for PasswordRegisterContext {
-    fn sample<R: Rng>(
-        _now: chrono::DateTime<Utc>,
-        _rng: &mut R,
-        _locales: &[DataLocale],
-    ) -> BTreeMap<SampleIdentifier, Self>
-    where
-        Self: Sized,
-    {
-        // TODO: samples with errors
-        sample_list(vec![PasswordRegisterContext {
-=======
-            providers: providers
-                .into_iter()
-                .map(RegisterPageProvider::new)
-                .collect(),
-            login_link: url_builder.relative_url_for(&Login::from(post_auth_action.cloned())),
->>>>>>> v1.28.0
-            form: FormState::default(),
-            graphql_endpoint: url_builder.relative_url_for(&GraphQL),
-        }
-    }
-
-    /// Set the state of the registration form
-    #[must_use]
-    pub fn with_form_state(self, form: FormState<RegisterFormField>) -> Self {
-        Self { form, ..self }
-    }
+    //:tchap: end
 }
 
 /// Context used by the `consent.html` template
@@ -1278,7 +1240,7 @@ impl EmailRecoveryDeactivatedContext {
 }
 
 impl TemplateContext for EmailRecoveryDeactivatedContext {
-    fn sample<R: Rng>(
+    fn sample<R: RngExt>(
         now: chrono::DateTime<Utc>,
         rng: &mut R,
         _locales: &[DataLocale],

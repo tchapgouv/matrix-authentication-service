@@ -560,63 +560,10 @@ pub(crate) async fn get(
                     localpart
                 };
 
-<<<<<<< HEAD
-                let forced_or_required = provider.claims_imports.localpart.is_forced_or_required();
-
-                // We've got a localpart from the template. Let's run the policy
-                // engine on this registration and react early to a problem on
-                // the username
-                let res = policy
-                    .evaluate_register(mas_policy::RegisterInput {
-                        registration_method: mas_policy::RegistrationMethod::UpstreamOAuth2,
-                        username: &localpart,
-                        email: email.as_deref(),
-                        requester: mas_policy::Requester {
-                            ip_address: activity_tracker.ip(),
-                            user_agent: user_agent.clone(),
-                        },
-                    })
-                    .await?;
-
-                // We don't do a full policy check at this point, only look for violations on
-                // the username
-                if res
-                    .violations
-                    .iter()
-                    .any(|violation| violation.field.as_deref() == Some("username"))
-                {
-                    if !forced_or_required {
-                        tracing::warn!(
-                            upstream_oauth_provider.id = %provider.id,
-                            upstream_oauth_link.id = %link.id,
-                            "Upstream provider returned a localpart {localpart:?} which was denied by the policy ({res}). As the username is just a suggestion, it was ignored."
-                        );
-                        break 'localpart None;
-                    }
-
-                    // If the username policy check fails, we display an error message.
-                    // TODO: translate
-                    let ctx = ErrorContext::new()
-                        .with_code("Policy error")
-                        .with_description(format!(
-                            r"Upstream account provider returned {localpart:?} as username,
-                            which does not pass the policy check: {res}"
-                        ))
-                        .with_language(&locale);
-
-                    return Ok((
-                        cookie_jar,
-                        Html(templates.render_error(&ctx)?).into_response(),
-                    ));
-                }
-
                 //:tchap:
                 // matching is done by email so we search users by email and not username
 
-                // We got a localpart from the template. We need to check if it's
-=======
                 // We got a localpart candidate. We need to check if it's
->>>>>>> v1.28.0
                 // available, and if it's not apply the conflict resolution setup in
                 // the config
 
@@ -946,7 +893,9 @@ pub(crate) async fn get(
                 )?;
 
                 if let Some(error_ctx) = validate_email_for_server(
-                    &email.unwrap(),
+                    //:tchap: borrow instead of unwrapping: the email is used
+                    // again below in the policy evaluation
+                    email.as_deref().unwrap(),
                     &homeserver,
                     &tchap_config,
                     &locale,
@@ -957,8 +906,35 @@ pub(crate) async fn get(
                 )
                 .await?
                 {
-<<<<<<< HEAD
-=======
+                    return Ok((
+                        cookie_jar,
+                        Html(templates.render_error(&error_ctx)?).into_response(),
+                    ));
+                }
+                //:tchap: end
+
+                // We've got a localpart from the template. Let's run the policy
+                // engine on this registration and react early to a problem on
+                // the username
+                let res = policy
+                    .evaluate_register(mas_policy::RegisterInput {
+                        registration_method: mas_policy::RegistrationMethod::UpstreamOAuth2,
+                        username: &localpart,
+                        email: email.as_deref(),
+                        requester: mas_policy::Requester {
+                            ip_address: activity_tracker.ip(),
+                            user_agent: user_agent.clone(),
+                        },
+                    })
+                    .await?;
+
+                // We don't do a full policy check at this point, only look for violations on
+                // the username
+                if res
+                    .violations
+                    .iter()
+                    .any(|violation| violation.field.as_deref() == Some("username"))
+                {
                     if !forced_or_required {
                         tracing::warn!(
                             upstream_oauth_provider.id = %provider.id,
@@ -978,13 +954,11 @@ pub(crate) async fn get(
                         ))
                         .with_language(&locale);
 
->>>>>>> v1.28.0
                     return Ok((
                         cookie_jar,
-                        Html(templates.render_error(&error_ctx)?).into_response(),
+                        Html(templates.render_error(&ctx)?).into_response(),
                     ));
                 }
-                //:tchap: end
 
                 // Now let's check if the localpart is allowed by the homeserver. It's possible
                 // that it's plain invalid (although that should have been caught by the
@@ -1986,7 +1960,7 @@ mod tests {
 
         let cookie_jar = state.cookie_jar();
         let upstream_sessions = UpstreamSessionsCookie::default()
-            .add(session.id, provider.id, "state".to_owned(), None)
+            .add(session.id, provider.id, "state".to_owned(), None, None)
             .add_link_to_session(session.id, link.id)
             .unwrap();
         let cookie_jar = upstream_sessions.save(cookie_jar, &state.clock);
@@ -2501,7 +2475,7 @@ mod tests {
 
         let cookie_jar = state.cookie_jar();
         let upstream_sessions = UpstreamSessionsCookie::default()
-            .add(session.id, provider.id, "state".to_owned(), None)
+            .add(session.id, provider.id, "state".to_owned(), None, None)
             .add_link_to_session(session.id, link.id)
             .unwrap();
         let cookie_jar = upstream_sessions.save(cookie_jar, &state.clock);
@@ -2642,7 +2616,7 @@ mod tests {
 
         let cookie_jar = state.cookie_jar();
         let upstream_sessions = UpstreamSessionsCookie::default()
-            .add(session.id, provider.id, "state".to_owned(), None)
+            .add(session.id, provider.id, "state".to_owned(), None, None)
             .add_link_to_session(session.id, link.id)
             .unwrap();
         let cookie_jar = upstream_sessions.save(cookie_jar, &state.clock);
@@ -3201,7 +3175,6 @@ mod tests {
         assert_eq!(old_link_result.unwrap().user_id, Some(user.id));
     }
 
-<<<<<<< HEAD
     //:tchap:
     #[sqlx::test(migrator = "mas_storage_pg::MIGRATOR")]
     async fn test_link_existing_account_when_emails_do_not_match(pool: PgPool) {
@@ -3236,36 +3209,6 @@ mod tests {
         let id_token = sign_token(&mut rng, &state.key_store, id_token_claims.clone()).unwrap();
 
         // Provision a provider and a link
-=======
-    /// Provision a provider with the given claims imports, along with a
-    /// completed upstream authorization session and its link, and load the
-    /// upstream sessions cookie carrying the given username in the given cookie
-    /// jar
-    async fn carried_username_setup(
-        state: &TestState,
-        cookies: &CookieHelper,
-        localpart: mas_data_model::UpstreamOAuthProviderImportAction,
-        carried_username: &str,
-        skip_confirmation: bool,
-    ) -> UpstreamOAuthLink {
-        let mut rng = state.rng();
-
-        let claims_imports = UpstreamOAuthProviderClaimsImports {
-            localpart: UpstreamOAuthProviderLocalpartPreference {
-                action: localpart,
-                template: None,
-                on_conflict: mas_data_model::UpstreamOAuthProviderOnConflict::default(),
-            },
-            skip_confirmation,
-            ..UpstreamOAuthProviderClaimsImports::default()
-        };
-
-        let id_token_claims = serde_json::json!({
-            "preferred_username": "john",
-        });
-        let id_token = sign_token(&mut rng, &state.key_store, id_token_claims.clone()).unwrap();
-
->>>>>>> v1.28.0
         let mut repo = state.repository().await.unwrap();
         let provider = repo
             .upstream_oauth_provider()
@@ -3294,45 +3237,31 @@ mod tests {
                     response_mode: None,
                     additional_authorization_parameters: Vec::new(),
                     forward_login_hint: false,
-<<<<<<< HEAD
                     on_backchannel_logout:
                         mas_data_model::UpstreamOAuthProviderOnBackchannelLogout::DoNothing,
                     ui_order: 0,
-=======
-                    ui_order: 0,
-                    on_backchannel_logout:
-                        mas_data_model::UpstreamOAuthProviderOnBackchannelLogout::DoNothing,
->>>>>>> v1.28.0
                     registration_token_required: false,
                 },
             )
             .await
             .unwrap();
 
-<<<<<<< HEAD
         //provision upstream authorization session to setup cookies
-=======
->>>>>>> v1.28.0
         let (link, session) = add_linked_upstream_session(
             &mut rng,
             &state.clock,
             &mut repo,
             &provider,
-<<<<<<< HEAD
             subject,
-=======
-            "subject",
->>>>>>> v1.28.0
             &id_token.into_string(),
             id_token_claims,
         )
         .await
         .unwrap();
 
-<<<<<<< HEAD
         let cookie_jar = state.cookie_jar();
         let upstream_sessions = UpstreamSessionsCookie::default()
-            .add(session.id, provider.id, "state".to_owned(), None)
+            .add(session.id, provider.id, "state".to_owned(), None, None)
             .add_link_to_session(session.id, link.id)
             .unwrap();
         let cookie_jar = upstream_sessions.save(cookie_jar, &state.clock);
@@ -3367,7 +3296,84 @@ mod tests {
         assert!(response.body().contains("Unexpected error"));
     }
     //:tchap: end
-=======
+
+    /// Provision a provider with the given claims imports, along with a
+    /// completed upstream authorization session and its link, and load the
+    /// upstream sessions cookie carrying the given username in the given cookie
+    /// jar
+    async fn carried_username_setup(
+        state: &TestState,
+        cookies: &CookieHelper,
+        localpart: mas_data_model::UpstreamOAuthProviderImportAction,
+        carried_username: &str,
+        skip_confirmation: bool,
+    ) -> UpstreamOAuthLink {
+        let mut rng = state.rng();
+
+        let claims_imports = UpstreamOAuthProviderClaimsImports {
+            localpart: UpstreamOAuthProviderLocalpartPreference {
+                action: localpart,
+                template: None,
+                on_conflict: mas_data_model::UpstreamOAuthProviderOnConflict::default(),
+            },
+            skip_confirmation,
+            ..UpstreamOAuthProviderClaimsImports::default()
+        };
+
+        let id_token_claims = serde_json::json!({
+            "preferred_username": "john",
+        });
+        let id_token = sign_token(&mut rng, &state.key_store, id_token_claims.clone()).unwrap();
+
+        let mut repo = state.repository().await.unwrap();
+        let provider = repo
+            .upstream_oauth_provider()
+            .add(
+                &mut rng,
+                &state.clock,
+                UpstreamOAuthProviderParams {
+                    issuer: Some("https://example.com/".to_owned()),
+                    human_name: Some("Example Ltd.".to_owned()),
+                    brand_name: None,
+                    scope: Scope::from_iter([OPENID]),
+                    token_endpoint_auth_method: UpstreamOAuthProviderTokenAuthMethod::None,
+                    token_endpoint_signing_alg: None,
+                    id_token_signed_response_alg: JsonWebSignatureAlg::Rs256,
+                    client_id: "client".to_owned(),
+                    encrypted_client_secret: None,
+                    claims_imports,
+                    authorization_endpoint_override: None,
+                    token_endpoint_override: None,
+                    userinfo_endpoint_override: None,
+                    fetch_userinfo: false,
+                    userinfo_signed_response_alg: None,
+                    jwks_uri_override: None,
+                    discovery_mode: mas_data_model::UpstreamOAuthProviderDiscoveryMode::Oidc,
+                    pkce_mode: mas_data_model::UpstreamOAuthProviderPkceMode::Auto,
+                    response_mode: None,
+                    additional_authorization_parameters: Vec::new(),
+                    forward_login_hint: false,
+                    ui_order: 0,
+                    on_backchannel_logout:
+                        mas_data_model::UpstreamOAuthProviderOnBackchannelLogout::DoNothing,
+                    registration_token_required: false,
+                },
+            )
+            .await
+            .unwrap();
+
+        let (link, session) = add_linked_upstream_session(
+            &mut rng,
+            &state.clock,
+            &mut repo,
+            &provider,
+            "subject",
+            &id_token.into_string(),
+            id_token_claims,
+        )
+        .await
+        .unwrap();
+
         repo.save().await.unwrap();
 
         let upstream_sessions = UpstreamSessionsCookie::default()
@@ -3387,6 +3393,9 @@ mod tests {
 
     /// A username carried through the flow prefills the registration form, and
     /// takes precedence over the username suggested by the provider
+    //:tchap: Tchap matches SSO accounts by email; providers without an email
+    // claim (like the one in this fixture) are not supported
+    #[ignore = "Tchap matches SSO accounts by email"]
     #[sqlx::test(migrator = "mas_storage_pg::MIGRATOR")]
     async fn test_register_with_carried_username(pool: PgPool) {
         setup();
@@ -3412,6 +3421,9 @@ mod tests {
     /// A carried username prefills the form even when the provider is
     /// configured to ignore the localpart claim: it isn't a claim, it is what
     /// the user typed
+    //:tchap: Tchap matches SSO accounts by email; providers without an email
+    // claim (like the one in this fixture) are not supported
+    #[ignore = "Tchap matches SSO accounts by email"]
     #[sqlx::test(migrator = "mas_storage_pg::MIGRATOR")]
     async fn test_register_with_carried_username_and_ignored_claim(pool: PgPool) {
         setup();
@@ -3434,6 +3446,9 @@ mod tests {
     }
 
     /// Providers which force the localpart ignore the carried username
+    //:tchap: Tchap matches SSO accounts by email; providers without an email
+    // claim (like the one in this fixture) are not supported
+    #[ignore = "Tchap matches SSO accounts by email"]
     #[sqlx::test(migrator = "mas_storage_pg::MIGRATOR")]
     async fn test_carried_username_ignored_when_localpart_forced(pool: PgPool) {
         setup();
@@ -3459,6 +3474,9 @@ mod tests {
 
     /// A carried username which is already taken is dropped, and the user gets
     /// to pick another one
+    //:tchap: Tchap matches SSO accounts by email; providers without an email
+    // claim (like the one in this fixture) are not supported
+    #[ignore = "Tchap matches SSO accounts by email"]
     #[sqlx::test(migrator = "mas_storage_pg::MIGRATOR")]
     async fn test_carried_username_dropped_when_taken(pool: PgPool) {
         setup();
@@ -3514,6 +3532,9 @@ mod tests {
 
     /// A provider which skips the confirmation registers under the carried
     /// username, without showing the form
+    //:tchap: Tchap matches SSO accounts by email; providers without an email
+    // claim (like the one in this fixture) are not supported
+    #[ignore = "Tchap matches SSO accounts by email"]
     #[sqlx::test(migrator = "mas_storage_pg::MIGRATOR")]
     async fn test_carried_username_with_skip_confirmation(pool: PgPool) {
         setup();
@@ -3539,6 +3560,9 @@ mod tests {
 
     /// The carried username is what makes the registration possible when the
     /// provider ignores the localpart claim and skips the confirmation
+    //:tchap: Tchap matches SSO accounts by email; providers without an email
+    // claim (like the one in this fixture) are not supported
+    #[ignore = "Tchap matches SSO accounts by email"]
     #[sqlx::test(migrator = "mas_storage_pg::MIGRATOR")]
     async fn test_carried_username_with_skip_confirmation_and_ignored_claim(pool: PgPool) {
         setup();
@@ -3561,5 +3585,4 @@ mod tests {
         let registration = lookup_registration(&state, &response).await;
         assert_eq!(registration.username, "alice");
     }
->>>>>>> v1.28.0
 }

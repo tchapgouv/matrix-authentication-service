@@ -17,12 +17,16 @@ use mas_axum_utils::{
     cookies::CookieJar,
     csrf::{CsrfExt as _, ProtectedForm},
 };
-use mas_data_model::{BoxClock, BoxRng, SiteConfig, UpstreamOAuthProvider};
+use mas_data_model::{BoxClock, BoxRng, SiteConfig, TchapConfig, UpstreamOAuthProvider};
 use mas_matrix::HomeserverConnection;
 use mas_policy::Policy;
 use mas_router::{Register, UpstreamOAuth2Authorize, UrlBuilder};
 use mas_storage::{BoxRepository, upstream_oauth2::UpstreamOAuthProviderRepository};
-use mas_templates::{RegisterContext, RegisterFormField, TemplateContext, Templates, ToFormState};
+//:tchap: FormState is used to prefill the email field from the login_hint
+use mas_templates::{
+    FormState, RegisterContext, RegisterFormField, TemplateContext, Templates, ToFormState,
+};
+//:tchap:end
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use ulid::Ulid;
@@ -98,11 +102,8 @@ pub(crate) async fn get(
         }
     }
 
-<<<<<<< HEAD
-    let mut ctx = RegisterContext::new(providers);
-    //:tchap: hide the "continue with email" button when the email domain is
-    // ProConnect-only (register/proconnect_only policy entrypoint). The email
-    // comes from the login_hint attached to the OAuth2 authorization grant.
+    //:tchap: the Tchap register template needs the login_hint email, the
+    // ProConnect-only policy verdict and the post-auth context
     let login_hint =
         tchap::login_hint_from_post_auth_action(&mut repo, query.post_auth_action.as_ref()).await?;
     let proconnect_only = match login_hint.as_deref() {
@@ -115,27 +116,36 @@ pub(crate) async fn get(
         }
         None => false,
     };
-    //:tchap: pass the login hint email to the template so it can display an
-    // explanatory message above the ProConnect button
-    ctx = ctx
-        .with_proconnect_only(proconnect_only)
-        .with_proconnect_login_hint(login_hint);
-    //:tchap:end
     let post_action = query
         .load_context(&mut repo)
         .await
         .map_err(InternalError::from_anyhow)?;
+    //:tchap: end
+
+    let mut ctx = RegisterContext::new(&url_builder, providers, query.post_auth_action.as_ref());
+    //:tchap: prefill the email field with the login_hint attached to the
+    // authorization grant, as the Tchap registration flow is email-based
+    if let Some(email) = &login_hint {
+        let mut form_state = FormState::default();
+        form_state.set_value(RegisterFormField::Email, Some(email.clone()));
+        ctx = ctx.with_form_state(form_state);
+    }
+    //:tchap: pass the ProConnect-only verdict and the login hint email to the
+    // template, so it can hide the email form and display an explanatory
+    // message above the ProConnect button
+    ctx = ctx
+        .with_proconnect_only(proconnect_only)
+        .with_proconnect_login_hint(login_hint);
+    //:tchap: the Tchap register template uses `next` to build the ProConnect
+    // authorize URL
     if let Some(action) = post_action {
         ctx = ctx.with_post_action(action);
     }
-
-    let ctx = ctx.with_csrf(csrf_token.form_value()).with_language(locale);
-=======
-    let ctx = RegisterContext::new(&url_builder, providers, query.post_auth_action.as_ref())
+    //:tchap: end
+    let ctx = ctx
         .with_captcha(site_config.captcha.clone())
         .with_csrf(csrf_token.form_value())
         .with_language(locale);
->>>>>>> v1.28.0
 
     let content = templates.render_register(&ctx)?;
 
@@ -180,6 +190,8 @@ impl ToFormState for RegisterForm {
 }
 
 // The tuples group extractors: axum implements `Handler` for at most 16 of them.
+//:tchap: the site_config extractor is grouped with the Tchap config to stay
+// under that limit
 #[tracing::instrument(name = "handlers.views.register.post", skip_all)]
 #[expect(clippy::too_many_arguments)]
 pub(crate) async fn post(
@@ -189,7 +201,7 @@ pub(crate) async fn post(
     State(password_manager): State<PasswordManager>,
     State(templates): State<Templates>,
     State(url_builder): State<UrlBuilder>,
-    State(site_config): State<SiteConfig>,
+    (State(site_config), State(tchap_config)): (State<SiteConfig>, State<TchapConfig>),
     State(homeserver): State<Arc<dyn HomeserverConnection>>,
     (State(http_client), State(metadata_cache)): (State<reqwest::Client>, State<MetadataCache>),
     (State(limiter), requester): (State<Limiter>, RequesterFingerprint),
@@ -271,6 +283,9 @@ pub(crate) async fn post(
         &templates,
         &url_builder,
         &site_config,
+        //:tchap: the Tchap config drives the email-based registration checks
+        &tchap_config,
+        //:tchap:end
         &*homeserver,
         &http_client,
         &limiter,
@@ -712,7 +727,9 @@ mod tests {
             .expect("the upstream sessions cookie should be set");
         assert!(sessions[0].get("username").is_none());
 
-        // Password registration keeps the overlong username, and the policy rejects it
+        //:tchap: for password registration the submitted username is ignored:
+        // Tchap generates it from the email address, so the overlong username
+        // doesn't make the registration fail
         let request = cookies.with_cookies(Request::post("/register").form(serde_json::json!({
             "csrf": csrf_token,
             "username": username,
@@ -722,11 +739,19 @@ mod tests {
             "accept_terms": "on",
         })));
         let response = state.request(request).await;
-        response.assert_status(StatusCode::OK);
-        assert_eq!(
-            json_attribute(response.body(), "data-form")["fields"]["username"]["errors"][0]["code"],
-            serde_json::json!("username-too-long")
-        );
+        response.assert_status(StatusCode::SEE_OTHER);
+
+        let location = response.headers().get(LOCATION).unwrap().to_str().unwrap();
+        let id: Ulid = location.rsplit('/').nth(1).unwrap().parse().unwrap();
+        let mut repo = state.repository().await.unwrap();
+        let registration = repo
+            .user_registration()
+            .lookup(id)
+            .await
+            .unwrap()
+            .expect("the registration should have been created");
+        assert_eq!(registration.username, "john-example.com");
+        //:tchap: end
     }
 
     /// Submitting a provider which doesn't exist gives a 404
