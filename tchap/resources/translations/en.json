@@ -194,7 +194,9 @@
         "context": "pages/consent.html:91:9-120, pages/sso.html:37:11-72"
       },
       "continue_to": "Continue to <span>%(client_name)s</span>?",
-      "@continue_to": {},
+      "@continue_to": {
+        "context": "pages/consent.html:31:11-72, pages/sso.html:25:11-64"
+      },
       "heading": "New device has been detected",
       "@heading": {
         "context": "pages/consent.html:30:27-51, pages/sso.html:32:27-51"
@@ -362,15 +364,21 @@
       },
       "recovery": {
         "click_button": "Click on the button below to create a new password:",
-        "@click_button": {},
+        "@click_button": {
+          "context": "emails/recovery.html:28:7-44"
+        },
         "copy_link": "Copy the following link and paste it into a browser to create a new password:",
         "@copy_link": {
           "context": "emails/recovery.txt:12:3-37"
         },
         "create_new_password": "Create new password",
-        "@create_new_password": {},
+        "@create_new_password": {
+          "context": "emails/recovery.html:43:9-53"
+        },
         "fallback": "The button doesn't work for you?",
-        "@fallback": {},
+        "@fallback": {
+          "context": "emails/recovery.html:45:9-42"
+        },
         "headline": "You requested a password reset for your %(server_name)s account.",
         "@headline": {
           "context": "emails/recovery.txt:10:3-70"
@@ -452,7 +460,7 @@
         "context": "components/field.html:40:11-42",
         "description": "Error message shown on registration, when the username matches a pattern that is banned by the server policy."
       },
-      "username_invalid_chars": "Username contains invalid characters. Use lowercase letters, numbers, dashes and underscores only.",
+      "username_invalid_chars": "Username contains invalid characters. Use lowercase letters, numbers, and the characters . _ - + / =",
       "@username_invalid_chars": {
         "context": "components/field.html:36:11-49"
       },
@@ -476,7 +484,17 @@
     },
     "legacy_consent": {
       "this_will_setup": "",
-      "@this_will_setup": {}
+      "@this_will_setup": {
+        "context": "pages/sso.html:28:11-109"
+      }
+    },
+    "loading": "Loading…",
+    "@loading": {
+      "context": "pages/register/index.html:38:26-42"
+    },
+    "loading_failed": "Something went wrong while loading the page. Try reloading it.",
+    "@loading_failed": {
+      "context": "app.html:28:9-32, pages/register/index.html:50:7-30"
     },
     "login": {
       "call_to_register": "Don't have an account yet?",
@@ -526,7 +544,9 @@
         "context": "pages/index.html:58:28-54"
       },
       "register": "Create an account",
-      "@register": {},
+      "@register": {
+        "context": "pages/index.html:33:36-60"
+      },
       "signed_in_as": "Signed in as <span class=\"font-semibold\">%(username)s</span>.",
       "@signed_in_as": {
         "context": "pages/index.html:55:11-79",
@@ -553,12 +573,36 @@
       "description": "Separator between the login methods"
     },
     "policy_violation": {
-      "description": "This might be because of the client which authored the request, the currently logged in user, or the request itself.",
+      "admin_scope_not_allowed": {
+        "description": "This application requires administrator privileges. Sign in with an administrator account to continue.",
+        "@description": {
+          "context": "pages/policy_violation.html:29:27-88",
+          "description": "Displayed when the client requested an admin scope and the user is not an administrator"
+        },
+        "heading": "Administrator access required",
+        "@heading": {
+          "context": "pages/policy_violation.html:28:29-86",
+          "description": "Displayed when the client requested an admin scope and the user is not an administrator"
+        }
+      },
+      "client_not_allowed": {
+        "description": "This application is not allowed to sign in to this service.",
+        "@description": {
+          "context": "pages/compat_login_policy_violation.html:29:29-85, pages/policy_violation.html:32:27-83",
+          "description": "Displayed when the policy does not allow the client"
+        },
+        "heading": "Application not allowed",
+        "@heading": {
+          "context": "pages/compat_login_policy_violation.html:28:31-83, pages/policy_violation.html:31:29-81",
+          "description": "Displayed when the policy does not allow the client"
+        }
+      },
+      "description": "Your request has been denied by the policy of this service. This might be because of the application, your account, or the request itself.",
       "@description": {
         "context": "pages/compat_login_policy_violation.html:27:27-64, pages/policy_violation.html:30:27-64",
         "description": "Displayed when an authorization request is denied by the policy"
       },
-      "heading": "The authorization request was denied by the policy enforced by this service",
+      "heading": "Request denied",
       "@heading": {
         "context": "pages/compat_login_policy_violation.html:26:29-62, pages/policy_violation.html:29:29-62",
         "description": "Displayed when an authorization request is denied by the policy"
@@ -704,6 +748,10 @@
         "@heading": {
           "context": "pages/register/password.html:20:27-67"
         }
+      },
+      "javascript_required": "JavaScript is required to create an account. Please enable JavaScript in your browser and reload this page.",
+      "@javascript_required": {
+        "context": "pages/register/index.html:57:34-71"
       },
       "proconnect_only": {
         "description": "The email address <strong>%(email)s</strong> is associated with a ProConnect-compatible domain"

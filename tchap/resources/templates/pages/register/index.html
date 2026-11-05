@@ -8,89 +8,90 @@ Please see LICENSE files in the repository root for full details.
 
 {% extends "base.html" %}
 
-{% from "components/idp_brand.html" import logo %}
-
 {% block content %}
-  <form method="GET" class="flex flex-col gap-10" action="{{ '/register/password' | prefix_url }}">
-    <header class="page-heading">
-      <div class="icon">
-        {{ icon.user_profile_solid() }}
-      </div>
+  <!-- :tchap: the Tchap register page mounts the password island directly on
+       the /register page; upstream renders the whole form through the
+       register.tsx island -->
+  {{ include_asset('src/entrypoints/register/PasswordDoubleInput.tsx') | indent(4) | safe }}
 
-      <div class="header">
-        <h1 class="title">{{ _("action.create_account") }}</h1>
-        <!-- :tchap: -->
-        {% if proconnect_only and proconnect_login_hint %}
-        <p class="text">{{ _("mas.register.proconnect_only.description", email=proconnect_login_hint) }}</p>
-        <span class="email-box">{{ proconnect_login_hint | split('@') | last }}</span>
-        <!-- :tchap: -->
-        {% endif %}
-      </div>
-    </header>
-
-    <!-- #tchap# -->
-    {% set params = next["params"] | default({}) | to_params(prefix="?") %}
-    {% for provider in providers %}
-    {% set name = provider.human_name or (provider.issuer | simplify_url(keep_path=True)) or provider.id %}
-
-    <!-- #tchap# add .lasuite class to add lasuite fonts -->
-    <div class="cpd-form-root lasuite">
-      <button class="proconnect-button"
-        type="button"
-        onclick="window.location.href = '{{ ('/upstream/authorize/' ~ provider.id ~ params) | prefix_url }}';">
-        <span class="proconnect-sr-only">S'identifier avec ProConnect</span>
-      </button>
-      <p>
-        <a href="https://www.proconnect.gouv.fr/" target="_blank" rel="noopener noreferrer"
-          title="Qu’est-ce que ProConnect ? - nouvelle fenêtre" class="cpd-text-secondary">
-          Qu’est-ce que ProConnect ?
-        </a>
-      </p>
+  <header class="page-heading">
+    <div class="icon">
+      {{ icon.user_profile_solid() }}
     </div>
-    {% endfor %}
-<!-- :tchap: hide the "continue with email" button when the email domain
-           is ProConnect-only (register/proconnect_only policy) -->
-{% if features.password_registration and not proconnect_only %}
-{{ field.separator() }}
 
-  <!-- :tchap: -->
-  <!--
-    {% if features.password_registration %}
-      {% call(f) field.field(label=_("common.username"), name="username", form_state=form) %}
-        <input {{ field.attributes(f) }} class="cpd-text-control" type="text" autocomplete="username" autocorrect="off" autocapitalize="off" data-choose-username />
-        <div class="cpd-form-message cpd-form-help-message" id="{{ f.id }}-help">
-          @username:{{ branding.server_name }}
-        </div>
-      {% endcall %}
-    {% endif %}
-  -->
-  <!-- :tchap: -->
-
-    <div class="cpd-form-root">
-      {% for key, value in next["params"] | default({}) | items %}
-        <input type="hidden" name="{{ key }}" value="{{ value }}" />
-      {% endfor %}
-
-          {{ button.button(text=_("mas.register.continue_with_email"), kind="secondary") }}
-
-      <!-- :tchap: no providers-->
-      <!-- 
-      {% if providers %}
-        {% set params = next["params"] | default({}) | to_params(prefix="?") %}
-        {% for provider in providers %}
-          {% set name = provider.human_name or (provider.issuer | simplify_url(keep_path=True)) or provider.id %}
-          <a class="cpd-button {%- if provider.brand_name %} has-icon {%- endif %}" data-kind="secondary" data-size="lg" href="{{ ('/upstream/authorize/' ~ provider.id ~ params) | prefix_url }}">
-            {{ logo(provider.brand_name) }}
-            {{ _("mas.login.continue_with_provider", provider=name) }}
-          </a>
-        {% endfor %}
+    <div class="header">
+      <h1 class="title">{{ _("action.create_account") }}</h1>
+      <!-- :tchap: -->
+      {% if proconnect_only and proconnect_login_hint %}
+      <p class="text">{{ _("mas.register.proconnect_only.description", email=proconnect_login_hint) }}</p>
+      <span class="email-box">{{ proconnect_login_hint | split('@') | last }}</span>
+      <!-- :tchap: -->
       {% endif %}
-    -->
-    <!--:tchap: end -->
+    </div>
+  </header>
 
-      {% set params = next["params"] | default({}) | to_params(prefix="?") %}
-      {{ button.link_tertiary(text=_("mas.register.call_to_login"), href="/login" ~ params) }}
-</div>
-{% endif %}
-</form>
+  <!-- #tchap# -->
+  {% set params = next["params"] | default({}) | to_params(prefix="?") %}
+  {% for provider in providers %}
+  <!-- #tchap# providers are RegisterPageProvider (name/brand/id) since the
+       v1.28.0 merge; the display name is precomputed by the context -->
+
+  <!-- #tchap# add .lasuite class to add lasuite fonts -->
+  <div class="cpd-form-root lasuite">
+    <button class="proconnect-button"
+      type="button"
+      onclick="window.location.href = '{{ ('/upstream/authorize/' ~ provider.id ~ params) | prefix_url }}';">
+      <span class="proconnect-sr-only">S'identifier avec ProConnect</span>
+    </button>
+    <p>
+      <a href="https://www.proconnect.gouv.fr/" target="_blank" rel="noopener noreferrer"
+        title="Qu’est-ce que ProConnect ? - nouvelle fenêtre" class="cpd-text-secondary">
+        Qu’est-ce que ProConnect ?
+      </a>
+    </p>
+  </div>
+  {% endfor %}
+
+  <!-- :tchap: hide the email registration form when the email domain is
+       ProConnect-only (register/proconnect_only policy) -->
+  {% if features.password_registration and not proconnect_only %}
+  {{ field.separator() }}
+
+  <!-- :tchap: email-based registration form, posting to /register (upstream's
+       single-page flow); the username is generated from the email address -->
+  <form method="POST" class="cpd-form-root">
+    {% for error in form.errors %}
+      {# Special case for the captcha error, as we want to put it at the bottom #}
+      {% if error.kind != "captcha" %}
+        <div class="text-critical font-medium">
+          {{ errors.form_error_message(error=error) }}
+        </div>
+      {% endif %}
+    {% endfor %}
+
+    <input type="hidden" name="csrf" value="{{ csrf_token }}" />
+
+    {% call(f) field.field(label=_("common.email_address"), name="email", form_state=form) %}
+    <input {{ field.attributes(f) }} class="cpd-text-control" type="email" autocomplete="username" required />
+    {% endcall %}
+
+    <!-- use the react component for password creation with complexity and hints -->
+    <div id="password-double-input" data-props='{"forceShowNewPasswordInvalid": false}'></div>
+
+    <noscript>
+      <!-- use the static password fields if javascript is not available in browser -->
+      {% call(f) field.field(label=_("common.password"), name="password", form_state=form) %}
+        <input {{ field.attributes(f) }} class="cpd-text-control" type="password" autocomplete="new-password" required />
+      {% endcall %}
+
+      {% call(f) field.field(label=_("common.password_confirm"), name="password_confirm", form_state=form) %}
+        <input {{ field.attributes(f) }} class="cpd-text-control" type="password" autocomplete="new-password" required />
+      {% endcall %}
+    </noscript>
+    {{ button.button(text=_("action.continue")) }}
+
+    {% set params = next["params"] | default({}) | to_params(prefix="?") %}
+    {{ button.link_tertiary(text=_("mas.register.call_to_login"), href="/login" ~ params) }}
+  </form>
+  {% endif %}
 {% endblock content %}

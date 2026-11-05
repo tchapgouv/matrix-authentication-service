@@ -158,7 +158,7 @@
       "rate_limit_exceeded": "Vous avez effectué trop de requêtes sur une courte période. Veuillez patienter quelques minutes et réessayer.",
       "username_all_numeric": "Le nom d'utilisateur ne peut pas être composé uniquement de chiffres",
       "username_banned": "Ce nom d'utilisateur est interdit par la politique du serveur",
-      "username_invalid_chars": "Le nom d'utilisateur contient des caractères non valides. Utilisez uniquement des lettres minuscules, des chiffres, des tirets et des traits de soulignement.",
+      "username_invalid_chars": "Le nom d'utilisateur contient des caractères non valides. Utilisez uniquement des lettres minuscules, des chiffres, et les caractères . _ - + / =",
       "username_not_allowed": "Ce nom d'utilisateur n'est pas autorisé par la politique du serveur",
       "username_taken": "Ce nom d'utilisateur est déjà utilisé",
       "username_too_long": "Le nom d'utilisateur est trop long",
@@ -167,6 +167,8 @@
     "legacy_consent": {
       "this_will_setup": "Continuer connectera <span>%(client_name)s</span> avec votre compte <span>%(server_name)s</span>."
     },
+    "loading": "Chargement…",
+    "loading_failed": "Une erreur s'est produite lors du chargement de la page. Veuillez réactualiser la page.",
     "login": {
       "call_to_register": "Vous n’avez pas encore de compte ?",
       "continue_with_provider": "Poursuivre avec %(provider)s",
@@ -193,8 +195,16 @@
     "not_you": "Vous n'êtes pas %(username)s ?",
     "or_separator": "Ou",
     "policy_violation": {
-      "description": "Cela peut être dû à l'application auteur de la demande, à l'utilisateur actuellement connecté ou à la demande elle-même.",
-      "heading": "La demande d'autorisation a été refusée, conformément à la politique appliquée par ce service.",
+      "admin_scope_not_allowed": {
+        "description": "Cette application nécessite des droits d'administrateur. Connectez-vous avec un compte administrateur pour continuer.",
+        "heading": "Accès administrateur requis"
+      },
+      "client_not_allowed": {
+        "description": "Cette application n'est pas autorisée à se connecter à ce service.",
+        "heading": "Demande non autorisée"
+      },
+      "description": "Votre demande a été refusée en raison de la politique de ce service. Cela peut être dû à l'application, à votre compte ou à la demande elle-même.",
+      "heading": "Demande refusée",
       "logged_as": "Connecté en tant que <span class=\"font-semibold\">%(username)s</span>",
       "too_many_sessions": {
         "description": "Vous avez déjà connecté votre compte au nombre maximum d'appareils. Pour continuer, <span class=\"font-semibold\">supprimez %(num_devices_to_remove)s de vos appareils existants</span> et reconnectez-vous.",
@@ -242,6 +252,7 @@
         "description": "Choisissez un nom d'utilisateur pour continuer.",
         "heading": "Créer un compte"
       },
+      "javascript_required": "JavaScript est nécessaire pour créer un compte. Veuillez activer JavaScript dans votre navigateur et recharger cette page.",
       "proconnect_only": {
         "description": "L'adresse <strong>%(email)s</strong> est associée à un domaine compatible ProConnect"
       },

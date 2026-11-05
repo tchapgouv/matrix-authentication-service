@@ -1,4 +1,4 @@
-// Copyright 2026 Element Creations Ltd.
+// Copyright 2025, 2026 Element Creations Ltd.
 // Copyright 2024, 2025 New Vector Ltd.
 // Copyright 2021-2024 The Matrix.org Foundation C.I.C.
 //
@@ -22,7 +22,7 @@ use mas_i18n::Translator;
 use mas_router::UrlBuilder;
 use mas_spa::ViteManifest;
 use minijinja::{UndefinedBehavior, Value};
-use rand::Rng;
+use rand::RngExt;
 use serde::Serialize;
 use thiserror::Error;
 use tokio::task::JoinError;
@@ -38,61 +38,23 @@ mod macros;
 
 pub use self::{
     context::{
-        AccountInactiveContext,
-        ApiDocContext,
-        AppContext,
-        CompatLoginPolicyViolationContext,
-        CompatSsoContext,
-        ConsentContext,
-        DeviceConsentContext,
-        DeviceLinkContext,
-        //:tchap:
-        DeviceLinkFormField,
-        DeviceNameContext,
-        EmailRecoveryContext,
+        AccountInactiveContext, ApiDocContext, AppContext, CompatLoginPolicyViolationContext,
+        CompatSsoContext, ConsentContext, DeviceConsentContext, DeviceLinkContext,
+        DeviceLinkFormField, DeviceNameContext, EmailRecoveryContext, EmailVerificationContext,
+        EmptyContext, ErrorContext, FormPostContext, IndexContext, LoginContext, LoginFormField,
+        NotFoundContext, PolicyViolationContext, PostAuthContext, PostAuthContextInner,
+        RecoveryExpiredContext, RecoveryFinishContext, RecoveryFinishFormField,
+        RecoveryProgressContext, RecoveryStartContext, RecoveryStartFormField, RegisterContext,
+        RegisterFormField, RegisterStepsDisplayNameContext, RegisterStepsDisplayNameFormField,
+        RegisterStepsEmailInUseContext, RegisterStepsRegistrationTokenContext,
+        RegisterStepsRegistrationTokenFormField, RegisterStepsVerifyEmailContext,
+        RegisterStepsVerifyEmailFormField, SiteBranding, SiteConfigExt, SiteFeatures,
+        TemplateContext, UpstreamExistingLinkContext, UpstreamRegister, UpstreamRegisterFormField,
+        UpstreamSuggestLink, WithCaptcha, WithCsrf, WithLanguage, WithOptionalSession, WithSession,
+        //:tchap: Tchap-only contexts kept on top of upstream
         EmailRecoveryDeactivatedContext,
-        EmailVerificationContext,
-        //:tchap: end
-        EmptyContext,
-        ErrorContext,
         ExistingAccountState,
-        FormPostContext,
-        IndexContext,
-        LoginContext,
-        LoginFormField,
-        NotFoundContext,
-        PasswordRegisterContext,
-        PolicyViolationContext,
-        PostAuthContext,
-        PostAuthContextInner,
-        RecoveryExpiredContext,
-        RecoveryFinishContext,
-        RecoveryFinishFormField,
-        RecoveryProgressContext,
-        RecoveryStartContext,
-        RecoveryStartFormField,
-        RegisterContext,
-        RegisterFormField,
-        RegisterStepsDisplayNameContext,
-        RegisterStepsDisplayNameFormField,
-        RegisterStepsEmailInUseContext,
-        RegisterStepsRegistrationTokenContext,
-        RegisterStepsRegistrationTokenFormField,
-        RegisterStepsVerifyEmailContext,
-        RegisterStepsVerifyEmailFormField,
-        SiteBranding,
-        SiteConfigExt,
-        SiteFeatures,
-        TemplateContext,
-        UpstreamExistingLinkContext,
-        UpstreamRegister,
-        UpstreamRegisterFormField,
-        UpstreamSuggestLink,
-        WithCaptcha,
-        WithCsrf,
-        WithLanguage,
-        WithOptionalSession,
-        WithSession,
+        //:tchap: end
     },
     forms::{FieldError, FormError, FormField, FormState, ToFormState},
 };
@@ -413,10 +375,7 @@ register_templates! {
     pub fn render_login(WithLanguage<WithCsrf<LoginContext>>) { "pages/login.html" }
 
     /// Render the registration page
-    pub fn render_register(WithLanguage<WithCsrf<RegisterContext>>) { "pages/register/index.html" }
-
-    /// Render the password registration page
-    pub fn render_password_register(WithLanguage<WithCsrf<WithCaptcha<PasswordRegisterContext>>>) { "pages/register/password.html" }
+    pub fn render_register(WithLanguage<WithCsrf<WithCaptcha<RegisterContext>>>) { "pages/register/index.html" }
 
     /// Render the email verification page
     pub fn render_register_steps_verify_email(WithLanguage<WithCsrf<RegisterStepsVerifyEmailContext>>) { "pages/register/steps/verify_email.html" }
@@ -539,7 +498,7 @@ impl Templates {
     /// # Errors
     ///
     /// Returns an error if any of the templates fails to render
-    pub fn check_render<R: Rng + Clone>(
+    pub fn check_render<R: RngExt + Clone>(
         &self,
         now: chrono::DateTime<chrono::Utc>,
         rng: &R,
@@ -569,6 +528,7 @@ mod tests {
             password_registration_email_required: true,
             account_recovery: true,
             login_with_email_allowed: true,
+            minimum_password_complexity: 3,
         };
         let vite_manifest_path =
             Utf8Path::new(env!("CARGO_MANIFEST_DIR")).join("../../frontend/dist/manifest.json");
