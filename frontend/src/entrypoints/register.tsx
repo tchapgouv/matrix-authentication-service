@@ -77,6 +77,11 @@ const schema = v.object({
   providers: v.pipe(v.string(), v.parseJson(), v.array(providerSchema)),
   /** Href for the "already have an account?" call to action */
   loginLink: v.string(),
+  // :tchap: whether the username field is rendered; the Tchap register page
+  // disables it, as registration is email-based and the localpart is
+  // generated from the email address server-side
+  usernameEnabled: v.optional(v.string()),
+  // :tchap: end
 });
 
 type Data = v.InferOutput<typeof schema>;
@@ -94,6 +99,10 @@ const RegisterPage: React.FC<{ data: Data }> = ({ data }) =>
       fields={data.form.fields}
       providers={data.providers}
       loginLink={data.loginLink}
+      // :tchap: the Tchap register page mounts the island with
+      // data-username-enabled="false" (email-based registration)
+      usernameEnabled={data.usernameEnabled !== "false"}
+      // :tchap: end
     />
   ) : (
     <ProvidersOnlyForm

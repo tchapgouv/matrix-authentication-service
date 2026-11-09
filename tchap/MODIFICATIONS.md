@@ -22,21 +22,21 @@ do not need tags.
 |---|---|---|
 | 1 | Tchap core library | `crates/tchap/src/lib.rs`, `crates/tchap/src/identity_client.rs`, `crates/tchap/src/test_utils.rs`, `Cargo.toml` |
 | 2 | Tchap configuration | `crates/config/src/sections/mod.rs`, `crates/cli/src/app_state.rs`, `crates/cli/src/commands/server.rs`, `crates/data-model/src/lib.rs` |
-| 3 | Email-based registration | `crates/handlers/src/views/register/password.rs`, `crates/handlers/src/views/register/steps/finish.rs`, `frontend/src/entrypoints/register/PasswordCreationDoubleInput.tsx`, `tchap/resources/templates/pages/register/**` |
+| 3 | Email-based registration | `crates/handlers/src/views/register/password.rs`, `crates/handlers/src/views/register/steps/finish.rs`, `frontend/src/entrypoints/register.tsx`, `frontend/src/components/RegisterForm/RegisterForm.tsx`, `tchap/resources/templates/pages/register/**` |
 | 4 | Email gating on login and recovery | `crates/handlers/src/views/login.rs`, `crates/handlers/src/views/recovery/start.rs` |
 | 5 | SSO account reactivation | `crates/handlers/src/upstream_oauth2/link.rs` (reactivation logic) |
 | 6 | SSO linking by email | `crates/handlers/src/upstream_oauth2/link.rs` (email matching), `crates/handlers/src/upstream_oauth2/template.rs`, `tchap/resources/templates/pages/sso.html`, `tchap/resources/templates/pages/upstream_oauth2/do_register.html` |
 | 7 | Kill sessions admin API | `crates/handlers/src/admin/v1/users/kill_sessions.rs`, `crates/handlers/src/admin/v1/users/mod.rs`, `crates/handlers/src/admin/v1/mod.rs` |
 | 8 | Consent page email and index link | `crates/handlers/src/oauth2/authorization/consent.rs`, `crates/handlers/src/views/index.rs`, `crates/templates/src/context.rs`, `tchap/resources/templates/pages/consent.html` |
 | 9 | Branding (templates) | `tchap/resources/templates/base.html`, `tchap/resources/templates/app.html`, `tchap/resources/templates/pages/**` |
-| 10 | Frontend customizations | `frontend/index.html`, `frontend/src/components/Layout/Layout.tsx`, `frontend/src/routes/_account.index.tsx`, `frontend/src/routes/password.recovery.index.tsx`, `frontend/src/routes/reset-cross-signing.tsx`, `frontend/src/routes/reset-cross-signing.index.tsx`, `frontend/src/utils/password_complexity/index.ts`, `frontend/knip.config.ts`, `frontend/tests/routes/reset-cross-signing.test.tsx` |
+| 10 | Frontend customizations | `frontend/index.html`, `frontend/src/components/Layout/Layout.tsx`, `frontend/src/routes/_account.index.tsx`, `frontend/src/routes/password.recovery.index.tsx`, `frontend/src/routes/reset-cross-signing.tsx`, `frontend/src/routes/reset-cross-signing.index.tsx`, `frontend/src/utils/password_complexity/index.ts`, `frontend/knip.config.ts`, `frontend/tests/routes/reset-cross-signing.test.tsx`, `pnpm-workspace.yaml` |
 | 11 | Cookies | `crates/axum-utils/src/cookies.rs` |
 | 12 | Build and CI | `.github/workflows/build_tchap.yaml`, `.github/workflows/build.yaml`, `.github/workflows/ci.yaml`, `Dockerfile` |
 | 13 | Handler wiring and test state | `crates/handlers/src/lib.rs`, `crates/handlers/src/test_utils.rs` |
-| 14 | GraphQL user mutations | `crates/handlers/src/graphql/mutations/user.rs` |
+| 14 | GraphQL user mutations — absorbed by upstream v1.28.0, no code change left | — |
 | 15 | OIDC end session endpoint | `crates/handlers/src/oauth2/end_session.rs`, `crates/handlers/src/oauth2/mod.rs`, `crates/handlers/src/oauth2/discovery.rs`, `crates/router/src/endpoints.rs`, `crates/handlers/src/lib.rs` |
-| 16 | Deactivated account recovery email | `crates/tasks/src/recovery.rs`, `crates/tchap/src/recovery_email.rs`, `crates/templates/src/lib.rs`, `crates/templates/src/context.rs`, `crates/email/src/mailer.rs`, `templates/emails/recovery_deactivated.*`, `tchap/resources/templates/emails/recovery_deactivated.*` |
-| 17 | ProConnect-only registration | `policies/register/register_proconnect.rego`, `crates/policy/src/lib.rs`, `crates/handlers/src/views/register/mod.rs`, `crates/templates/src/context.rs`, `tchap/resources/templates/pages/register/index.html`, `tchap/resources/translations/{fr,en}.json` |
+| 16 | Deactivated account recovery email | `crates/tasks/src/recovery.rs`, `crates/tasks/Cargo.toml`, `crates/tchap/src/recovery_email.rs`, `crates/templates/src/lib.rs`, `crates/templates/src/context.rs`, `crates/email/src/mailer.rs`, `templates/emails/recovery_deactivated.*`, `tchap/resources/templates/emails/recovery_deactivated.*` |
+| 17 | ProConnect-only registration | `policies/register/register_proconnect{,_test}.rego`, `policies/Makefile`, `crates/policy/src/{lib.rs,model.rs,bin/schema.rs}`, `crates/handlers/src/views/register/mod.rs`, `crates/templates/src/context.rs`, `tchap/resources/templates/pages/register/index.html`, `tchap/resources/translations/{fr,en}.json` |
 | 18 | Optional policy data reload kill switch | `crates/cli/src/util.rs` |
 
 ## Detail sections
@@ -77,15 +77,17 @@ identity server (wrong server, invitation required), and used to generate
 both the MXID localpart and the display name automatically. The username
 existence check is moved earlier and an "email in use" error page is shown
 when a collision is detected, including a specific message for deactivated
-accounts. The frontend uses a custom password creation component with
-Tchap-specific labels.
+accounts. The registration page reuses the upstream register island with the
+username field disabled: the Tchap template mounts it without the upstream
+provider buttons (rendered server-side with the Tchap ProConnect branding
+above the form) and with a static no-JavaScript fallback form.
 
 Files:
 - [crates/handlers/src/views/register/password.rs](../crates/handlers/src/views/register/password.rs) (email validation, MXID/display-name generation)
 - [crates/handlers/src/views/register/steps/finish.rs](../crates/handlers/src/views/register/steps/finish.rs) (email-in-use check, deactivated account flag)
-- [frontend/src/entrypoints/register/PasswordCreationDoubleInput.tsx](../frontend/src/entrypoints/register/PasswordCreationDoubleInput.tsx) (custom password input component)
-- [tchap/resources/templates/pages/register/index.html](../tchap/resources/templates/pages/register/index.html) (registration entry template)
-- [tchap/resources/templates/pages/register/password.html](../tchap/resources/templates/pages/register/password.html) (password registration template)
+- [frontend/src/entrypoints/register.tsx](../frontend/src/entrypoints/register.tsx) (`usernameEnabled` flag read from the mount node)
+- [frontend/src/components/RegisterForm/RegisterForm.tsx](../frontend/src/components/RegisterForm/RegisterForm.tsx) (username field not rendered when disabled)
+- [tchap/resources/templates/pages/register/index.html](../tchap/resources/templates/pages/register/index.html) (registration page: upstream island + ProConnect button + no-JS fallback)
 - [tchap/resources/templates/pages/register/steps/display_name.html](../tchap/resources/templates/pages/register/steps/display_name.html) (display name step template)
 - [tchap/resources/templates/pages/register/steps/email_in_use.html](../tchap/resources/templates/pages/register/steps/email_in_use.html) (email-in-use error template)
 
@@ -185,7 +187,8 @@ header and footer components. Custom routes handle password recovery redirect
 (to the MAS welcome page) and cross-signing reset with desktop deep-link
 support. A password complexity utility is included (TODO: French
 dictionaries). Knip configuration excludes Tchap-only files from dead-code
-analysis.
+analysis. The pnpm workspace allows the Tchap fork of the compound design
+tokens (peer-version override).
 
 Files:
 - [frontend/index.html](../frontend/index.html) (title + favicon)
@@ -197,6 +200,7 @@ Files:
 - [frontend/src/utils/password_complexity/index.ts](../frontend/src/utils/password_complexity/index.ts) (TODO: French dictionaries)
 - [frontend/knip.config.ts](../frontend/knip.config.ts) (exclude tchap/** from knip)
 - [frontend/tests/routes/reset-cross-signing.test.tsx](../frontend/tests/routes/reset-cross-signing.test.tsx) (desktop deep-link test)
+- [pnpm-workspace.yaml](../pnpm-workspace.yaml) (compound-design-tokens fork peer-version allowance)
 
 ### 11. Cookies
 
@@ -242,13 +246,15 @@ Files:
 - [crates/handlers/src/lib.rs](../crates/handlers/src/lib.rs) (TchapConfig import)
 - [crates/handlers/src/test_utils.rs](../crates/handlers/src/test_utils.rs) (TestState field + FromRef impl)
 
-### 14. GraphQL user mutations
+### 14. GraphQL user mutations (absorbed by upstream)
 
-Disables the anonymous-user check in the `set_password_by_recovery` GraphQL
-mutation so that authenticated users can use account recovery.
+Historically the Tchap fork disabled the anonymous-user check in the
+`set_password_by_recovery` GraphQL mutation so that authenticated users
+could use account recovery. Upstream v1.28.0 removed that restriction
+natively, so the fork no longer modifies this file. This section is kept
+as a placeholder to preserve the numbering.
 
-Files:
-- [crates/handlers/src/graphql/mutations/user.rs](../crates/handlers/src/graphql/mutations/user.rs) (anonymous-user check disabled)
+Files: none
 
 ### 15. OIDC end session endpoint
 
@@ -276,6 +282,7 @@ unchanged (same "check your email" progress page).
 
 Files:
 - [crates/tasks/src/recovery.rs](../crates/tasks/src/recovery.rs) (deactivated-user branch in the recovery email job)
+- [crates/tasks/Cargo.toml](../crates/tasks/Cargo.toml) (`tchap` crate dependency)
 - [crates/tchap/src/recovery_email.rs](../crates/tchap/src/recovery_email.rs) (`send_deactivated_recovery_email` helper)
 - [crates/templates/src/context.rs](../crates/templates/src/context.rs) (`EmailRecoveryDeactivatedContext`)
 - [crates/templates/src/lib.rs](../crates/templates/src/lib.rs) (render function registration + export)
@@ -291,17 +298,22 @@ Files:
 
 When the email from the OAuth2 `login_hint` belongs to a domain that matches regexp listed 
 in the `register_proconnect_only_domains` policy data, the `register/proconnect_only`
-policy entrypoint forces ProConnect on the registration page: the "continue
-with email" button is hidden, and an explanatory block is shown above the
-ProConnect button ("Se connecter avec ProConnect" title, the email address,
-and the matched domain in a centered box).
+policy entrypoint forces ProConnect on the registration page: the email and
+password registration form is not mounted (the Tchap template leaves the
+upstream register island out of the page), and an explanatory block is shown
+above the ProConnect button (the email address and the matched domain in a
+centered box).
 
 Files:
 - [policies/register/register_proconnect.rego](../policies/register/register_proconnect.rego) (`register/proconnect_only` policy entrypoint)
+- [policies/register/register_proconnect_test.rego](../policies/register/register_proconnect_test.rego) (policy unit tests)
+- [policies/Makefile](../policies/Makefile) (Tchap policy inputs and entrypoint for schema generation)
 - [crates/policy/src/lib.rs](../crates/policy/src/lib.rs) (`evaluate_register_proconnect_only`)
+- [crates/policy/src/model.rs](../crates/policy/src/model.rs) (`RegisterProconnectOnlyInput` input model)
+- [crates/policy/src/bin/schema.rs](../crates/policy/src/bin/schema.rs) (policy data JSON schema export)
 - [crates/handlers/src/views/register/mod.rs](../crates/handlers/src/views/register/mod.rs) (policy evaluation, login hint passed to the template)
 - [crates/templates/src/context.rs](../crates/templates/src/context.rs) (`RegisterContext.proconnect_only`, `RegisterContext.proconnect_login_hint`)
-- [tchap/resources/templates/pages/register/index.html](../tchap/resources/templates/pages/register/index.html) (hide email button, explanatory block)
+- [tchap/resources/templates/pages/register/index.html](../tchap/resources/templates/pages/register/index.html) (email/password form not mounted, explanatory block)
 - [tchap/resources/translations/fr.json](../tchap/resources/translations/fr.json) / [en.json](../tchap/resources/translations/en.json) (`mas.register.proconnect_only.*`)
 ### 18. Optional policy data reload kill switch
 

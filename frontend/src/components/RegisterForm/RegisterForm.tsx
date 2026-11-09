@@ -89,6 +89,10 @@ export const PasswordRegisterForm: React.FC<{
   fields: Partial<Record<string, FieldState>>;
   providers: Provider[];
   loginLink: string;
+  // :tchap: whether to render the username field; the Tchap register page
+  // disables it, as registration is email-based and the localpart is
+  // generated from the email address server-side
+  usernameEnabled?: boolean;
 }> = ({
   csrfToken,
   serverName,
@@ -100,6 +104,9 @@ export const PasswordRegisterForm: React.FC<{
   fields,
   providers,
   loginLink,
+  // :tchap:
+  usernameEnabled = true,
+  // :tchap: end
 }) => {
   const { t } = useTranslation();
   // `null` until the widget has mounted; the handle reports `valid: true`
@@ -191,11 +198,17 @@ export const PasswordRegisterForm: React.FC<{
         </div>
       ))}
 
-      <UsernameField
-        serverName={serverName}
-        defaultValue={fields.username?.value ?? ""}
-        serverErrors={serverErrors("username")}
-      />
+      {/* :tchap: Tchap registration is email-based: the username is generated
+          from the email address server-side, so the field is not rendered
+          when the island is mounted with data-username-enabled="false" */}
+      {usernameEnabled && (
+        <UsernameField
+          serverName={serverName}
+          defaultValue={fields.username?.value ?? ""}
+          serverErrors={serverErrors("username")}
+        />
+      )}
+      {/* :tchap: end */}
 
       {step === "password" && (
         <>

@@ -34,6 +34,7 @@ Please see LICENSE in the repository root for full details.
     {{ include_asset('../node_modules/.pnpm/@gouvfr-lasuite+integration@1.0.1_@types+react-dom@19.3.0_@types+react@19.3.0__@types+r_fb3eac562948d063307d86fedcde43ac/node_modules/@gouvfr-lasuite/integration/dist/css/homepage-full.css') | indent(4) | safe }}
     <script id="lasuite-gaufre-script" async defer src="https://integration.lasuite.numerique.gouv.fr/api/v1/gaufre.js"></script>
     <!-- :tchap: -->
+    {% block head %}{% endblock head %}
   </head>
   <body>
     <!-- :tchap: add lasuite header -->
