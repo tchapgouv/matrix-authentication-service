@@ -57,6 +57,8 @@ pub(crate) async fn get(
     State(templates): State<Templates>,
     State(url_builder): State<UrlBuilder>,
     State(site_config): State<SiteConfig>,
+    //:tchap: Tchap config, used to filter the upstream providers shown on the registration page
+    State(tchap_config): State<TchapConfig>,
     //:tchap: the register page evaluates the ProConnect-only policy
     mut policy: mas_policy::Policy,
     //:tchap:end
@@ -80,6 +82,9 @@ pub(crate) async fn get(
     }
 
     let providers = repo.upstream_oauth_provider().all_enabled().await?;
+    //:tchap: only show the button of the provider selected in the Tchap config
+    let providers = tchap::filter_login_button_providers(providers, &tchap_config);
+    //:tchap:end
 
     // Without a password form there is nothing to show beyond the provider
     // buttons, which isn't worth a page for one provider or none

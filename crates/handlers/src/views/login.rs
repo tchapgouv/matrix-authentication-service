@@ -73,6 +73,9 @@ pub(crate) async fn get(
     State(templates): State<Templates>,
     State(url_builder): State<UrlBuilder>,
     State(site_config): State<SiteConfig>,
+    //:tchap: Tchap config, used to filter the upstream providers shown on the login page
+    State(tchap_config): State<TchapConfig>,
+    //:tchap:end
     State(homeserver): State<Arc<dyn HomeserverConnection>>,
     mut repo: BoxRepository,
     activity_tracker: BoundActivityTracker,
@@ -109,6 +112,9 @@ pub(crate) async fn get(
     }
 
     let providers = repo.upstream_oauth_provider().all_enabled().await?;
+    //:tchap: only show the button of the provider selected in the Tchap config
+    let providers = tchap::filter_login_button_providers(providers, &tchap_config);
+    //:tchap:end
 
     // If password-based login is disabled, and there is only one upstream provider,
     // we can directly start an authorization flow
@@ -136,6 +142,9 @@ pub(crate) async fn get(
         &homeserver,
         &site_config,
         query_login_hint,
+        //:tchap: pass the Tchap config to filter the provider buttons
+        &tchap_config,
+        //:tchap:end
     )
     .await
 }
@@ -196,6 +205,9 @@ pub(crate) async fn post(
             &homeserver,
             &site_config,
             query_login_hint,
+            //:tchap: pass the Tchap config to filter the provider buttons
+            &tchap_config,
+            //:tchap:end
         )
         .await;
     }
@@ -246,6 +258,9 @@ pub(crate) async fn post(
                 &homeserver,
                 &site_config,
                 query_login_hint,
+                //:tchap: pass the Tchap config to filter the provider buttons
+                &tchap_config,
+                //:tchap:end
             )
             .await;
         }
@@ -275,6 +290,9 @@ pub(crate) async fn post(
             &homeserver,
             &site_config,
             query_login_hint,
+            //:tchap: pass the Tchap config to filter the provider buttons
+            &tchap_config,
+            //:tchap:end
         )
         .await;
     };
@@ -296,6 +314,9 @@ pub(crate) async fn post(
             &homeserver,
             &site_config,
             query_login_hint,
+            //:tchap: pass the Tchap config to filter the provider buttons
+            &tchap_config,
+            //:tchap:end
         )
         .await;
     }
@@ -319,6 +340,9 @@ pub(crate) async fn post(
             &homeserver,
             &site_config,
             query_login_hint,
+            //:tchap: pass the Tchap config to filter the provider buttons
+            &tchap_config,
+            //:tchap:end
         )
         .await;
     };
@@ -365,6 +389,9 @@ pub(crate) async fn post(
                 &homeserver,
                 &site_config,
                 query_login_hint,
+                //:tchap: pass the Tchap config to filter the provider buttons
+                &tchap_config,
+                //:tchap:end
             )
             .await;
         }
@@ -493,9 +520,15 @@ async fn render(
     homeserver: &dyn HomeserverConnection,
     site_config: &SiteConfig,
     query_login_hint: QueryLoginHint,
+    //:tchap: used to filter the upstream providers shown on the login page
+    tchap_config: &TchapConfig,
+    //:tchap:end
 ) -> Result<Response, InternalError> {
     let (csrf_token, cookie_jar) = cookie_jar.csrf_token(clock, rng);
     let providers = repo.upstream_oauth_provider().all_enabled().await?;
+    //:tchap: only show the button of the provider selected in the Tchap config
+    let providers = tchap::filter_login_button_providers(providers, tchap_config);
+    //:tchap:end
 
     let ctx = LoginContext::default()
         .with_form_state(form_state)
