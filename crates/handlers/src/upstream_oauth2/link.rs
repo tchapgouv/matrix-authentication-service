@@ -2646,6 +2646,229 @@ mod tests {
     }
     //:tchap: end
 
+    //:tchap:
+    /// Scenario: a user who registered through a first upstream provider
+    /// (e.g. `ProConnect`) logs in through a second upstream provider (its
+    /// replacement), which returns the same email address but a different
+    /// subject and username. The account must be reconciled by email: the
+    /// second link is attached to the same user and no new account is created.
+    #[sqlx::test(migrator = "mas_storage_pg::MIGRATOR")]
+    async fn test_link_existing_account_by_email_from_second_provider(pool: PgPool) {
+        let existing_username = "john";
+        // The username suggested by the second provider differs from the
+        // existing localpart: the match must happen on the email address
+        let second_provider_username = "john.doe";
+        let first_provider_subject = "first-provider-subject";
+        let second_provider_subject = "second-provider-subject";
+        let email = "john@beta.gouv.fr";
+
+        setup();
+        let state = TestState::from_pool(pool).await.unwrap();
+        let mut rng = state.rng();
+        let cookies = CookieHelper::new();
+
+        let claims_imports = UpstreamOAuthProviderClaimsImports {
+            localpart: UpstreamOAuthProviderLocalpartPreference {
+                action: mas_data_model::UpstreamOAuthProviderImportAction::Require,
+                template: None,
+                on_conflict: mas_data_model::UpstreamOAuthProviderOnConflict::Add,
+            },
+            email: UpstreamOAuthProviderImportPreference {
+                action: mas_data_model::UpstreamOAuthProviderImportAction::Require,
+                template: None,
+            },
+            ..UpstreamOAuthProviderClaimsImports::default()
+        };
+
+        // The second provider returns the same email as the one used to
+        // register with the first provider
+        let id_token_claims = serde_json::json!({
+            "preferred_username": second_provider_username,
+            "email": email,
+            "email_verified": true,
+        });
+
+        let id_token = sign_token(&mut rng, &state.key_store, id_token_claims.clone()).unwrap();
+
+        // Provision the two upstream providers
+        let mut repo = state.repository().await.unwrap();
+        let first_provider = repo
+            .upstream_oauth_provider()
+            .add(
+                &mut rng,
+                &state.clock,
+                UpstreamOAuthProviderParams {
+                    issuer: Some("https://proconnect.example.com/".to_owned()),
+                    human_name: Some("ProConnect".to_owned()),
+                    brand_name: None,
+                    scope: Scope::from_iter([OPENID]),
+                    token_endpoint_auth_method: UpstreamOAuthProviderTokenAuthMethod::None,
+                    token_endpoint_signing_alg: None,
+                    id_token_signed_response_alg: JsonWebSignatureAlg::Rs256,
+                    client_id: "client".to_owned(),
+                    encrypted_client_secret: None,
+                    claims_imports: claims_imports.clone(),
+                    authorization_endpoint_override: None,
+                    token_endpoint_override: None,
+                    userinfo_endpoint_override: None,
+                    fetch_userinfo: false,
+                    userinfo_signed_response_alg: None,
+                    jwks_uri_override: None,
+                    discovery_mode: mas_data_model::UpstreamOAuthProviderDiscoveryMode::Oidc,
+                    pkce_mode: mas_data_model::UpstreamOAuthProviderPkceMode::Auto,
+                    response_mode: None,
+                    additional_authorization_parameters: Vec::new(),
+                    forward_login_hint: false,
+                    on_backchannel_logout:
+                        mas_data_model::UpstreamOAuthProviderOnBackchannelLogout::DoNothing,
+                    ui_order: 0,
+                    registration_token_required: false,
+                },
+            )
+            .await
+            .unwrap();
+
+        let second_provider = repo
+            .upstream_oauth_provider()
+            .add(
+                &mut rng,
+                &state.clock,
+                UpstreamOAuthProviderParams {
+                    issuer: Some("https://replacement.example.com/".to_owned()),
+                    human_name: Some("Replacement".to_owned()),
+                    brand_name: None,
+                    scope: Scope::from_iter([OPENID]),
+                    token_endpoint_auth_method: UpstreamOAuthProviderTokenAuthMethod::None,
+                    token_endpoint_signing_alg: None,
+                    id_token_signed_response_alg: JsonWebSignatureAlg::Rs256,
+                    client_id: "client".to_owned(),
+                    encrypted_client_secret: None,
+                    claims_imports,
+                    authorization_endpoint_override: None,
+                    token_endpoint_override: None,
+                    userinfo_endpoint_override: None,
+                    fetch_userinfo: false,
+                    userinfo_signed_response_alg: None,
+                    jwks_uri_override: None,
+                    discovery_mode: mas_data_model::UpstreamOAuthProviderDiscoveryMode::Oidc,
+                    pkce_mode: mas_data_model::UpstreamOAuthProviderPkceMode::Auto,
+                    response_mode: None,
+                    additional_authorization_parameters: Vec::new(),
+                    forward_login_hint: false,
+                    on_backchannel_logout:
+                        mas_data_model::UpstreamOAuthProviderOnBackchannelLogout::DoNothing,
+                    ui_order: 1,
+                    registration_token_required: false,
+                },
+            )
+            .await
+            .unwrap();
+
+        // Provision the upstream authorization session for the second provider
+        // to setup cookies
+        let (second_provider_link, session) = add_linked_upstream_session(
+            &mut rng,
+            &state.clock,
+            &mut repo,
+            &second_provider,
+            second_provider_subject,
+            &id_token.into_string(),
+            id_token_claims,
+        )
+        .await
+        .unwrap();
+
+        // Provision an existing user, registered through the first provider
+        let user = repo
+            .user()
+            .add(&mut rng, &state.clock, existing_username.to_owned())
+            .await
+            .unwrap();
+
+        let _user_email = repo
+            .user_email()
+            .add(&mut rng, &state.clock, &user, email.to_owned())
+            .await;
+
+        let first_provider_link = repo
+            .upstream_oauth_link()
+            .add(
+                &mut rng,
+                &state.clock,
+                &first_provider,
+                first_provider_subject.to_owned(),
+                None,
+            )
+            .await
+            .unwrap();
+        repo.upstream_oauth_link()
+            .associate_to_user(&first_provider_link, &user)
+            .await
+            .unwrap();
+
+        let cookie_jar = state.cookie_jar();
+        let upstream_sessions = UpstreamSessionsCookie::default()
+            .add(session.id, second_provider.id, "state".to_owned(), None)
+            .add_link_to_session(session.id, second_provider_link.id)
+            .unwrap();
+        let cookie_jar = upstream_sessions.save(cookie_jar, &state.clock);
+        cookies.import(cookie_jar);
+
+        repo.save().await.unwrap();
+
+        let request =
+            Request::get(&*mas_router::UpstreamOAuth2Link::new(second_provider_link.id).path())
+                .empty();
+        let request = cookies.with_cookies(request);
+        let response = state.request(request).await;
+        cookies.save_cookies(&response);
+
+        // The user is automatically linked and logged in
+        response.assert_status(StatusCode::SEE_OTHER);
+
+        let mut repo = state.repository().await.unwrap();
+
+        // The link of the second provider is attached to the existing user
+        let second_provider_link = repo
+            .upstream_oauth_link()
+            .find_by_subject(&second_provider, second_provider_subject)
+            .await
+            .unwrap()
+            .expect("second provider link exists");
+
+        assert_eq!(second_provider_link.user_id, Some(user.id));
+
+        // The user now has one link per provider
+        let link_count = repo
+            .upstream_oauth_link()
+            .count(UpstreamOAuthLinkFilter::default().for_user(&user))
+            .await
+            .unwrap();
+
+        assert_eq!(link_count, 2);
+
+        // The link of the first provider is left untouched
+        let first_provider_link = repo
+            .upstream_oauth_link()
+            .find_by_subject(&first_provider, first_provider_subject)
+            .await
+            .unwrap()
+            .expect("first provider link exists");
+
+        assert_eq!(first_provider_link.user_id, Some(user.id));
+
+        // No new account was created for the username suggested by the
+        // second provider
+        assert!(
+            repo.user()
+                .find_by_username(second_provider_username)
+                .await
+                .unwrap()
+                .is_none()
+        );
+    }
+    //:tchap: end
+
     fn sign_token(
         rng: &mut ChaChaRng,
         keystore: &Keystore,

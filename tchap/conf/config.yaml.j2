@@ -269,6 +269,35 @@ upstream_oauth2:
           template: "{{ user.email }}"
           set_email_verification: always
       {% endraw %}
+
+    # MonCompte: the upstream provider that will replace ProConnect.
+    # Both providers are configured side by side: users are reconciled by
+    # email address, and the login page shows a single button selected by
+    # tchap.login_button_provider_id
+    - id: "{{ mas_moncompte_provider_id }}"
+      synapse_idp_id: "oidc-moncompte"
+      issuer: "{{ mas_moncompte_provider_issuer }}"
+      human_name: "MonCompte"
+      token_endpoint_auth_method: {{ mas_moncompte_provider_auth_method }}
+      client_id: "{{ mas_moncompte_provider_client_id }}"
+      client_secret: "{{ mas_moncompte_provider_client_secret }}"
+      scope: "openid profile email"
+      forward_login_hint: true
+      {% raw %}
+      claims_imports:
+        skip_confirmation: true
+        localpart:
+          action: require
+          template: "{{ user.email | email_to_mxid_localpart }}"
+          on_conflict: add
+        displayname:
+          action: require
+          template: "{{ user.email | email_to_display_name }}"
+        email:
+          action: require
+          template: "{{ user.email }}"
+          set_email_verification: always
+      {% endraw %}
 {% endif %}
 
 rate_limiting:
@@ -388,6 +417,7 @@ tchap:
   {% endif %}
   tchap_app_link: "https://{{webapp_domain}}"
   allow_account_reactivation: {{mas_allow_account_reactivation}}
+  login_button_provider_id: "{{ mas_moncompte_provider_id }}"
 
 {% endif %}
 

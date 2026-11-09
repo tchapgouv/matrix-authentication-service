@@ -381,6 +381,7 @@ fn tchap_config_from_tchap_app_config(tchap_app_config: &TchapAppConfig) -> Tcha
             .collect(),
         tchap_app_link: tchap_app_config.tchap_app_link.clone(),
         allow_account_reactivation: tchap_app_config.allow_account_reactivation,
+        login_button_provider_id: tchap_app_config.login_button_provider_id.clone(),
     }
 }
 //:tchap: end
