@@ -16,7 +16,7 @@ pub use self::{
 };
 
 #[cfg(test)]
-mod test_utils {
+pub(crate) mod test_utils {
     use mas_data_model::{
         UpstreamOAuthProviderClaimsImports, UpstreamOAuthProviderDiscoveryMode,
         UpstreamOAuthProviderOnBackchannelLogout, UpstreamOAuthProviderPkceMode,

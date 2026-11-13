@@ -103,6 +103,13 @@ fn finish(t: TransformOpenApi) -> TransformOpenApi {
             description: Some("Manage upstream OAuth 2.0 providers".to_owned()),
             ..Tag::default()
         })
+        .tag(Tag {
+            name: "upstream-oauth-session".to_owned(),
+            description: Some(
+                "Inspect authorization sessions of upstream OAuth 2.0 providers".to_owned(),
+            ),
+            ..Tag::default()
+        })
         .security_scheme("oauth2", oauth_security_scheme(None))
         .security_scheme(
             "token",
