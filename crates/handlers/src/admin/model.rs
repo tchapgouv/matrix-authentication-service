@@ -871,6 +871,126 @@ impl UpstreamOAuthProvider {
     }
 }
 
+/// An upstream OAuth 2.0 authorization session
+#[derive(Serialize, JsonSchema)]
+pub struct UpstreamOAuthSession {
+    #[serde(skip)]
+    id: Ulid,
+
+    /// When the session was created
+    created_at: DateTime<Utc>,
+
+    /// The ID of the upstream provider
+    #[schemars(with = "super::schema::Ulid")]
+    provider_id: Ulid,
+
+    /// The ID of the link created for this session, if any
+    #[schemars(with = "Option<super::schema::Ulid>")]
+    link_id: Option<Ulid>,
+
+    /// When the upstream provider called back. If null, the session is
+    /// pending.
+    completed_at: Option<DateTime<Utc>>,
+
+    /// When the session was used to authenticate a user. If null, the session
+    /// hasn't been consumed.
+    consumed_at: Option<DateTime<Utc>>,
+
+    /// When the link created by the session was removed. If null, the session
+    /// is not unlinked.
+    unlinked_at: Option<DateTime<Utc>>,
+
+    /// The claims of the ID token returned by the upstream provider, if any
+    id_token_claims: Option<serde_json::Value>,
+
+    /// The userinfo returned by the upstream provider, if any
+    userinfo: Option<serde_json::Value>,
+
+    /// Extra callback parameters returned by the upstream provider, if any
+    extra_callback_parameters: Option<serde_json::Value>,
+}
+
+impl From<mas_data_model::UpstreamOAuthAuthorizationSession> for UpstreamOAuthSession {
+    fn from(session: mas_data_model::UpstreamOAuthAuthorizationSession) -> Self {
+        Self {
+            id: session.id,
+            created_at: session.created_at,
+            provider_id: session.provider_id,
+            link_id: session.link_id(),
+            completed_at: session.completed_at(),
+            consumed_at: session.consumed_at(),
+            unlinked_at: session.unlinked_at(),
+            id_token_claims: session.id_token_claims().cloned(),
+            userinfo: session.userinfo().cloned(),
+            extra_callback_parameters: session.extra_callback_parameters().cloned(),
+        }
+    }
+}
+
+impl Resource for UpstreamOAuthSession {
+    const KIND: &'static str = "upstream-oauth-session";
+    const PATH: &'static str = "/api/admin/v1/upstream-oauth-sessions";
+
+    fn id(&self) -> Ulid {
+        self.id
+    }
+}
+
+impl UpstreamOAuthSession {
+    /// Samples of upstream OAuth 2.0 sessions
+    pub fn samples() -> [Self; 3] {
+        [
+            Self {
+                id: Ulid::from_bytes([0x01; 16]),
+                created_at: DateTime::default(),
+                provider_id: Ulid::from_bytes([0x02; 16]),
+                link_id: Some(Ulid::from_bytes([0x03; 16])),
+                completed_at: Some(DateTime::default()),
+                consumed_at: Some(DateTime::default()),
+                unlinked_at: None,
+                id_token_claims: Some(serde_json::json!({
+                    "sub": "john-42",
+                    "email": "john.doe@example.com",
+                    "email_verified": true
+                })),
+                userinfo: None,
+                extra_callback_parameters: None,
+            },
+            Self {
+                id: Ulid::from_bytes([0x04; 16]),
+                created_at: DateTime::default(),
+                provider_id: Ulid::from_bytes([0x02; 16]),
+                link_id: Some(Ulid::from_bytes([0x05; 16])),
+                completed_at: Some(DateTime::default()),
+                consumed_at: None,
+                unlinked_at: None,
+                id_token_claims: Some(serde_json::json!({
+                    "sub": "jane-123",
+                    "email": "jane.doe@example.com",
+                    "email_verified": false
+                })),
+                userinfo: Some(serde_json::json!({
+                    "sub": "jane-123",
+                    "name": "Jane Doe"
+                })),
+                extra_callback_parameters: None,
+            },
+            Self {
+                id: Ulid::from_bytes([0x06; 16]),
+                created_at: DateTime::default(),
+                provider_id: Ulid::from_bytes([0x07; 16]),
+                link_id: None,
+                completed_at: None,
+                consumed_at: None,
+                unlinked_at: None,
+                id_token_claims: None,
+                userinfo: None,
+                extra_callback_parameters: None,
+            },
+        ]
+    }
+}
+
 /// An error that shouldn't happen in practice, but suggests database
 /// inconsistency.
 #[derive(Debug, Error)]
