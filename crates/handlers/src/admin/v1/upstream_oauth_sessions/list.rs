@@ -126,8 +126,7 @@ pub fn doc(operation: TransformOperation) -> TransformOperation {
         })
         .response_with::<404, RouteError, _>(|t| {
             let response = ErrorResponse::from_error(&RouteError::ProviderNotFound(Ulid::nil()));
-            t.description("Provider was not found")
-                .example(response)
+            t.description("Provider was not found").example(response)
         })
 }
 
@@ -516,9 +515,10 @@ mod tests {
         "#);
 
         // Filter by sub claim
-        let request = Request::get("/api/admin/v1/upstream-oauth-sessions?filter[sub-claim]=subject2")
-            .bearer(&token)
-            .empty();
+        let request =
+            Request::get("/api/admin/v1/upstream-oauth-sessions?filter[sub-claim]=subject2")
+                .bearer(&token)
+                .empty();
         let response = state.request(request).await;
         response.assert_status(StatusCode::OK);
         let body: serde_json::Value = response.json();
