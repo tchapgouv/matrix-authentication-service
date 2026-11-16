@@ -27,6 +27,7 @@ mod policy_data;
 mod site_config;
 mod upstream_oauth_links;
 mod upstream_oauth_providers;
+mod upstream_oauth_sessions;
 mod user_emails;
 mod user_registration_tokens;
 mod user_sessions;
@@ -273,6 +274,20 @@ where
             get_with(
                 self::upstream_oauth_providers::get,
                 self::upstream_oauth_providers::get_doc,
+            ),
+        )
+        .api_route(
+            "/upstream-oauth-sessions",
+            get_with(
+                self::upstream_oauth_sessions::list,
+                self::upstream_oauth_sessions::list_doc,
+            ),
+        )
+        .api_route(
+            "/upstream-oauth-sessions/{id}",
+            get_with(
+                self::upstream_oauth_sessions::get,
+                self::upstream_oauth_sessions::get_doc,
             ),
         )
 }
