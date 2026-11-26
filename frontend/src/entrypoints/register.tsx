@@ -77,12 +77,26 @@ const schema = v.object({
   providers: v.pipe(v.string(), v.parseJson(), v.array(providerSchema)),
   /** Href for the "already have an account?" call to action */
   loginLink: v.string(),
+  // :tchap: whether the email domain of the login hint is ProConnect-only
+  // (register/proconnect_only policy),
+  proconnectOnly: v.optional(v.string()),
+  // :tchap: end
 });
 
 type Data = v.InferOutput<typeof schema>;
 
 const RegisterPage: React.FC<{ data: Data }> = ({ data }) =>
-  data.features.password_registration ? (
+  // :tchap: when the email domain is ProConnect-only (the register page
+  // mounts the island with data-proconnect-only="true"), registration goes
+  // through the ProConnect button only, so the island switches to the
+  // providers-only form instead of the password form
+  data.proconnectOnly === "true" || !data.features.password_registration ? (
+    <ProvidersOnlyForm
+      csrfToken={data.csrfToken}
+      providers={data.providers}
+      loginLink={data.loginLink}
+    />
+  ) : (
     <PasswordRegisterForm
       csrfToken={data.csrfToken}
       serverName={data.branding.server_name}
@@ -92,12 +106,6 @@ const RegisterPage: React.FC<{ data: Data }> = ({ data }) =>
       captchaConfig={data.captchaConfig}
       formErrors={data.form.errors}
       fields={data.form.fields}
-      providers={data.providers}
-      loginLink={data.loginLink}
-    />
-  ) : (
-    <ProvidersOnlyForm
-      csrfToken={data.csrfToken}
       providers={data.providers}
       loginLink={data.loginLink}
     />

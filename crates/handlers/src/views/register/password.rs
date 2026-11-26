@@ -20,7 +20,8 @@ use mas_matrix::HomeserverConnection;
 use mas_policy::Policy;
 use mas_router::UrlBuilder;
 use mas_storage::{
-    BoxRepository, RepositoryAccess,
+    BoxRepository,
+    RepositoryAccess,
     queue::{QueueJobRepositoryExt as _, SendEmailAuthenticationCodeJob},
     upstream_oauth2::UpstreamOAuthProviderRepository as _,
     //:tchap: the username checks are skipped (see the register function), so
@@ -440,19 +441,9 @@ async fn render(
     captcha_config: Option<CaptchaConfig>,
 ) -> Result<String, InternalError> {
     let providers = repo.upstream_oauth_provider().all_enabled().await?;
-    //:tchap: load the post-auth context into the template context: the Tchap
-    // register template uses `next` to build the ProConnect authorize URL
-    let post_action = action
-        .load_context(repo)
-        .await
-        .map_err(InternalError::from_anyhow)?;
-    let mut ctx = RegisterContext::new(url_builder, providers, action.post_auth_action.as_ref())
-        .with_form_state(form_state);
-    if let Some(action) = post_action {
-        ctx = ctx.with_post_action(action);
-    }
-    //:tchap:end
-    let ctx = ctx
+
+    let ctx = RegisterContext::new(url_builder, providers, action.post_auth_action.as_ref())
+        .with_form_state(form_state)
         .with_captcha(captcha_config)
         .with_csrf(csrf_token.form_value())
         .with_language(locale);
@@ -628,10 +619,9 @@ mod tests {
         repo.save().await.unwrap();
 
         // Render the registration page and get the CSRF token
-        let request = Request::get(
-            &*mas_router::Register::and_continue_grant(grant.id).path_and_query(),
-        )
-        .empty();
+        let request =
+            Request::get(&*mas_router::Register::and_continue_grant(grant.id).path_and_query())
+                .empty();
         let request = cookies.with_cookies(request);
         let response = state.request(request).await;
         cookies.save_cookies(&response);
@@ -646,16 +636,15 @@ mod tests {
         );
 
         // Submit the registration form
-        let request = Request::post(
-            &*mas_router::Register::and_continue_grant(grant.id).path_and_query(),
-        )
-        .form(serde_json::json!({
-            "csrf": csrf_token,
-            "email": login_hint,
-            "password": "correcthorsebatterystaple",
-            "password_confirm": "correcthorsebatterystaple",
-            "accept_terms": "on",
-        }));
+        let request =
+            Request::post(&*mas_router::Register::and_continue_grant(grant.id).path_and_query())
+                .form(serde_json::json!({
+                    "csrf": csrf_token,
+                    "email": login_hint,
+                    "password": "correcthorsebatterystaple",
+                    "password_confirm": "correcthorsebatterystaple",
+                    "accept_terms": "on",
+                }));
         let request = cookies.with_cookies(request);
         let response = state.request(request).await;
         cookies.save_cookies(&response);

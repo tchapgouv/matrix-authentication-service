@@ -57,6 +57,42 @@ const ProviderButtons: React.FC<{ providers: Provider[] }> = ({
   );
 };
 
+const ProconnectButton: React.FC<{ providers: Provider[] }> = ({
+  providers,
+}) => {
+  return (
+    <>
+      {providers.map((provider) => (
+        <div className="cpd-form-root lasuite" key={provider.id}>
+          <button
+            className="proconnect-button"
+            type="submit"
+            name="provider"
+            key={provider.id}
+            formNoValidate
+            value={provider.id}
+          >
+            <span className="proconnect-sr-only">
+              S'identifier avec ProConnect
+            </span>
+          </button>
+          <p>
+            <a
+              href="https://www.proconnect.gouv.fr/"
+              target="_blank"
+              rel="noopener noreferrer"
+              title="Qu’est-ce que ProConnect ? - nouvelle fenêtre"
+              className="cpd-text-secondary"
+            >
+              Qu’est-ce que ProConnect ?
+            </a>
+          </p>
+        </div>
+      ))}
+    </>
+  );
+};
+
 const LoginLink: React.FC<{ href: string }> = ({ href }) => {
   const { t } = useTranslation();
   return (
@@ -191,11 +227,15 @@ export const PasswordRegisterForm: React.FC<{
         </div>
       ))}
 
-      <UsernameField
-        serverName={serverName}
-        defaultValue={fields.username?.value ?? ""}
-        serverErrors={serverErrors("username")}
-      />
+      {/* :tchap: Tchap registration is email-based*/}
+      {false && (
+        <UsernameField
+          serverName={serverName}
+          defaultValue={fields.username?.value ?? ""}
+          serverErrors={serverErrors("username")}
+        />
+      )}
+      {/* :tchap: end */}
 
       {step === "password" && (
         <>
@@ -295,14 +335,16 @@ export const PasswordRegisterForm: React.FC<{
 
       {step === "username" && (
         <>
+          {/* :tchap: replace by custom button ProconnectButton
+              could it be done with css?
+              <ProviderButtons providers={providers} />*/}
+          <ProconnectButton providers={providers} />
+          <OrSeparator>{t("frontend.register.or_separator")}</OrSeparator>
           <Button type="button" onClick={() => setStep("password")}>
             {emailRequired
               ? t("frontend.register.continue_with_email")
               : t("frontend.register.continue_with_password")}
           </Button>
-
-          <OrSeparator>{t("frontend.register.or_separator")}</OrSeparator>
-          <ProviderButtons providers={providers} />
         </>
       )}
 
@@ -323,7 +365,11 @@ export const ProvidersOnlyForm: React.FC<{
 }> = ({ csrfToken, providers, loginLink }) => (
   <Form.Root method="POST">
     <input type="hidden" name="csrf" value={csrfToken} />
-    <ProviderButtons providers={providers} />
+    {/* :tchap: replace by custom button ProconnectButton
+        could it be done with css?
+        <ProviderButtons providers={providers} />
+    */}
+    <ProconnectButton providers={providers} />
     <LoginLink href={loginLink} />
   </Form.Root>
 );

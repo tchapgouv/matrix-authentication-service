@@ -121,10 +121,6 @@ pub(crate) async fn get(
         }
         None => false,
     };
-    let post_action = query
-        .load_context(&mut repo)
-        .await
-        .map_err(InternalError::from_anyhow)?;
     //:tchap: end
 
     let mut ctx = RegisterContext::new(&url_builder, providers, query.post_auth_action.as_ref());
@@ -141,12 +137,6 @@ pub(crate) async fn get(
     ctx = ctx
         .with_proconnect_only(proconnect_only)
         .with_proconnect_login_hint(login_hint);
-    //:tchap: the Tchap register template uses `next` to build the ProConnect
-    // authorize URL
-    if let Some(action) = post_action {
-        ctx = ctx.with_post_action(action);
-    }
-    //:tchap: end
     let ctx = ctx
         .with_captcha(site_config.captcha.clone())
         .with_csrf(csrf_token.form_value())

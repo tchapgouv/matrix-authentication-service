@@ -249,7 +249,7 @@
       "call_to_login": "Vous avez déjà un compte ?",
       "captcha_incomplete": "Veuillez répondre au test CAPTCHA avant de continuer",
       "captcha_loading": "Le CAPTCHA est en cours de chargement, veuillez patienter un instant",
-      "continue_with_email": "Continuer avec une adresse e-mail",
+      "continue_with_email": "Continuer avec mon adresse mail",
       "continue_with_password": "Continuer avec un mot de passe",
       "continue_with_provider": "Continuez avec {{provider}}",
       "or_separator": "Ou",

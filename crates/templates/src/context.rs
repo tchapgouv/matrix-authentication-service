@@ -701,9 +701,6 @@ pub struct RegisterContext {
     login_link: String,
     form: FormState<RegisterFormField>,
     graphql_endpoint: String,
-    //:tchap: post-auth context and ProConnect-only registration fields used
-    // by the Tchap register template
-    next: Option<PostAuthContext>,
     /// whether the email domain of the login hint is ProConnect-only,
     /// in which case the "continue with email" button is hidden
     proconnect_only: bool,
@@ -744,8 +741,6 @@ impl RegisterContext {
             login_link: url_builder.relative_url_for(&Login::from(post_auth_action.cloned())),
             form: FormState::default(),
             graphql_endpoint: url_builder.relative_url_for(&GraphQL),
-            //:tchap:
-            next: None,
             proconnect_only: false,
             proconnect_login_hint: None,
             //:tchap: end
@@ -756,16 +751,6 @@ impl RegisterContext {
     #[must_use]
     pub fn with_form_state(self, form: FormState<RegisterFormField>) -> Self {
         Self { form, ..self }
-    }
-
-    //:tchap:
-    /// Add a post authentication action to the context
-    #[must_use]
-    pub fn with_post_action(self, next: PostAuthContext) -> Self {
-        Self {
-            next: Some(next),
-            ..self
-        }
     }
 
     /// Set whether the email domain of the login hint is ProConnect-only

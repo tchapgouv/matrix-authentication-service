@@ -2827,7 +2827,13 @@ mod tests {
 
         let cookie_jar = state.cookie_jar();
         let upstream_sessions = UpstreamSessionsCookie::default()
-            .add(session.id, second_provider.id, "state".to_owned(), None)
+            .add(
+                session.id,
+                second_provider.id,
+                "state".to_owned(),
+                None,
+                None,
+            )
             .add_link_to_session(session.id, second_provider_link.id)
             .unwrap();
         let cookie_jar = upstream_sessions.save(cookie_jar, &state.clock);
