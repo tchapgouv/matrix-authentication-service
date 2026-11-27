@@ -8,8 +8,10 @@ import PasswordCreationDoubleInput from "./PasswordCreationDoubleInput";
 
 const HTML_ID = "#password-double-input";
 
+// :tchap: renamed from `PasswordChange` to avoid a name collision with the
+// upstream query of the same name (frontend/src/routes/password.change.index.tsx)
 const QUERY = graphql(/* GraphQL */ `
-  query PasswordChange {
+  query PasswordDoubleInput {
     viewer {
       __typename
       ... on Node {

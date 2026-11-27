@@ -1,4 +1,5 @@
 {#
+Copyright 2025, 2026 Element Creations Ltd.
 Copyright 2024, 2025 New Vector Ltd.
 Copyright 2021-2024 The Matrix.org Foundation C.I.C.
 
@@ -8,89 +9,60 @@ Please see LICENSE files in the repository root for full details.
 
 {% extends "base.html" %}
 
-{% from "components/idp_brand.html" import logo %}
+{% block head %}
+  {{ include_asset('src/entrypoints/register.tsx') | indent(4) | safe }}
+  {# Pre-load the locale data for the current language #}
+  {{ include_asset('locales/' ~ lang ~ '.json') | indent(4) | safe }}
+{% endblock head %}
 
 {% block content %}
-  <form method="GET" class="flex flex-col gap-10" action="{{ '/register/password' | prefix_url }}">
-    <header class="page-heading">
-      <div class="icon">
-        {{ icon.user_profile_solid() }}
-      </div>
-
-      <div class="header">
-        <h1 class="title">{{ _("action.create_account") }}</h1>
-        <!-- :tchap: -->
-        {% if proconnect_only and proconnect_login_hint %}
-        <p class="text">{{ _("mas.register.proconnect_only.description", email=proconnect_login_hint) }}</p>
-        <span class="email-box">{{ proconnect_login_hint | split('@') | last }}</span>
-        <!-- :tchap: -->
-        {% endif %}
-      </div>
-    </header>
-
-    <!-- #tchap# -->
-    {% set params = next["params"] | default({}) | to_params(prefix="?") %}
-    {% for provider in providers %}
-    {% set name = provider.human_name or (provider.issuer | simplify_url(keep_path=True)) or provider.id %}
-
-    <!-- #tchap# add .lasuite class to add lasuite fonts -->
-    <div class="cpd-form-root lasuite">
-      <button class="proconnect-button"
-        type="button"
-        onclick="window.location.href = '{{ ('/upstream/authorize/' ~ provider.id ~ params) | prefix_url }}';">
-        <span class="proconnect-sr-only">S'identifier avec ProConnect</span>
-      </button>
-      <p>
-        <a href="https://www.proconnect.gouv.fr/" target="_blank" rel="noopener noreferrer"
-          title="Qu’est-ce que ProConnect ? - nouvelle fenêtre" class="cpd-text-secondary">
-          Qu’est-ce que ProConnect ?
-        </a>
-      </p>
+  <header class="page-heading">
+    <div class="icon">
+      {{ icon.user_profile_solid() }}
     </div>
-    {% endfor %}
-<!-- :tchap: hide the "continue with email" button when the email domain
-           is ProConnect-only (register/proconnect_only policy) -->
-{% if features.password_registration and not proconnect_only %}
-{{ field.separator() }}
 
-  <!-- :tchap: -->
-  <!--
-    {% if features.password_registration %}
-      {% call(f) field.field(label=_("common.username"), name="username", form_state=form) %}
-        <input {{ field.attributes(f) }} class="cpd-text-control" type="text" autocomplete="username" autocorrect="off" autocapitalize="off" data-choose-username />
-        <div class="cpd-form-message cpd-form-help-message" id="{{ f.id }}-help">
-          @username:{{ branding.server_name }}
-        </div>
-      {% endcall %}
-    {% endif %}
-  -->
-  <!-- :tchap: -->
-
-    <div class="cpd-form-root">
-      {% for key, value in next["params"] | default({}) | items %}
-        <input type="hidden" name="{{ key }}" value="{{ value }}" />
-      {% endfor %}
-
-          {{ button.button(text=_("mas.register.continue_with_email"), kind="secondary") }}
-
-      <!-- :tchap: no providers-->
-      <!-- 
-      {% if providers %}
-        {% set params = next["params"] | default({}) | to_params(prefix="?") %}
-        {% for provider in providers %}
-          {% set name = provider.human_name or (provider.issuer | simplify_url(keep_path=True)) or provider.id %}
-          <a class="cpd-button {%- if provider.brand_name %} has-icon {%- endif %}" data-kind="secondary" data-size="lg" href="{{ ('/upstream/authorize/' ~ provider.id ~ params) | prefix_url }}">
-            {{ logo(provider.brand_name) }}
-            {{ _("mas.login.continue_with_provider", provider=name) }}
-          </a>
-        {% endfor %}
+    <div class="header">
+      <h1 class="title">{{ _("action.create_account") }}</h1>
+      <!-- :tchap: when the email domain is ProConnect-only, explain that the
+           account must be created through ProConnect -->
+      {% if proconnect_login_hint %}
+      <p class="text">{{ _("mas.register.proconnect_only.description", email=proconnect_login_hint) }}</p>
+      <span class="email-box">{{ proconnect_login_hint | split('@') | last }}</span>
       {% endif %}
-    -->
-    <!--:tchap: end -->
+      <!-- :tchap: -->
+    </div>
+  </header>
 
-      {% set params = next["params"] | default({}) | to_params(prefix="?") %}
-      {{ button.link_tertiary(text=_("mas.register.call_to_login"), href="/login" ~ params) }}
-</div>
-{% endif %}
-</form>
+  <!-- :tchap: add data-proconnect-only attribute -->
+  <div id="register-form"
+       data-csrf-token="{{ csrf_token }}"
+       data-proconnect-only="{{ proconnect_only }}" 
+       {%- if captcha_config %} data-captcha-config='{{ captcha_config | tojson }}'{% endif %}
+       data-branding='{{ branding | tojson }}'
+       data-features='{{ features | tojson }}'
+       data-form='{{ form | tojson }}'
+       data-providers='{{ providers | tojson }}'
+       data-login-link="{{ login_link }}"
+       data-graphql-endpoint="{{ graphql_endpoint }}">
+    <p class="sr-only">{{ _("mas.loading") }}</p>
+
+    {# Rough outline of the form, to keep the page from jumping once it mounts #}
+    <div class="register-skeleton" aria-hidden="true">
+      <div class="field"><span class="label"></span><span class="control"></span></div>
+      <div class="field"><span class="label"></span><span class="control"></span></div>
+      <div class="field"><span class="label"></span><span class="control"></span></div>
+      <span class="submit"></span>
+    </div>
+  </div>
+
+  <div id="register-form-error" class="critical-notice" hidden>
+    {{ _("mas.loading_failed") }}
+  </div>
+
+  <noscript>
+    {# The skeleton would otherwise sit above this message forever #}
+    <style>#register-form { display: none; }</style>
+
+    <p class="critical-notice">{{ _("mas.register.javascript_required") }}</p>
+  </noscript>
 {% endblock content %}

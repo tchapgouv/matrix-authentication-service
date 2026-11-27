@@ -145,14 +145,14 @@ mod tests {
             .unwrap();
         repo.save().await.unwrap();
 
-        let request = Request::post(format!("/api/admin/v1/users/{}/kill-sessions", &user.id))
+        let request = Request::post(format!("/api/admin/v1/users/{}/kill-sessions", user.id))
             .bearer(&token)
             .empty();
         let response = state.request(request).await;
         response.assert_status(StatusCode::OK);
         let body: serde_json::Value = response.json();
 
-        assert_eq!(body["data"]["id"], format!("{}", &user.id));
+        assert_eq!(body["data"]["id"], format!("{}", user.id));
         // The finished_at timestamp should be the same as the current time
         let mut repo = state.repository().await.unwrap();
         let expected = repo
@@ -197,14 +197,14 @@ mod tests {
         // Move the clock forward
         state.clock.advance(Duration::try_minutes(1).unwrap());
 
-        let request = Request::post(format!("/api/admin/v1/users/{}/kill-sessions", &user.id))
+        let request = Request::post(format!("/api/admin/v1/users/{}/kill-sessions", user.id))
             .bearer(&token)
             .empty();
         let response = state.request(request).await;
         response.assert_status(StatusCode::OK);
         let body: serde_json::Value = response.json();
 
-        assert_eq!(body["data"]["id"], format!("{}", &user.id));
+        assert_eq!(body["data"]["id"], format!("{}", user.id));
         let mut repo = state.repository().await.unwrap();
         let expected = repo
             .compat_session()

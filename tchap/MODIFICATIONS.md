@@ -6,7 +6,7 @@ This file documents all Tchap-specific modifications to the upstream
 - **Upstream**: https://github.com/element-hq/matrix-authentication-service
 - **Fork**: https://github.com/tchapgouv/matrix-authentication-service
 - **Branch**: `main_tchap`
-- **tag**: v1.25.1-1.22.0
+- **tag**: v1.28.0-1.22.0
 
 ## How Tchap modifications are tagged
 
@@ -64,8 +64,10 @@ fallback rules, and a link to the Tchap web app. It is injected into the
 application state and made available as an axum extractor for handlers.
 
 Files:
+- [crates/config/src/sections/tchap.rs](../crates/config/src/sections/tchap.rs) (Tchap config section definition, Tchap-only file)
 - [crates/config/src/sections/mod.rs](../crates/config/src/sections/mod.rs) (tchap config submodule registration)
-- [crates/data-model/src/lib.rs](../crates/data-model/src/lib.rs) (TchapConfig type and re-exports)
+- [crates/data-model/src/tchap_config.rs](../crates/data-model/src/tchap_config.rs) (TchapConfig type, Tchap-only file)
+- [crates/data-model/src/lib.rs](../crates/data-model/src/lib.rs) (TchapConfig re-exports)
 - [crates/cli/src/app_state.rs](../crates/cli/src/app_state.rs) (AppState field + FromRef impl)
 - [crates/cli/src/commands/server.rs](../crates/cli/src/commands/server.rs) (config extraction + injection)
 
@@ -77,15 +79,13 @@ identity server (wrong server, invitation required), and used to generate
 both the MXID localpart and the display name automatically. The username
 existence check is moved earlier and an "email in use" error page is shown
 when a collision is detected, including a specific message for deactivated
-accounts. The frontend uses a custom password creation component with
-Tchap-specific labels.
+accounts.
 
 Files:
 - [crates/handlers/src/views/register/password.rs](../crates/handlers/src/views/register/password.rs) (email validation, MXID/display-name generation)
 - [crates/handlers/src/views/register/steps/finish.rs](../crates/handlers/src/views/register/steps/finish.rs) (email-in-use check, deactivated account flag)
-- [frontend/src/entrypoints/register/PasswordCreationDoubleInput.tsx](../frontend/src/entrypoints/register/PasswordCreationDoubleInput.tsx) (custom password input component)
-- [tchap/resources/templates/pages/register/index.html](../tchap/resources/templates/pages/register/index.html) (registration entry template)
-- [tchap/resources/templates/pages/register/password.html](../tchap/resources/templates/pages/register/password.html) (password registration template)
+- [frontend/src/components/RegisterForm/RegisterForm.tsx](../frontend/src/components/RegisterForm/RegisterForm.tsx)
+- [tchap/resources/templates/pages/register/index.html](../tchap/resources/templates/pages/register/index.html) (registration page: upstream island + ProConnect button + no-JS fallback)
 - [tchap/resources/templates/pages/register/steps/display_name.html](../tchap/resources/templates/pages/register/steps/display_name.html) (display name step template)
 - [tchap/resources/templates/pages/register/steps/email_in_use.html](../tchap/resources/templates/pages/register/steps/email_in_use.html) (email-in-use error template)
 
@@ -115,11 +115,13 @@ Files:
 When a user attempts to log in via SSO (ProConnect) and an existing account
 is found in a deactivated state, the flow reactivates the account on both the
 homeserver and the database instead of showing a "deactivated" error page.
-The stored email is preserved rather than being overwritten by the OIDC
-email.
+Reactivation can also happen at the end of the email/password registration
+flow when the server configuration allows it. The stored email is preserved
+rather than being overwritten by the OIDC email.
 
 Files:
-- [crates/handlers/src/upstream_oauth2/link.rs](../crates/handlers/src/upstream_oauth2/link.rs) (reactivation logic, lines ~802-843)
+- [crates/handlers/src/upstream_oauth2/link.rs](../crates/handlers/src/upstream_oauth2/link.rs) (reactivation logic on SSO login)
+- [crates/handlers/src/views/register/steps/finish.rs](../crates/handlers/src/views/register/steps/finish.rs) (reactivation at registration finish)
 
 ### 6. SSO linking by email
 
@@ -301,8 +303,10 @@ Files:
 - [crates/policy/src/lib.rs](../crates/policy/src/lib.rs) (`evaluate_register_proconnect_only`)
 - [crates/handlers/src/views/register/mod.rs](../crates/handlers/src/views/register/mod.rs) (policy evaluation, login hint passed to the template)
 - [crates/templates/src/context.rs](../crates/templates/src/context.rs) (`RegisterContext.proconnect_only`, `RegisterContext.proconnect_login_hint`)
-- [tchap/resources/templates/pages/register/index.html](../tchap/resources/templates/pages/register/index.html) (hide email button, explanatory block)
+- [frontend/src/entrypoints/register.tsx](../frontend/src/entrypoints/register.tsx) (reads the ProConnect-only mount flag, switches to the providers-only form)
+- [tchap/resources/templates/pages/register/index.html](../tchap/resources/templates/pages/register/index.html) (email/password form not mounted, explanatory block)
 - [tchap/resources/translations/fr.json](../tchap/resources/translations/fr.json) / [en.json](../tchap/resources/translations/en.json) (`mas.register.proconnect_only.*`)
+
 ### 18. Optional policy data reload kill switch
 
 Upstream, the background task that reloads the OPA policy dynamic data every
@@ -322,6 +326,7 @@ Files:
 These files exist only in the Tchap fork and have no upstream equivalent:
 - `crates/tchap/**` — the Tchap crate
 - `crates/handlers/src/oauth2/end_session.rs` — Tchap-only end session handler
+- `frontend/tchap/**` — Tchap frontend components
 - `templates/emails/recovery_deactivated.{html,txt,subject}` — deactivated-account recovery email fallback templates
 - `tchap/resources/templates/emails/recovery_deactivated.{html,txt,subject}` — deactivated-account recovery email branded templates
 - `tchap/resources/**` — Tchap templates, emails, and resources

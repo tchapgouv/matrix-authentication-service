@@ -55,7 +55,12 @@ allowBuilds:
 # version mismatches.
 strictPeerDependencies: true
 peerDependencyRules:
-  allowedVersions: {}
+  allowedVersions:
+    # :tchap: the Tchap fork of compound-design-tokens
+    # (github.com/tchapgouv/compound-design-tokens, version 11.x) is used on
+    # top of compound-web 9.x, whose declared peer range stops below 11. The
+    # fork is API-compatible.
+    "@vector-im/compound-design-tokens": "*"
 
 minimumReleaseAgeExclude:
   # We need this fix: https://github.com/zxcvbn-ts/zxcvbn/pull/330
