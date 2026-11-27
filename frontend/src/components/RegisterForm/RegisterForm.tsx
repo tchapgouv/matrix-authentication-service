@@ -56,7 +56,7 @@ const ProviderButtons: React.FC<{ providers: Provider[] }> = ({
     </>
   );
 };
-
+//:tchap: add proconnect button component
 const ProconnectButton: React.FC<{ providers: Provider[] }> = ({
   providers,
 }) => {
@@ -92,6 +92,7 @@ const ProconnectButton: React.FC<{ providers: Provider[] }> = ({
     </>
   );
 };
+//:tchap: end
 
 const LoginLink: React.FC<{ href: string }> = ({ href }) => {
   const { t } = useTranslation();
@@ -227,7 +228,7 @@ export const PasswordRegisterForm: React.FC<{
         </div>
       ))}
 
-      {/* :tchap: Tchap registration is email-based*/}
+      {/* :tchap: Tchap registration is email-based, deactivate usernamefield*/}
       {false && (
         <UsernameField
           serverName={serverName}

@@ -1,4 +1,5 @@
 {#
+Copyright 2025, 2026 Element Creations Ltd.
 Copyright 2024, 2025 New Vector Ltd.
 Copyright 2021-2024 The Matrix.org Foundation C.I.C.
 
@@ -8,12 +9,13 @@ Please see LICENSE files in the repository root for full details.
 
 {% extends "base.html" %}
 
-{% block content %}
-  <!-- :tchap: the Tchap register page mounts the password island directly on
-       the /register page; upstream renders the whole form through the
-       register.tsx island -->
-  {{ include_asset('src/entrypoints/register/PasswordDoubleInput.tsx') | indent(4) | safe }}
+{% block head %}
+  {{ include_asset('src/entrypoints/register.tsx') | indent(4) | safe }}
+  {# Pre-load the locale data for the current language #}
+  {{ include_asset('locales/' ~ lang ~ '.json') | indent(4) | safe }}
+{% endblock head %}
 
+{% block content %}
   <header class="page-heading">
     <div class="icon">
       {{ icon.user_profile_solid() }}
@@ -31,13 +33,10 @@ Please see LICENSE files in the repository root for full details.
     </div>
   </header>
 
-  {# The Tchap registration form is email-based: the upstream register island
-     is mounted without the username field (the localpart is generated from
-     the email address server-side) and without the upstream provider
-     buttons (rendered above) #}
+  <!-- :tchap: add data-proconnect-only attribute -->
   <div id="register-form"
        data-csrf-token="{{ csrf_token }}"
-       data-proconnect-only="{{ proconnect_only }}"
+       data-proconnect-only="{{ proconnect_only }}" 
        {%- if captcha_config %} data-captcha-config='{{ captcha_config | tojson }}'{% endif %}
        data-branding='{{ branding | tojson }}'
        data-features='{{ features | tojson }}'
@@ -47,11 +46,18 @@ Please see LICENSE files in the repository root for full details.
        data-graphql-endpoint="{{ graphql_endpoint }}">
     <p class="sr-only">{{ _("mas.loading") }}</p>
 
-    <input type="hidden" name="csrf" value="{{ csrf_token }}" />
+    {# Rough outline of the form, to keep the page from jumping once it mounts #}
+    <div class="register-skeleton" aria-hidden="true">
+      <div class="field"><span class="label"></span><span class="control"></span></div>
+      <div class="field"><span class="label"></span><span class="control"></span></div>
+      <div class="field"><span class="label"></span><span class="control"></span></div>
+      <span class="submit"></span>
+    </div>
+  </div>
 
-    {% call(f) field.field(label=_("common.email_address"), name="email", form_state=form) %}
-    <input {{ field.attributes(f) }} class="cpd-text-control" type="email" autocomplete="username" required />
-    {% endcall %}
+  <div id="register-form-error" class="critical-notice" hidden>
+    {{ _("mas.loading_failed") }}
+  </div>
 
   <noscript>
     {# The skeleton would otherwise sit above this message forever #}
@@ -59,5 +65,4 @@ Please see LICENSE files in the repository root for full details.
 
     <p class="critical-notice">{{ _("mas.register.javascript_required") }}</p>
   </noscript>
-
 {% endblock content %}
